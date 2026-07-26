@@ -20,7 +20,8 @@ export default defineConfig({
       name: '系统管理',
       icon: 'SettingOutlined',
       routes: [
-        { path: '/system/user', name: '用户管理', component: '@/pages/System/User' }
+        { path: '/system/user', name: '用户管理', component: '@/pages/System/User' },
+        { path: '/system/role', name: '角色管理', component: '@/pages/System/Role' }
       ]
     },
     { path: '*', component: '@/pages/404' }
