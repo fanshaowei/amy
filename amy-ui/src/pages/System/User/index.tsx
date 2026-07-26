@@ -13,11 +13,13 @@ import {
   getConfigValue,
   getDeptTree,
   getUser,
+  getUserAuthRoles,
   listUsers,
   resetUserPassword,
   updateUser
+  , updateUserAuthRoles
 } from '@/services/system/user';
-import type { PostOption, RoleOption, TreeOption, UserRecord } from '@/services/system/user';
+import type { AuthRoleOption, PostOption, RoleOption, TreeOption, UserRecord } from '@/services/system/user';
 import { downloadFile } from '@/utils/download';
 
 function filterEnabled(nodes: TreeOption[]): TreeOption[] {
@@ -46,6 +48,10 @@ export default function UserPage() {
   const [posts, setPosts] = useState<PostOption[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [initPassword, setInitPassword] = useState('123456');
+  const [authUser, setAuthUser] = useState<UserRecord>();
+  const [authRoles, setAuthRoles] = useState<AuthRoleOption[]>([]);
+  const [authRoleIds, setAuthRoleIds] = useState<React.Key[]>([]);
+  const [authRoleOpen, setAuthRoleOpen] = useState(false);
   const normalDict = useDict('sys_normal_disable');
   const sexDict = useDict('sys_user_sex');
 
@@ -75,6 +81,7 @@ export default function UserPage() {
       title: '操作', valueType: 'option', width: 230, fixed: 'right', render: (_, record) => record.userId === 1 ? null : [
         <PermissionButton key="edit" type="link" size="small" permission="system:user:edit" onClick={() => void openForm(record)}>修改</PermissionButton>,
         <PermissionButton key="pwd" type="link" size="small" permission="system:user:resetPwd" onClick={() => { let password = initPassword; modal.confirm({ title: `重置「${record.userName}」密码`, content: <Input.Password defaultValue={initPassword} onChange={(event) => { password = event.target.value; }} />, onOk: async () => { if (password.length < 5 || password.length > 20) throw new Error('密码长度必须介于 5 和 20 之间'); await resetUserPassword(record.userId!, password); message.success(`修改成功，新密码是：${password}`); } }); }}>重置密码</PermissionButton>,
+        <PermissionButton key="roles" type="link" size="small" permission="system:user:edit" onClick={async () => { const response = await getUserAuthRoles(record.userId!); setAuthUser(response.user); setAuthRoles(response.roles || []); setAuthRoleIds((response.roles || []).filter((role) => role.flag).map((role) => role.roleId)); setAuthRoleOpen(true); }}>分配角色</PermissionButton>,
         <PermissionButton key="delete" type="link" danger size="small" permission="system:user:remove" onClick={() => modal.confirm({ title: `确认删除用户「${record.userName}」？`, onOk: async () => { await deleteUsers([record.userId!]); message.success('删除成功'); actionRef.current?.reload(); } })}>删除</PermissionButton>
       ]
     }
@@ -151,6 +158,10 @@ export default function UserPage() {
           { key: 'role', label: '角色', children: roles.filter((item) => detail?.roleIds?.includes(item.roleId)).map((item) => item.roleName).join('、') || '无角色' },
           { key: 'remark', label: '备注', span: 2, children: detail?.remark || '-' }
         ]} />
+      </Drawer>
+      <Drawer title={`分配角色 - ${authUser?.nickName || ''}`} width={760} open={authRoleOpen} onClose={() => setAuthRoleOpen(false)} extra={<PermissionButton type="primary" permission="system:user:edit" onClick={async () => { await updateUserAuthRoles(authUser!.userId!, authRoleIds); message.success('授权成功'); setAuthRoleOpen(false); }}>提交</PermissionButton>}>
+        <Descriptions column={2} items={[{ key: 'nick', label: '用户昵称', children: authUser?.nickName }, { key: 'name', label: '登录账号', children: authUser?.userName }]} />
+        <ProTable<AuthRoleOption> rowKey="roleId" search={false} options={false} pagination={{ pageSize: 10 }} dataSource={authRoles} columns={[{ title: '角色编号', dataIndex: 'roleId' }, { title: '角色名称', dataIndex: 'roleName' }, { title: '权限字符', dataIndex: 'roleKey' }, { title: '创建时间', dataIndex: 'createTime' }]} rowSelection={{ selectedRowKeys: authRoleIds, getCheckboxProps: (role) => ({ disabled: role.status !== '0' }), onChange: setAuthRoleIds }} />
       </Drawer>
     </PageContainer>
   );

@@ -32,6 +32,8 @@ export default defineConfig({
         { path: '/system/logininfor', name: '登录日志', component: '@/pages/System/Logininfor' }
       ]
     },
+    { path: '/system/user/profile', name: '个人中心', hideInMenu: true, component: '@/pages/System/Profile' },
+    { path: '/403', layout: false, component: '@/pages/403' },
     { path: '*', component: '@/pages/404' }
   ],
   proxy: {

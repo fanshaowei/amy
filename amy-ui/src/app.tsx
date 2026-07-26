@@ -114,12 +114,27 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => ({
   layout: 'mix',
   contentWidth: 'Fluid',
   rightContentRender: () => <UserMenu currentUser={initialState?.currentUser} />,
+  menuDataRender: (menuData) => menuData.map((item) => item.path === '/system' ? { ...item, children: item.children?.filter((child) => !child.path || hasRoutePermission(child.path, initialState?.permissions || [])) } : item),
   onPageChange: () => {
     if (!getToken() && history.location.pathname !== '/login') {
       history.push(`/login?redirect=${encodeURIComponent(history.location.pathname)}`);
+    } else if (!hasRoutePermission(history.location.pathname, initialState?.permissions || [])) {
+      history.push('/403');
     }
   }
 });
+
+const ROUTE_PERMISSIONS: Record<string, string> = {
+  '/system/user': 'system:user:list', '/system/role': 'system:role:list', '/system/menu': 'system:menu:list',
+  '/system/dept': 'system:dept:list', '/system/post': 'system:post:list', '/system/dict': 'system:dict:list',
+  '/system/config': 'system:config:list', '/system/notice': 'system:notice:list', '/system/operlog': 'system:operlog:list',
+  '/system/logininfor': 'system:logininfor:list'
+};
+
+function hasRoutePermission(path: string, permissions: string[]) {
+  const permission = ROUTE_PERMISSIONS[path];
+  return !permission || permissions.includes('*:*:*') || permissions.includes(permission);
+}
 
 export function rootContainer(container: React.ReactNode) {
   return <App>{container}</App>;

@@ -29,6 +29,22 @@ export interface UserRecord {
 export interface PostOption { postId: number; postName: string; status: string }
 export interface RoleOption { roleId: number; roleName: string; status: string }
 
+export interface AuthRoleOption extends RoleOption {
+  roleKey: string;
+  createTime?: string;
+  flag?: boolean;
+}
+
+export interface UserProfileResponse extends RuoYiResponse<UserRecord> {
+  roleGroup: string;
+  postGroup: string;
+}
+
+export interface UserAuthRoleResponse {
+  user: UserRecord;
+  roles: AuthRoleOption[];
+}
+
 export interface UserDetailResponse extends RuoYiResponse<UserRecord> {
   posts: PostOption[];
   roles: RoleOption[];
@@ -49,3 +65,8 @@ export const resetUserPassword = (userId: number, password: string) =>
   request('/system/user/resetPwd', { method: 'PUT', data: { userId, password } });
 export const getDeptTree = () => request<RuoYiResponse<TreeOption[]>>('/system/user/deptTree');
 export const getConfigValue = (key: string) => request<RuoYiResponse>(`/system/config/configKey/${key}`);
+export const getUserProfile = () => request<UserProfileResponse>('/system/user/profile');
+export const updateUserProfile = (data: Partial<UserRecord>) => request('/system/user/profile', { method: 'PUT', data });
+export const updateUserPassword = (oldPassword: string, newPassword: string) => request('/system/user/profile/updatePwd', { method: 'PUT', data: { oldPassword, newPassword } });
+export const getUserAuthRoles = (userId: number) => request<UserAuthRoleResponse>(`/system/user/authRole/${userId}`);
+export const updateUserAuthRoles = (userId: number, roleIds: React.Key[]) => request('/system/user/authRole', { method: 'PUT', params: { userId, roleIds: roleIds.join(',') } });
