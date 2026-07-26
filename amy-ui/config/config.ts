@@ -15,6 +15,14 @@ export default defineConfig({
     { path: '/login', layout: false, component: '@/pages/Login' },
     { path: '/', redirect: '/welcome' },
     { path: '/welcome', name: '首页', icon: 'DashboardOutlined', component: '@/pages/Welcome' },
+    {
+      path: '/system',
+      name: '系统管理',
+      icon: 'SettingOutlined',
+      routes: [
+        { path: '/system/user', name: '用户管理', component: '@/pages/System/User' }
+      ]
+    },
     { path: '*', component: '@/pages/404' }
   ],
   proxy: {
