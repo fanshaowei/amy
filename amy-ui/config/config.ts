@@ -23,7 +23,8 @@ export default defineConfig({
         { path: '/system/user', name: '用户管理', component: '@/pages/System/User' },
         { path: '/system/role', name: '角色管理', component: '@/pages/System/Role' },
         { path: '/system/menu', name: '菜单管理', component: '@/pages/System/Menu' },
-        { path: '/system/dept', name: '部门管理', component: '@/pages/System/Dept' }
+        { path: '/system/dept', name: '部门管理', component: '@/pages/System/Dept' },
+        { path: '/system/post', name: '岗位管理', component: '@/pages/System/Post' }
       ]
     },
     { path: '*', component: '@/pages/404' }
