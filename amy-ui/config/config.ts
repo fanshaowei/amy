@@ -21,7 +21,8 @@ export default defineConfig({
       icon: 'SettingOutlined',
       routes: [
         { path: '/system/user', name: '用户管理', component: '@/pages/System/User' },
-        { path: '/system/role', name: '角色管理', component: '@/pages/System/Role' }
+        { path: '/system/role', name: '角色管理', component: '@/pages/System/Role' },
+        { path: '/system/menu', name: '菜单管理', component: '@/pages/System/Menu' }
       ]
     },
     { path: '*', component: '@/pages/404' }
