@@ -25,7 +25,8 @@ export default defineConfig({
         { path: '/system/menu', name: '菜单管理', component: '@/pages/System/Menu' },
         { path: '/system/dept', name: '部门管理', component: '@/pages/System/Dept' },
         { path: '/system/post', name: '岗位管理', component: '@/pages/System/Post' },
-        { path: '/system/dict', name: '字典管理', component: '@/pages/System/Dict' }
+        { path: '/system/dict', name: '字典管理', component: '@/pages/System/Dict' },
+        { path: '/system/config', name: '参数设置', component: '@/pages/System/Config' }
       ]
     },
     { path: '*', component: '@/pages/404' }
