@@ -5,7 +5,7 @@ import { App, Image, theme } from 'antd';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { getCaptcha, getRouters, getUserInfo, login } from '@/services/auth';
-import type { LoginParams } from '@/types/api';
+import type { LoginParams, LoginResult, RuoYiResponse, UserInfoResult, BackendRoute } from '@/types/api';
 import { setExpiresIn, setToken } from '@/utils/auth';
 import { decrypt, encrypt } from '@/utils/encryption';
 import background from '@/assets/login-background.jpg';
@@ -55,8 +55,18 @@ export default function LoginPage() {
   const handleSubmit = async (values: LoginFormValues) => {
     try {
       const result = await login({ ...values, uuid });
-      setToken(result.access_token);
-      setExpiresIn(result.expires_in);
+      const loginData = result.data as LoginResult | undefined;
+      const accessToken = loginData?.access_token;
+      const expiresIn = loginData?.expires_in;
+
+      if (!accessToken) {
+        throw new Error('登录返回令牌为空');
+      }
+
+      setToken(accessToken);
+      if (typeof expiresIn === 'number') {
+        setExpiresIn(expiresIn);
+      }
 
       if (values.rememberMe) {
         Cookies.set(USERNAME_KEY, values.username, { expires: 30 });
@@ -68,12 +78,14 @@ export default function LoginPage() {
         Cookies.remove(REMEMBER_KEY);
       }
 
-      const [userInfo, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
+      const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
+      const userInfo = userInfoResult.data as UserInfoResult;
+      const routes = routeResult.data as BackendRoute[];
       await setInitialState({
         currentUser: userInfo.user,
         roles: userInfo.roles || [],
         permissions: userInfo.permissions || [],
-        routes: routeResult.data || []
+        routes: routes || []
       });
       message.success('登录成功');
       history.push(searchParams.get('redirect') || '/');

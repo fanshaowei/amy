@@ -9,7 +9,7 @@ import type {
 } from '@/types/api';
 
 export const login = (data: LoginParams) =>
-  request<LoginResult>('/auth/login', {
+  request<RuoYiResponse<LoginResult>>('/auth/login', {
     method: 'POST',
     data,
     headers: { isToken: 'false', repeatSubmit: 'false' }
@@ -24,6 +24,6 @@ export const getCaptcha = () =>
     headers: { isToken: 'false' }
   });
 
-export const getUserInfo = () => request<UserInfoResult>('/system/user/getInfo');
+export const getUserInfo = () => request<RuoYiResponse<UserInfoResult>>('/system/user/getInfo');
 
 export const getRouters = () => request<RuoYiResponse<BackendRoute[]>>('/system/menu/getRouters');

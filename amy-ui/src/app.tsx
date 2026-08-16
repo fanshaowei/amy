@@ -19,12 +19,14 @@ export async function getInitialState(): Promise<AmyInitialState> {
   }
 
   try {
-    const [userInfo, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
+    const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
+    const userInfo = userInfoResult.data;
+    const routes = routeResult.data;
     return {
       currentUser: userInfo.user,
       roles: userInfo.roles || [],
       permissions: userInfo.permissions || [],
-      routes: routeResult.data || []
+      routes: routes || []
     };
   } catch {
     clearSession();
