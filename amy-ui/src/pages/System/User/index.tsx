@@ -76,7 +76,16 @@ export default function UserPage() {
     { title: '部门', dataIndex: ['dept', 'deptName'], search: false },
     { title: '手机号码', dataIndex: 'phonenumber' },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(normalDict.options.map((item) => [item.value, { text: item.label }])), render: (_, record) => <Switch checked={record.status === '0'} disabled={record.userId === 1} onChange={async (checked) => { const next = checked ? '0' : '1'; try { await changeUserStatus(record.userId!, next); message.success(`${checked ? '启用' : '停用'}成功`); actionRef.current?.reload(); } catch { actionRef.current?.reload(); } }} /> },
-    { title: '创建时间', dataIndex: 'createTime', valueType: 'dateRange', width: 170, render: (_, record) => record.createTime || '-' },
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      valueType: 'dateRange',
+      width: 170,
+      search: {
+        transform: (value) => ({ params: { beginTime: value?.[0], endTime: value?.[1] } })
+      },
+      render: (_, record) => record.createTime || '-'
+    },
     {
       title: '操作', valueType: 'option', width: 230, fixed: 'right', render: (_, record) => record.userId === 1 ? null : [
         <PermissionButton key="edit" type="link" size="small" permission="system:user:edit" onClick={() => void openForm(record)}>修改</PermissionButton>,
@@ -100,11 +109,17 @@ export default function UserPage() {
             rowKey="userId"
             actionRef={actionRef}
             columns={columns}
+            pagination={{ defaultPageSize: 10 }}
             rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
             scroll={{ x: 1100 }}
             request={async (params) => {
-              const { current, pageSize, createTime, ...rest } = params;
-              const response = await listUsers({ ...rest, deptId, pageNum: current, pageSize, beginTime: createTime?.[0], endTime: createTime?.[1] });
+              const { current, pageSize, ...queryParams } = params;
+              const response = await listUsers({
+                ...queryParams,
+                deptId,
+                pageNum: current,
+                pageSize
+              });
               return { data: response.rows, total: response.total, success: response.code === 200 };
             }}
             toolBarRender={() => [

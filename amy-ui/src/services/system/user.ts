@@ -52,8 +52,33 @@ export interface UserDetailResponse extends RuoYiResponse<UserRecord> {
   roleIds: number[];
 }
 
-export const listUsers = (params: Record<string, unknown>) =>
-  request<RuoYiTableResponse<UserRecord>>('/system/user/list', { params });
+function serializeUserQuery(params: Record<string, unknown>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    if (key === 'params' && typeof value === 'object' && !Array.isArray(value)) {
+      Object.entries(value as Record<string, unknown>).forEach(([nestedKey, nestedValue]) => {
+        if (nestedValue !== undefined && nestedValue !== null && nestedValue !== '') {
+          searchParams.append(`params[${nestedKey}]`, String(nestedValue));
+        }
+      });
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  return searchParams.toString();
+}
+
+export const listUsers = (params: Record<string, unknown>) => {
+  const query = serializeUserQuery(params);
+  return request<RuoYiTableResponse<UserRecord>>(`/system/user/list${query ? `?${query}` : ''}`);
+};
 export const getUser = (userId?: number) =>
   request<UserDetailResponse>(`/system/user/${userId ?? ''}`);
 export const addUser = (data: UserRecord) => request('/system/user', { method: 'POST', data });
