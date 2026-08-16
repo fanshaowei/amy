@@ -36,9 +36,14 @@ export interface CurrentUser {
 }
 
 export interface UserInfoResult {
+  code: number;
+  msg: string;
   user: CurrentUser;
   roles: string[];
   permissions: string[];
+  pwdChrtype?: string;
+  isDefaultModifyPwd?: boolean;
+  isPasswordExpired?: boolean;
 }
 
 export interface BackendRouteMeta {

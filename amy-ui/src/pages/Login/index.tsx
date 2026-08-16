@@ -5,7 +5,7 @@ import { App, Image, theme } from 'antd';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { getCaptcha, getRouters, getUserInfo, login } from '@/services/auth';
-import type { LoginParams, LoginResult, RuoYiResponse, UserInfoResult, BackendRoute } from '@/types/api';
+import type { LoginParams, LoginResult, BackendRoute } from '@/types/api';
 import { setExpiresIn, setToken } from '@/utils/auth';
 import { decrypt, encrypt } from '@/utils/encryption';
 import background from '@/assets/login-background.jpg';
@@ -79,12 +79,11 @@ export default function LoginPage() {
       }
 
       const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
-      const userInfo = userInfoResult.data as UserInfoResult;
       const routes = routeResult.data as BackendRoute[];
       await setInitialState({
-        currentUser: userInfo.user,
-        roles: userInfo.roles || [],
-        permissions: userInfo.permissions || [],
+        currentUser: userInfoResult.user,
+        roles: userInfoResult.roles || [],
+        permissions: userInfoResult.permissions || [],
         routes: routes || []
       });
       message.success('登录成功');

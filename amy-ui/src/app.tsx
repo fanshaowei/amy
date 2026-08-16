@@ -20,12 +20,11 @@ export async function getInitialState(): Promise<AmyInitialState> {
 
   try {
     const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
-    const userInfo = userInfoResult.data;
     const routes = routeResult.data;
     return {
-      currentUser: userInfo.user,
-      roles: userInfo.roles || [],
-      permissions: userInfo.permissions || [],
+      currentUser: userInfoResult.user,
+      roles: userInfoResult.roles || [],
+      permissions: userInfoResult.permissions || [],
       routes: routes || []
     };
   } catch {
