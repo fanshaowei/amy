@@ -57,7 +57,16 @@ export default function RolePage() {
     { title: '权限字符', dataIndex: 'roleKey' },
     { title: '显示顺序', dataIndex: 'roleSort', search: false, width: 100 },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(normalDict.options.map((item) => [item.value, { text: item.label }])), render: (_, record) => <Switch checked={record.status === '0'} disabled={record.roleId === 1} onChange={async (checked) => { await changeRoleStatus(record.roleId!, checked ? '0' : '1'); message.success('状态修改成功'); actionRef.current?.reload(); }} /> },
-    { title: '创建时间', dataIndex: 'createTime', valueType: 'dateRange', width: 170, render: (_, record) => record.createTime || '-' },
+    {
+      title: '创建时间',
+      dataIndex: 'createTime',
+      valueType: 'dateRange',
+      width: 170,
+      search: {
+        transform: (value) => ({ params: { beginTime: value?.[0], endTime: value?.[1] } })
+      },
+      render: (_, record) => record.createTime || '-'
+    },
     { title: '操作', valueType: 'option', width: 260, render: (_, record) => record.roleId === 1 ? null : [
       <PermissionButton key="edit" type="link" size="small" permission="system:role:edit" onClick={() => void openRoleForm(record)}>修改</PermissionButton>,
       <PermissionButton key="scope" type="link" size="small" permission="system:role:edit" onClick={() => void openDataScope(record)}>数据权限</PermissionButton>,
@@ -80,7 +89,8 @@ export default function RolePage() {
     <ProTable<RoleRecord>
       rowKey="roleId" actionRef={actionRef} columns={columns}
       rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
-      request={async ({ current, pageSize, createTime, ...params }) => { const response = await listRoles({ ...params, pageNum: current, pageSize, beginTime: createTime?.[0], endTime: createTime?.[1] }); return { data: response.rows, total: response.total, success: response.code === 200 }; }}
+      pagination={{ defaultPageSize: 10 }}
+      request={async ({ current, pageSize, ...params }) => { const response = await listRoles({ ...params, pageNum: current, pageSize }); return { data: response.rows, total: response.total, success: response.code === 200 }; }}
       toolBarRender={() => [
         <PermissionButton key="add" type="primary" icon={<PlusOutlined />} permission="system:role:add" onClick={() => void openRoleForm()}>新增</PermissionButton>,
         <PermissionButton key="edit" icon={<EditOutlined />} permission="system:role:edit" disabled={selectedKeys.length !== 1} onClick={() => void openRoleForm({ roleId: Number(selectedKeys[0]), roleName: '', roleKey: '', roleSort: 0 })}>修改</PermissionButton>,

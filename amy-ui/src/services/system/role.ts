@@ -19,7 +19,33 @@ export interface RoleRecord {
 
 interface CheckedTreeResponse extends RuoYiResponse<TreeOption[]> { checkedKeys: number[] }
 
-export const listRoles = (params: Record<string, unknown>) => request<RuoYiTableResponse<RoleRecord>>('/system/role/list', { params });
+function serializeRoleQuery(params: Record<string, unknown>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    if (key === 'params' && typeof value === 'object' && !Array.isArray(value)) {
+      Object.entries(value as Record<string, unknown>).forEach(([nestedKey, nestedValue]) => {
+        if (nestedValue !== undefined && nestedValue !== null && nestedValue !== '') {
+          searchParams.append(`params[${nestedKey}]`, String(nestedValue));
+        }
+      });
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  return searchParams.toString();
+}
+
+export const listRoles = (params: Record<string, unknown>) => {
+  const query = serializeRoleQuery(params);
+  return request<RuoYiTableResponse<RoleRecord>>(`/system/role/list${query ? `?${query}` : ''}`);
+};
 export const getRole = (roleId: number) => request<RuoYiResponse<RoleRecord>>(`/system/role/${roleId}`);
 export const addRole = (data: RoleRecord) => request('/system/role', { method: 'POST', data });
 export const updateRole = (data: RoleRecord) => request('/system/role', { method: 'PUT', data });
