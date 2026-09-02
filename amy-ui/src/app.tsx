@@ -33,9 +33,36 @@ export async function getInitialState(): Promise<AmyInitialState> {
   }
 }
 
+// axios 0.x 默认会把嵌套对象 JSON.stringify（如 params=%7B"beginTime":...%7D），
+// RuoYi 后端要求的是 params[beginTime]=...&params[endTime]=...（绑定到 BaseEntity.params），
+// 因此这里自定义序列化：嵌套对象展开为 bracket 记法。
+function serializeParams(params: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const append = (key: string, value: unknown) => {
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  };
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => append(`${key}[]`, item));
+    } else if (value instanceof Date) {
+      append(key, value.toISOString());
+    } else if (typeof value === 'object') {
+      Object.entries(value as Record<string, unknown>).forEach(([subKey, subValue]) => {
+        if (subValue === null || subValue === undefined) return;
+        append(`${key}[${subKey}]`, subValue);
+      });
+    } else {
+      append(key, value);
+    }
+  });
+  return parts.join('&');
+}
+
 export const request: RequestConfig = {
   baseURL: API_BASE_URL,
   timeout: 10000,
+  paramsSerializer: serializeParams,
   requestInterceptors: [
     (url, options) => {
       const token = getToken();
