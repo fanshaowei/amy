@@ -1,5 +1,0 @@
-- generic [ref=e145]:
-  - img "Unauthorized" [ref=e147]
-  - generic [ref=e201]: "403"
-  - generic [ref=e202]: 抱歉，您没有权限访问该页面。
-  - button "返回首页" [ref=e204] [cursor=pointer]
