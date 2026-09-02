@@ -33,7 +33,14 @@ export default function LoginInfoPage() {
         dataIndex: 'accessTime',
         valueType: 'dateRange',
         sorter: true,
-        search: {transform: (value) => ({params: {beginTime: value?.[0], endTime: value?.[1] ? `${value[1]} 23:59:59` : undefined}})},
+        search: {
+            transform: (value) => ({
+                params: {
+                    beginTime: value?.[0],
+                    endTime: value?.[1] ? `${value[1]} 23:59:59` : undefined
+                }
+            })
+        },
         render: (_, r) => r.accessTime || '-'
     }];
     return <PageContainer><ProTable<LoginInfoRecord> rowKey="infoId" actionRef={ref} columns={columns} rowSelection={{
