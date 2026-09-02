@@ -49,7 +49,14 @@ export default function OperlogPage() {
         dataIndex: 'operTime',
         valueType: 'dateRange',
         sorter: true,
-        search: {transform: (value) => ({params: {beginTime: value?.[0], endTime: value?.[1] ? `${value[1]} 23:59:59` : undefined}})},
+        search: {
+            transform: (value) => ({
+                params: {
+                    beginTime: value?.[0],
+                    endTime: value?.[1] ? `${value[1]} 23:59:59` : undefined
+                }
+            })
+        },
         render: (_, r) => r.operTime || '-'
     }, {
         title: '消耗时间',

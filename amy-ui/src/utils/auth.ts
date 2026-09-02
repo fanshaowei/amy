@@ -10,6 +10,6 @@ export const setExpiresIn = (expiresIn: number) => Cookies.set(EXPIRES_IN_KEY, S
 export const removeExpiresIn = () => Cookies.remove(EXPIRES_IN_KEY);
 
 export const clearSession = () => {
-  removeToken();
-  removeExpiresIn();
+    removeToken();
+    removeExpiresIn();
 };
