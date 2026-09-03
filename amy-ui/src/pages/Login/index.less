@@ -1,7 +1,47 @@
+@form-width: 400px;
+
 .page {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  background-position: center;
-  background-size: cover;
+  padding: 24px;
+  background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%);
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: @form-width;
+  margin: 0 auto;
+  animation: fadeInUp 0.5s ease-out;
+
+  // 去掉副标题后，标题与表单之间补回间距
+  :global(.ant-pro-form-login-top) {
+    margin-bottom: 36px;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logo {
+  font-size: 44px;
+  color: #1890ff;
+}
+
+.inputIcon {
+  color: #8c8c8c;
 }
 
 .captchaRow {
@@ -19,19 +59,43 @@
   background: #fff;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
+  transition: border-color 0.3s;
+
+  &:hover {
+    border-color: #40a9ff;
+  }
+}
+
+.formOptions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.forgotLink {
+  color: #1890ff;
+  font-size: 14px;
+  transition: color 0.3s;
+
+  &:hover {
+    color: #40a9ff;
+  }
 }
 
 .footer {
-  position: fixed;
-  right: 0;
-  bottom: 16px;
-  left: 0;
-  color: rgb(255 255 255 / 85%);
+  margin-top: 24px;
+  color: #8c8c8c;
   font-size: 12px;
   text-align: center;
 }
 
 @media (max-width: 576px) {
+  .page {
+    padding: 16px;
+  }
+
   .captchaRow {
     grid-template-columns: minmax(0, 1fr) 104px;
   }
