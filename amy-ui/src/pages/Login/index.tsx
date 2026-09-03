@@ -1,14 +1,13 @@
-import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
-import { LoginFormPage, ProFormCaptcha, ProFormCheckbox, ProFormText } from '@ant-design/pro-components';
+import { AntDesignOutlined, LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import { LoginForm, ProFormCaptcha, ProFormCheckbox, ProFormText } from '@ant-design/pro-components';
 import { history, useModel, useSearchParams } from '@umijs/max';
-import { App, Image, theme } from 'antd';
+import { App, Image } from 'antd';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { getCaptcha, getRouters, getUserInfo, login } from '@/services/auth';
-import type { LoginParams, LoginResult, BackendRoute } from '@/types/api';
+import type { LoginParams, LoginResult } from '@/types/api';
 import { setExpiresIn, setToken } from '@/utils/auth';
 import { decrypt, encrypt } from '@/utils/encryption';
-import background from '@/assets/login-background.jpg';
 import styles from './index.less';
 
 interface LoginFormValues extends LoginParams {
@@ -20,7 +19,6 @@ const PASSWORD_KEY = 'password';
 const REMEMBER_KEY = 'rememberMe';
 
 export default function LoginPage() {
-  const { token } = theme.useToken();
   const { message } = App.useApp();
   const { setInitialState } = useModel('@@initialState');
   const [searchParams] = useSearchParams();
@@ -49,7 +47,7 @@ export default function LoginPage() {
   const initialValues: LoginFormValues = {
     username: Cookies.get(USERNAME_KEY) || 'admin',
     password: remembered ? decrypt(Cookies.get(PASSWORD_KEY) || '') : 'admin123',
-    rememberMe: remembered
+    rememberMe: remembered,
   };
 
   const handleSubmit = async (values: LoginFormValues) => {
@@ -79,12 +77,12 @@ export default function LoginPage() {
       }
 
       const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
-      const routes = routeResult.data as BackendRoute[];
+      const routes = routeResult.data as import('@/types/api').BackendRoute[];
       await setInitialState({
         currentUser: userInfoResult.user,
         roles: userInfoResult.roles || [],
         permissions: userInfoResult.permissions || [],
-        routes: routes || []
+        routes: routes || [],
       });
       message.success('登录成功');
       history.push(searchParams.get('redirect') || '/');
@@ -97,45 +95,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.page} style={{ backgroundImage: `url(${background})` }}>
-      <LoginFormPage<LoginFormValues>
-        title="若依管理系统"
-        subTitle="Ant Design Pro 企业级管理平台"
-        initialValues={initialValues}
-        onFinish={handleSubmit}
-        backgroundImageUrl={background}
-        containerStyle={{ backgroundColor: token.colorBgContainer, backdropFilter: 'blur(8px)' }}
-        submitter={{ searchConfig: { submitText: '登录' }, submitButtonProps: { block: true, size: 'large' } }}
-      >
-        <ProFormText
-          name="username"
-          fieldProps={{ size: 'large', prefix: <UserOutlined /> }}
-          placeholder="请输入账号"
-          rules={[{ required: true, message: '请输入您的账号' }]}
-        />
-        <ProFormText.Password
-          name="password"
-          fieldProps={{ size: 'large', prefix: <LockOutlined /> }}
-          placeholder="请输入密码"
-          rules={[{ required: true, message: '请输入您的密码' }]}
-        />
-        {captchaEnabled && (
-          <div className={styles.captchaRow}>
-            <ProFormCaptcha
-              name="code"
-              fieldProps={{ size: 'large', prefix: <SafetyCertificateOutlined /> }}
-              placeholder="请输入验证码"
-              rules={[{ required: true, message: '请输入验证码' }]}
-              captchaProps={{ style: { display: 'none' } }}
-              onGetCaptcha={async () => undefined}
-            />
-            <button type="button" className={styles.captchaButton} onClick={() => void loadCaptcha()} aria-label="刷新验证码">
-              {captchaUrl ? <Image preview={false} src={captchaUrl} alt="验证码" height={40} /> : '点击刷新'}
-            </button>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <LoginForm<LoginFormValues>
+          logo={<AntDesignOutlined className={styles.logo} />}
+          title="管理系统"
+          initialValues={initialValues}
+          onFinish={handleSubmit}
+          submitter={{ searchConfig: { submitText: '登录' }, submitButtonProps: { block: true, size: 'large' } }}
+        >
+          <ProFormText
+            name="username"
+            fieldProps={{ size: 'large', prefix: <UserOutlined className={styles.inputIcon} /> }}
+            placeholder="请输入账号"
+            rules={[{ required: true, message: '请输入您的账号' }]}
+          />
+          <ProFormText.Password
+            name="password"
+            fieldProps={{ size: 'large', prefix: <LockOutlined className={styles.inputIcon} /> }}
+            placeholder="请输入密码"
+            rules={[{ required: true, message: '请输入您的密码' }]}
+          />
+          {captchaEnabled && (
+            <div className={styles.captchaRow}>
+              <ProFormCaptcha
+                name="code"
+                fieldProps={{ size: 'large', prefix: <SafetyCertificateOutlined className={styles.inputIcon} /> }}
+                placeholder="请输入验证码"
+                rules={[{ required: true, message: '请输入验证码' }]}
+                captchaProps={{ style: { display: 'none' } }}
+                onGetCaptcha={async () => undefined}
+              />
+              <button
+                type="button"
+                className={styles.captchaButton}
+                onClick={() => void loadCaptcha()}
+                aria-label="刷新验证码"
+              >
+                {captchaUrl ? <Image preview={false} src={captchaUrl} alt="验证码" height={40} /> : '点击刷新'}
+              </button>
+            </div>
+          )}
+          <div className={styles.formOptions}>
+            <ProFormCheckbox name="rememberMe">记住密码</ProFormCheckbox>
+            <a className={styles.forgotLink} href="#">
+              忘记密码 ?
+            </a>
           </div>
-        )}
-        <ProFormCheckbox name="rememberMe">记住密码</ProFormCheckbox>
-      </LoginFormPage>
+        </LoginForm>
+      </div>
       <footer className={styles.footer}>Copyright © 2018-2026 RuoYi. All Rights Reserved.</footer>
     </div>
   );
