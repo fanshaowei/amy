@@ -28,8 +28,14 @@ export default defineConfig({
         { path: '/system/dict', name: '字典管理', component: '@/pages/System/Dict' },
         { path: '/system/config', name: '参数设置', component: '@/pages/System/Config' },
         { path: '/system/notice', name: '通知公告', component: '@/pages/System/Notice' },
-        { path: '/system/operlog', name: '操作日志', component: '@/pages/System/Operlog' },
-        { path: '/system/logininfor', name: '登录日志', component: '@/pages/System/Logininfor' }
+        {
+          path: '/system/log',
+          name: '日志管理',
+          routes: [
+            { path: '/system/log/operlog', name: '操作日志', component: '@/pages/System/Operlog' },
+            { path: '/system/log/logininfor', name: '登录日志', component: '@/pages/System/Logininfor' }
+          ]
+        }
       ]
     },
     {

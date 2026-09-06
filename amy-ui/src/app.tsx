@@ -157,7 +157,7 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
     menuDataRender: (menuData) => {
         const backend = initialState?.routes;
         const source = backend && backend.length ? backend : mapStaticRoutesToSidebar(menuData as unknown as BackendRoute[]);
-        return source.map(toProLayoutMenu);
+        return source.map((item) => toProLayoutMenu(item, '/'));
     },
     onPageChange: () => {
         if (!getToken() && history.location.pathname !== '/login') {
@@ -188,21 +188,37 @@ function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {
  * 后端 buildMenus 把路由名（英文驼峰）放在 `name` 字段、把中文菜单名放在 `meta.title`，
  * 而 pro-layout 的 BaseMenu.getIntlName 只读 `item.name`、不读 `meta.title`，
  * 所以这里把 `name` 重写为 `meta.title`，并把图标从 meta 里提到顶级 icon 字段。
- * 同时把字符串 icon（后端存的 'user'/'system' 等 ruoyi svg 名，或 antd 图标名）解析为 React 组件；
- * 解析不出来时返回 null，否则 pro-layout 会把字符串原样渲染成文本。
+ * 同时把字符串 icon（后端存的 'user'/'system' 等 ruoyi svg 名，或 antd 图标名）解析为 React 元素；
+ * 解析不出来时返回 undefined。
+ *
+ * 路径处理：后端 sys_menu.path 是相对路径（'operlog'、'logininfor'），没有 '/' 前缀；
+ * pro-layout 要求完整路径（'/system/operlog'）。这里按 umi 的 mergePath 规则递归拼接父级 path，
+ * 否则菜单点击会落到 catch-all '*'，组件渲染失败。
  */
-function toProLayoutMenu(item: BackendRoute): BackendRoute {
+function toProLayoutMenu(item: BackendRoute, parentPath: string): BackendRoute {
     const title = item.meta?.title || item.name || item.path;
     const iconName = (item.icon || item.meta?.icon) as string | undefined;
     const IconComp = iconName ? renderIcon(iconName) : null;
-    // 必须用 createElement 把组件引用渲染成 ReactElement，pro-layout 把 icon 直接放进 children，
-    // 如果传函数引用（ComponentType）React 会报 "Element type is invalid"，整个 layout 渲染失败导致白屏。
+    const mergedPath = mergePath(item.path, parentPath);
     return {
         ...item,
         name: title,
+        path: mergedPath,
         icon: IconComp ? React.createElement(IconComp) : undefined,
-        children: item.children?.map(toProLayoutMenu)
+        children: item.children?.map((c) => toProLayoutMenu(c, mergedPath))
     };
+}
+
+/**
+ * 模仿 umi route-utils 的 mergePath：相对路径 + 父路径拼成完整路径，绝对路径保持不变。
+ */
+function mergePath(path: string | undefined, parentPath: string): string {
+    if (!path) return parentPath;
+    if (path === '/' || path === '*' || path === '/*') return path;
+    if (path.startsWith('/')) return path;
+    if (/^https?:\/\//.test(path)) return path;
+    const parent = parentPath.endsWith('/') ? parentPath.slice(0, -1) : parentPath;
+    return `${parent}/${path}`.replace(/\/+/g, '/');
 }
 
 const ROUTE_PERMISSIONS: Record<string, string> = {
@@ -214,8 +230,8 @@ const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/dict': 'system:dict:list',
     '/system/config': 'system:config:list',
     '/system/notice': 'system:notice:list',
-    '/system/operlog': 'system:operlog:list',
-    '/system/logininfor': 'system:logininfor:list'
+    '/system/log/operlog': 'system:operlog:list',
+    '/system/log/logininfor': 'system:logininfor:list'
 };
 
 function hasRoutePermission(path: string, permissions: string[]) {
