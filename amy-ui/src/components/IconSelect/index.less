@@ -1,0 +1,45 @@
+.icon-body {
+    width: 100%;
+    padding: 10px;
+}
+
+.icon-search {
+    position: relative;
+    margin-bottom: 5px;
+}
+
+.icon-list {
+    height: 240px;
+    overflow: auto;
+}
+
+.icon-list .list-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+}
+
+.icon-item-wrapper {
+    cursor: pointer;
+    padding: 6px 4px;
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.icon-item-wrapper:hover {
+    background: #ececec;
+}
+
+.icon-item-wrapper.active {
+    background: #e6f4ff;
+    border-color: #1677ff;
+}
+
+.icon-item-name {
+    font-size: 11px;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

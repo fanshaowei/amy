@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+
 export interface RuoYiResponse<T = unknown> {
     code: number;
     msg: string;
@@ -59,6 +61,8 @@ export interface BackendRoute {
     hidden?: boolean;
     redirect?: string;
     component?: string;
+    /** icon 可以是字符串（后端图标名 / ruoyi 旧 svg 名）或 React 组件。pro-layout 渲染时两者都支持。 */
+    icon?: ReactNode;
     alwaysShow?: boolean;
     meta?: BackendRouteMeta;
     children?: BackendRoute[];
