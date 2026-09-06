@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.amy</groupId>
+        <artifactId>amy</artifactId>
+        <version>3.6.8</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <modules>
+        <module>amy-common-log</module>
+        <module>amy-common-core</module>
+        <module>amy-common-redis</module>
+        <module>amy-common-seata</module>
+        <module>amy-common-swagger</module>
+        <module>amy-common-security</module>
+        <module>amy-common-sensitive</module>
+        <module>amy-common-datascope</module>
+        <module>amy-common-datasource</module>
+    </modules>
+
+    <artifactId>amy-common</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        amy-common通用模块
+    </description>
+
+</project>
