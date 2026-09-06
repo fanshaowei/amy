@@ -1,9 +1,10 @@
-import {CaretRightOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, PlusOutlined, ThunderboltOutlined} from '@ant-design/icons';
+import {CaretRightOutlined, ClockCircleOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, PlusOutlined, ThunderboltOutlined} from '@ant-design/icons';
 import {ModalForm, PageContainer, ProFormRadio, ProFormSelect, ProFormText, ProTable} from '@ant-design/pro-components';
-import type {ActionType, ProColumns} from '@ant-design/pro-components';
+import type {ActionType, ProFormInstance, ProColumns} from '@ant-design/pro-components';
 import {App, Button, Dropdown, Switch} from 'antd';
 import {useRef, useState} from 'react';
 import {history, useAccess} from '@umijs/max';
+import CronGenerator from '@/components/CronGenerator';
 import {PermissionButton} from '@/components/PermissionButton';
 import {useDict} from '@/hooks/useDict';
 import {
@@ -23,10 +24,12 @@ export default function JobPage() {
     const {message, modal} = App.useApp();
     const access = useAccess();
     const ref = useRef<ActionType>();
+    const formRef = useRef<ProFormInstance>();
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<JobRecord>();
     const [open, setOpen] = useState(false);
     const [detail, setDetail] = useState<JobRecord>();
+    const [cronOpen, setCronOpen] = useState(false);
     const groupDict = useDict('sys_job_group');
     const statusDict = useDict('sys_job_status');
 
@@ -221,6 +224,7 @@ export default function JobPage() {
             <ModalForm<JobRecord>
                 title={editing?.jobId ? '修改任务' : '添加任务'}
                 open={open}
+                formRef={formRef}
                 initialValues={editing}
                 modalProps={{destroyOnClose: true, onCancel: () => setOpen(false), width: 800}}
                 onFinish={async (v) => {
@@ -255,6 +259,19 @@ export default function JobPage() {
                     label="cron表达式"
                     tooltip="标准 Quartz cron 表达式，例如 0 0 2 * * ? 表示每天凌晨 2 点执行"
                     rules={[{required: true, message: 'cron执行表达式不能为空'}]}
+                    fieldProps={{
+                        suffix: (
+                            <Button
+                                type="link"
+                                size="small"
+                                icon={<ClockCircleOutlined />}
+                                onClick={() => setCronOpen(true)}
+                                style={{padding: 0}}
+                            >
+                                生成表达式
+                            </Button>
+                        )
+                    }}
                 />
                 {editing?.jobId ? (
                     <ProFormRadio.Group name="status" label="状态" options={statusDict.options} />
@@ -277,6 +294,16 @@ export default function JobPage() {
                     ]}
                 />
             </ModalForm>
+            <CronGenerator
+                open={cronOpen}
+                title="Cron表达式生成器"
+                value={(formRef.current?.getFieldValue?.('cronExpression') as string) || editing?.cronExpression || ''}
+                onCancel={() => setCronOpen(false)}
+                onOk={(v: string) => {
+                    formRef.current?.setFieldValue('cronExpression', v);
+                    setCronOpen(false);
+                }}
+            />
             <JobDetail type="job" record={detail} onClose={() => setDetail(undefined)} />
         </PageContainer>
     );
