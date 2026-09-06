@@ -157,7 +157,10 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
     menuDataRender: (menuData) => {
         const backend = initialState?.routes;
         const source = backend && backend.length ? backend : mapStaticRoutesToSidebar(menuData as unknown as BackendRoute[]);
-        return source.map((item) => toProLayoutMenu(item, '/'));
+        // 后端把 sys_menu.visible='1' 映射为 RouterVo.hidden=true（SysMenuServiceImpl.buildMenus）；
+        // 参考 ruoyi-ui（permission.GenerateRoutes/SidebarItem.vue）的做法，
+        // 递归过滤 hidden 项，避免侧边栏仍然展示标记为隐藏的菜单及其子菜单。
+        return filterHiddenRoutes(source).map((item) => toProLayoutMenu(item, '/'));
     },
     /**
      * pro-layout 的 BaseMenu 内部限制死了图标层级：
@@ -205,16 +208,33 @@ function renderMenuLabel(item: BackendRoute, menuProps?: {prefixCls?: string; mo
 
 /** 把 config.ts 里的静态路由转成 pro-layout 的菜单数据格式 */
 function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {
+    return filterHiddenRoutes(
+        routes
+            .filter((r) => r.path !== '/login' && r.path !== '/403' && r.path !== '*' && r.path !== '/')
+            .map((r) => ({
+                name: r.name || r.meta?.title,
+                path: r.path,
+                component: r.component,
+                redirect: r.redirect,
+                hidden: r.hidden,
+                meta: r.meta ? {...r.meta, icon: r.meta?.icon} : undefined,
+                children: r.children ? mapStaticRoutesToSidebar(r.children) : undefined
+            }))
+    );
+}
+
+/**
+ * 递归移除 hidden === true 的菜单项。
+ * 后端把 sys_menu.visible='1' 映射为 RouterVo.hidden=true；
+ * 即便父菜单隐藏了，也得连带剔除它的子菜单（参考 ruoyi-ui 递归遍历 children 的逻辑），
+ * 否则 pro-layout 会保留子菜单但丢失父级标题。
+ */
+function filterHiddenRoutes(routes: BackendRoute[]): BackendRoute[] {
     return routes
-        .filter((r) => r.path !== '/login' && r.path !== '/403' && r.path !== '*' && r.path !== '/')
+        .filter((r) => !r.hidden)
         .map((r) => ({
-            name: r.name || r.meta?.title,
-            path: r.path,
-            component: r.component,
-            redirect: r.redirect,
-            hidden: r.hidden,
-            meta: r.meta ? {...r.meta, icon: r.meta?.icon} : undefined,
-            children: r.children ? mapStaticRoutesToSidebar(r.children) : undefined
+            ...r,
+            children: r.children ? filterHiddenRoutes(r.children) : undefined
         }));
 }
 
