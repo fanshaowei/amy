@@ -12,9 +12,10 @@ import {
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
 import {App, Col, InputNumber, Tag} from 'antd';
+import type {FormInstance} from 'antd';
 import {useRef, useState} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
-import IconSelect, {renderIcon} from '@/components/IconSelect';
+import IconSelect, {iconLabel, renderIcon} from '@/components/IconSelect';
 import {useDict} from '@/hooks/useDict';
 import {addMenu, deleteMenu, getMenu, getMenuTree, listMenus, updateMenu, updateMenuSort} from '@/services/system/menu';
 import type {MenuRecord} from '@/services/system/menu';
@@ -47,6 +48,7 @@ function renderMenuType(record: MenuRecord) {
 export default function MenuPage() {
     const {message, modal} = App.useApp();
     const actionRef = useRef<ActionType>();
+    const formRef = useRef<FormInstance>();
     const [editing, setEditing] = useState<MenuRecord>();
     const [open, setOpen] = useState(false);
     const [treeOptions, setTreeOptions] = useState<TreeOption[]>([]);
@@ -75,8 +77,20 @@ export default function MenuPage() {
     const columns: ProColumns<MenuRecord>[] = [
         {title: '菜单名称', dataIndex: 'menuName', width: 220, render: (_, record) => {
             const IconComp = renderIcon(record.icon);
+            const label = iconLabel(record.icon);
+            if (IconComp) {
+                return <span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}>
+                    <IconComp/>
+                    <span>{record.menuName}</span>
+                </span>;
+            }
+            // icon 未识别或为空：显示一个带首字母的占位，避免名称前面光秃秃
             return <span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}>
-                {IconComp ? <IconComp/> : null}
+                <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 16, height: 16, borderRadius: 4, fontSize: 11, fontWeight: 600,
+                    background: '#f0f5ff', color: '#1677ff', flexShrink: 0
+                }} title={record.icon || '未配置图标'}>{label.charAt(0).toUpperCase() || '·'}</span>
                 <span>{record.menuName}</span>
             </span>;
         }},
@@ -157,9 +171,14 @@ export default function MenuPage() {
             ]}
         />
         <ModalForm<MenuRecord> title={editing?.menuId ? '修改菜单' : '添加菜单'} open={open} initialValues={editing}
+                               formRef={formRef}
                                modalProps={{destroyOnClose: true, width: 760, onCancel: () => setOpen(false)}} grid
                                onFinish={async (values) => {
-                                   const data = {...editing, ...values};
+                                   // 直接从 form 实例拿所有字段值（含 IconSelect 通过 setFieldValue 写入的 icon），
+                                   // 避免 ProForm 的 values 收集丢失非受控自定义组件的字段。
+                                   const formValues = formRef.current?.getFieldsValue() || {};
+                                   const data = {...editing, ...formValues, ...values};
+                                   if (!data.icon) data.icon = '#';  // 没配置图标时显式置为 '#'
                                    if (editing?.menuId) await updateMenu(data); else await addMenu(data);
                                    message.success(editing?.menuId ? '修改成功' : '新增成功');
                                    setOpen(false);

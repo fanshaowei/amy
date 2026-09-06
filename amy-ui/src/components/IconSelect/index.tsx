@@ -257,10 +257,26 @@ const RUOYI_ICON_FALLBACK: Record<string, string> = {
 export function renderIcon(name: string | undefined): ComponentType | null {
     if (!name || name === '#' || name === '') return null;
     if (ICONS[name]) return ICONS[name];
-    // 兼容 RuoYi 原 svg icon 名
+    // 兼容 RuoYi 原 svg icon 名（user / system / tree / peoples ...）
     const mapped = RUOYI_ICON_FALLBACK[name];
     if (mapped && ICONS[mapped]) return ICONS[mapped];
-    return null;
+    // 兜底：小写的 antd 图标名（如手工填了 'user' / 'setting'）→ 首字母大写 + Outlined
+    const guessed = name.charAt(0).toUpperCase() + name.slice(1);
+    const outlined = ICONS[`${guessed}Outlined`];
+    if (outlined) return outlined;
+    return ICONS[guessed] || null;
+}
+
+/**
+ * 返回 icon 在菜单列表里的展示文本（中文标签或字母首字母），
+ * 与 renderIcon 配套用于菜单列表/面包屑等位置，避免数据库里 '#'/空 字符串渲染成 #/空格。
+ */
+export function iconLabel(name: string | undefined): string {
+    if (!name || name === '#' || name === '') return '';
+    if (ICONS[name]) return name.replace(/Outlined$/, '');
+    const mapped = RUOYI_ICON_FALLBACK[name];
+    if (mapped) return mapped.replace(/Outlined$/, '');
+    return name;
 }
 
 /**
