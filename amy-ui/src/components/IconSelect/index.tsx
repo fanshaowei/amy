@@ -137,134 +137,11 @@ interface IconSelectProps {
     name?: string;
 }
 
-/**
- * RuoYi 原 svg-icons（数据库里的旧 icon 字符串）→ antd 图标组件 fallback 映射。
- * 新数据存的是 antd 图标名（UserOutlined 这种），无需走 fallback。
- */
-const RUOYI_ICON_FALLBACK: Record<string, string> = {
-    'system': 'SettingOutlined',
-    'user': 'UserOutlined',
-    'peoples': 'TeamOutlined',
-    'tree': 'ApartmentOutlined',
-    'tree-table': 'TableOutlined',
-    'table': 'TableOutlined',
-    'btn': 'AppstoreOutlined',
-    'button': 'AppstoreOutlined',
-    'list': 'UnorderedListOutlined',
-    'dict': 'BookOutlined',
-    'form': 'FormOutlined',
-    'menu': 'MenuOutlined',
-    'eye': 'EyeOutlined',
-    'eye-open': 'EyeOutlined',
-    'star': 'StarOutlined',
-    'edit': 'EditOutlined',
-    'message': 'MessageOutlined',
-    'log': 'FileTextOutlined',
-    'logininfor': 'HistoryOutlined',
-    'operlog': 'HistoryOutlined',
-    'monitor': 'DashboardOutlined',
-    'job': 'ClockCircleOutlined',
-    'joblog': 'FileTextOutlined',
-    'tool': 'ToolOutlined',
-    'build': 'BuildOutlined',
-    'code': 'CodeOutlined',
-    'skill': 'RocketOutlined',
-    'guide': 'CompassOutlined',
-    'online': 'WifiOutlined',
-    'redis': 'DatabaseOutlined',
-    'cache': 'RocketOutlined',
-    'druid': 'DatabaseOutlined',
-    'server': 'CloudOutlined',
-    'chart': 'PieChartOutlined',
-    'email': 'MailOutlined',
-    'sms': 'MessageOutlined',
-    'wechat': 'WechatOutlined',
-    'nested': 'ApartmentOutlined',
-    '404': 'QuestionCircleOutlined',
-    'bug': 'BugOutlined',
-    'swagger': 'FileTextOutlined',
-    'druid-monitor': 'DatabaseOutlined',
-    'component': 'AppstoreOutlined',
-    'pass': 'SafetyCertificateOutlined',
-    'redis-list': 'DatabaseOutlined',
-    'redis-info': 'InfoCircleOutlined',
-    'doc': 'FileTextOutlined',
-    'date': 'CalendarOutlined',
-    'size': 'AppstoreOutlined',
-    'theme': 'BgColorsOutlined',
-    'international': 'GlobalOutlined',
-    'language': 'GlobalOutlined',
-    'download': 'DownloadOutlined',
-    'upload': 'UploadOutlined',
-    'zip': 'FileZipOutlined',
-    'excel': 'FileExcelOutlined',
-    'pdf': 'FilePdfOutlined',
-    'word': 'FileWordOutlined',
-    'ppt': 'FilePptOutlined',
-    'image': 'PictureOutlined',
-    'video': 'VideoCameraOutlined',
-    'audio': 'SoundOutlined',
-    'lock': 'LockOutlined',
-    'unlock': 'UnlockOutlined',
-    'search': 'SearchOutlined',
-    'poweroff': 'PoweroffOutlined',
-    'reload': 'ReloadOutlined',
-    'refresh': 'SyncOutlined',
-    'sync': 'SyncOutlined',
-    'copy': 'CopyOutlined',
-    'delete': 'DeleteOutlined',
-    'save': 'SaveOutlined',
-    'link': 'LinkOutlined',
-    'drag': 'DragOutlined',
-    'fullscreen': 'FullscreenOutlined',
-    'fullscreen-exit': 'FullscreenExitOutlined',
-    'bell': 'BellOutlined',
-    'calendar': 'CalendarOutlined',
-    'clock': 'ClockCircleOutlined',
-    'book': 'BookOutlined',
-    'home': 'HomeOutlined',
-    'heart': 'HeartOutlined',
-    'flag': 'FlagOutlined',
-    'gift': 'GiftOutlined',
-    'shop': 'ShopOutlined',
-    'wallet': 'WalletOutlined',
-    'car': 'CarOutlined',
-    'rocket': 'RocketOutlined',
-    'profile': 'ProfileOutlined',
-    'project': 'ProjectOutlined',
-    'team': 'TeamOutlined',
-    'woman': 'WomanOutlined',
-    'man': 'ManOutlined',
-    'idcard': 'IdcardOutlined',
-    'phone': 'PhoneOutlined',
-    'mobile': 'MobileOutlined',
-    'cloud': 'CloudOutlined',
-    'laptop': 'LaptopOutlined',
-    'database': 'DatabaseOutlined',
-    'share': 'ShareAltOutlined',
-    'safety': 'SafetyOutlined',
-    'select': 'SelectOutlined',
-    'solution': 'SolutionOutlined',
-    'star-fill': 'StarOutlined',
-    'tag': 'TagOutlined',
-    'tags': 'TagsOutlined',
-    'thunderbolt': 'ThunderboltOutlined',
-    'trophy': 'TrophyOutlined',
-    'wallet-fill': 'WalletOutlined',
-    'warning': 'WarningOutlined'
-};
-
 export function renderIcon(name: string | undefined): ComponentType | null {
     if (!name || name === '#' || name === '') return null;
-    if (ICONS[name]) return ICONS[name];
-    // 兼容 RuoYi 原 svg icon 名（user / system / tree / peoples ...）
-    const mapped = RUOYI_ICON_FALLBACK[name];
-    if (mapped && ICONS[mapped]) return ICONS[mapped];
-    // 兜底：小写的 antd 图标名（如手工填了 'user' / 'setting'）→ 首字母大写 + Outlined
-    const guessed = name.charAt(0).toUpperCase() + name.slice(1);
-    const outlined = ICONS[`${guessed}Outlined`];
-    if (outlined) return outlined;
-    return ICONS[guessed] || null;
+    // 只认 antd 图标名（如 UserOutlined）。RuoYi 旧的 svg 图标名（user / system / peoples 等）
+    // 不再做兼容映射，这类菜单需要在「菜单管理」里重新选择图标。
+    return ICONS[name] || null;
 }
 
 /**
@@ -273,10 +150,8 @@ export function renderIcon(name: string | undefined): ComponentType | null {
  */
 export function iconLabel(name: string | undefined): string {
     if (!name || name === '#' || name === '') return '';
-    if (ICONS[name]) return name.replace(/Outlined$/, '');
-    const mapped = RUOYI_ICON_FALLBACK[name];
-    if (mapped) return mapped.replace(/Outlined$/, '');
-    return name;
+    // 只处理 antd 图标名；未识别的（含 RuoYi 旧 svg 名）原样返回，便于排查
+    return ICONS[name] ? name.replace(/Outlined$/, '') : name;
 }
 
 /**
