@@ -47,7 +47,7 @@ export default defineConfig({
         { path: '/monitor/job-log', name: '任务日志', component: '@/pages/Monitor/Job/log', hideInMenu: true },
         { path: '/monitor/operlog', name: '操作日志', component: '@/pages/PagePlaceholder' },
         { path: '/monitor/logininfor', name: '登录日志', component: '@/pages/PagePlaceholder' },
-        { path: '/monitor/online', name: '在线用户', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/online', name: '在线用户', component: '@/pages/Monitor/Online' },
         { path: '/monitor/cache', name: '缓存监控', component: '@/pages/PagePlaceholder' },
         { path: '/monitor/druid', name: '数据源', component: '@/pages/PagePlaceholder' },
         { path: '/monitor/server', name: '服务监控', component: '@/pages/PagePlaceholder' }

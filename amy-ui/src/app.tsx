@@ -268,7 +268,8 @@ const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/log/operlog': 'system:operlog:list',
     '/system/log/logininfor': 'system:logininfor:list',
     '/monitor/job': 'monitor:job:list',
-    '/monitor/job-log': 'monitor:job:list'
+    '/monitor/job-log': 'monitor:job:list',
+    '/monitor/online': 'monitor:online:list'
 };
 
 function hasRoutePermission(path: string, permissions: string[]) {
