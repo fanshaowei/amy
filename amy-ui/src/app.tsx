@@ -266,7 +266,9 @@ const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/config': 'system:config:list',
     '/system/notice': 'system:notice:list',
     '/system/log/operlog': 'system:operlog:list',
-    '/system/log/logininfor': 'system:logininfor:list'
+    '/system/log/logininfor': 'system:logininfor:list',
+    '/monitor/job': 'monitor:job:list',
+    '/monitor/job-log': 'monitor:job:list'
 };
 
 function hasRoutePermission(path: string, permissions: string[]) {
