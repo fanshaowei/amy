@@ -2,16 +2,19 @@ import {DeleteOutlined, PlusOutlined, SaveOutlined} from '@ant-design/icons';
 import {
     ModalForm,
     PageContainer,
+    ProFormDependency,
     ProFormDigit,
+    ProFormItem,
     ProFormRadio,
     ProFormText,
     ProFormTreeSelect,
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, InputNumber, Tag} from 'antd';
+import {App, Col, InputNumber, Tag} from 'antd';
 import {useRef, useState} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
+import IconSelect, {renderIcon} from '@/components/IconSelect';
 import {useDict} from '@/hooks/useDict';
 import {addMenu, deleteMenu, getMenu, getMenuTree, listMenus, updateMenu, updateMenuSort} from '@/services/system/menu';
 import type {MenuRecord} from '@/services/system/menu';
@@ -23,6 +26,23 @@ const menuTypeMap = {
     C: {text: '菜单', color: 'green'},
     F: {text: '按钮', color: 'orange'}
 } as const;
+
+function renderMenuType(record: MenuRecord) {
+    if (record.menuType === 'M') {
+        return record.isFrame === '0'
+            ? <Tag color="red">外链</Tag>
+            : <Tag color={menuTypeMap.M.color}>{menuTypeMap.M.text}</Tag>;
+    }
+    if (record.menuType === 'C') {
+        return record.isFrame === '0'
+            ? <Tag color="red">外链</Tag>
+            : <Tag color={menuTypeMap.C.color}>{menuTypeMap.C.text}</Tag>;
+    }
+    if (record.menuType === 'F') {
+        return <Tag color={menuTypeMap.F.color}>{menuTypeMap.F.text}</Tag>;
+    }
+    return <Tag>{record.menuType || '-'}</Tag>;
+}
 
 export default function MenuPage() {
     const {message, modal} = App.useApp();
@@ -53,14 +73,19 @@ export default function MenuPage() {
     };
 
     const columns: ProColumns<MenuRecord>[] = [
-        {title: '菜单名称', dataIndex: 'menuName', width: 220},
+        {title: '菜单名称', dataIndex: 'menuName', width: 220, render: (_, record) => {
+            const IconComp = renderIcon(record.icon);
+            return <span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}>
+                {IconComp ? <IconComp/> : null}
+                <span>{record.menuName}</span>
+            </span>;
+        }},
         {
             title: '类型',
             dataIndex: 'menuType',
             search: false,
             width: 90,
-            render: (_, record) => <Tag
-                color={menuTypeMap[record.menuType].color}>{menuTypeMap[record.menuType].text}</Tag>
+            render: (_, record) => renderMenuType(record)
         },
         {
             title: '排序',
@@ -94,9 +119,13 @@ export default function MenuPage() {
                                   onClick={() => modal.confirm({
                                       title: `确认删除菜单「${record.menuName}」？`,
                                       onOk: async () => {
-                                          await deleteMenu(record.menuId!);
-                                          message.success('删除成功');
-                                          actionRef.current?.reload();
+                                          try {
+                                              await deleteMenu(record.menuId!);
+                                              message.success('删除成功');
+                                              actionRef.current?.reload();
+                                          } catch {
+                                              // 全局响应拦截器已 toast 错误，这里只 swallow，避免 unhandled rejection
+                                          }
                                       }
                                   })}>删除</PermissionButton>
             ]
@@ -148,19 +177,32 @@ export default function MenuPage() {
                                     label: '按钮',
                                     value: 'F'
                                 }]}/>
-            <ProFormText name="icon" label="菜单图标" colProps={{span: 12}}/>
             <ProFormDigit name="orderNum" label="显示排序" colProps={{span: 12}} min={0} rules={[{required: true}]}/>
             <ProFormText name="menuName" label="菜单名称" colProps={{span: 12}} rules={[{required: true}]}/>
-            <ProFormText name="routeName" label="路由名称" colProps={{span: 12}}/>
-            <ProFormRadio.Group name="isFrame" label="是否外链" colProps={{span: 12}}
-                                options={[{label: '是', value: '0'}, {label: '否', value: '1'}]}/>
-            <ProFormText name="path" label="路由地址" colProps={{span: 12}}/>
-            <ProFormText name="component" label="组件路径" colProps={{span: 12}}/>
-            <ProFormText name="perms" label="权限字符" colProps={{span: 12}}/>
-            <ProFormText name="query" label="路由参数" colProps={{span: 12}}/>
-            <ProFormRadio.Group name="isCache" label="是否缓存" colProps={{span: 12}}
-                                options={[{label: '缓存', value: '0'}, {label: '不缓存', value: '1'}]}/>
-            <ProFormRadio.Group name="visible" label="显示状态" colProps={{span: 12}} options={visibleDict.options}/>
+            <ProFormDependency name={['menuType']}>
+                {({menuType}) => (<>
+                    {menuType !== 'F' && (<>
+                        <Col span={12}>
+                            <ProFormItem name="icon" label="菜单图标">
+                                <IconSelect/>
+                            </ProFormItem>
+                        </Col>
+                        <ProFormRadio.Group name="isFrame" label="是否外链" colProps={{span: 12}}
+                                            options={[{label: '是', value: '0'}, {label: '否', value: '1'}]}/>
+                        <ProFormText name="path" label="路由地址" colProps={{span: 12}}/>
+                    </>)}
+                    {menuType === 'C' && (<>
+                        <ProFormText name="routeName" label="路由名称" colProps={{span: 12}}/>
+                        <ProFormText name="component" label="组件路径" colProps={{span: 12}}/>
+                        <ProFormText name="query" label="路由参数" colProps={{span: 12}}/>
+                        <ProFormRadio.Group name="isCache" label="是否缓存" colProps={{span: 12}}
+                                            options={[{label: '缓存', value: '0'}, {label: '不缓存', value: '1'}]}/>
+                    </>)}
+                    {menuType !== 'M' && (<ProFormText name="perms" label="权限字符" colProps={{span: 12}}/>)}
+                    {menuType !== 'F' && (<ProFormRadio.Group name="visible" label="显示状态" colProps={{span: 12}}
+                                                              options={visibleDict.options}/>)}
+                </>)}
+            </ProFormDependency>
             <ProFormRadio.Group name="status" label="菜单状态" colProps={{span: 12}} options={normalDict.options}/>
         </ModalForm>
     </PageContainer>;

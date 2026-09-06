@@ -1,7 +1,7 @@
 import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import type {RunTimeLayoutConfig, RequestConfig} from '@umijs/max';
 import {history} from '@umijs/max';
-import {App, Avatar, Dropdown} from 'antd';
+import {App, Avatar, Dropdown, message as antdMessage} from 'antd';
 import type {BackendRoute, CurrentUser} from '@/types/api';
 import {getRouters, getUserInfo, logout} from '@/services/auth';
 import {clearSession, getToken} from '@/utils/auth';
@@ -79,6 +79,16 @@ export const request: RequestConfig = {
             if (response.status === 401) {
                 clearSession();
                 history.push(`/login?redirect=${encodeURIComponent(history.location.pathname)}`);
+                return Promise.reject(new Error('未登录'));
+            }
+            // RuoYi 业务错误：code 非 200（如 601 菜单已分配不允许删除、500 通用失败等）。
+            // umi-request 默认只对 data.success === false 触发 errorThrower，
+            // RuoYi 后端无该字段，所以这里手动拦截并提示错误 + reject。
+            const body = response.data as { code?: number; msg?: string } | undefined;
+            if (body && typeof body === 'object' && typeof body.code === 'number' && body.code !== 200) {
+                const errorMsg = body.msg || '请求失败';
+                antdMessage.error(errorMsg);
+                return Promise.reject(new Error(errorMsg));
             }
             return response;
         }
