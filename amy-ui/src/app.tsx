@@ -2,6 +2,8 @@ import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import type {RunTimeLayoutConfig, RequestConfig} from '@umijs/max';
 import {history} from '@umijs/max';
 import {App, Avatar, Dropdown, message as antdMessage} from 'antd';
+import React from 'react';
+import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
 import {getRouters, getUserInfo, logout} from '@/services/auth';
 import {clearSession, getToken} from '@/utils/auth';
@@ -152,10 +154,11 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
     layout: 'mix',
     contentWidth: 'Fluid',
     rightContentRender: () => <UserMenu currentUser={initialState?.currentUser}/>,
-    menuDataRender: (menuData) => menuData.map((item) => item.path === '/system' ? {
-        ...item,
-        children: item.children?.filter((child) => !child.path || hasRoutePermission(child.path, initialState?.permissions || []))
-    } : item),
+    menuDataRender: (menuData) => {
+        const backend = initialState?.routes;
+        const source = backend && backend.length ? backend : mapStaticRoutesToSidebar(menuData as unknown as BackendRoute[]);
+        return source.map(toProLayoutMenu);
+    },
     onPageChange: () => {
         if (!getToken() && history.location.pathname !== '/login') {
             history.push(`/login?redirect=${encodeURIComponent(history.location.pathname)}`);
@@ -164,6 +167,43 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
         }
     }
 });
+
+/** 把 config.ts 里的静态路由转成 pro-layout 的菜单数据格式 */
+function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {
+    return routes
+        .filter((r) => r.path !== '/login' && r.path !== '/403' && r.path !== '*' && r.path !== '/')
+        .map((r) => ({
+            name: r.name || r.meta?.title,
+            path: r.path,
+            component: r.component,
+            redirect: r.redirect,
+            hidden: r.hidden,
+            meta: r.meta ? {...r.meta, icon: r.meta?.icon} : undefined,
+            children: r.children ? mapStaticRoutesToSidebar(r.children) : undefined
+        }));
+}
+
+/**
+ * 把后端 RouterVo（或静态路由）转成 pro-layout 能正确显示的菜单数据。
+ * 后端 buildMenus 把路由名（英文驼峰）放在 `name` 字段、把中文菜单名放在 `meta.title`，
+ * 而 pro-layout 的 BaseMenu.getIntlName 只读 `item.name`、不读 `meta.title`，
+ * 所以这里把 `name` 重写为 `meta.title`，并把图标从 meta 里提到顶级 icon 字段。
+ * 同时把字符串 icon（后端存的 'user'/'system' 等 ruoyi svg 名，或 antd 图标名）解析为 React 组件；
+ * 解析不出来时返回 null，否则 pro-layout 会把字符串原样渲染成文本。
+ */
+function toProLayoutMenu(item: BackendRoute): BackendRoute {
+    const title = item.meta?.title || item.name || item.path;
+    const iconName = (item.icon || item.meta?.icon) as string | undefined;
+    const IconComp = iconName ? renderIcon(iconName) : null;
+    // 必须用 createElement 把组件引用渲染成 ReactElement，pro-layout 把 icon 直接放进 children，
+    // 如果传函数引用（ComponentType）React 会报 "Element type is invalid"，整个 layout 渲染失败导致白屏。
+    return {
+        ...item,
+        name: title,
+        icon: IconComp ? React.createElement(IconComp) : undefined,
+        children: item.children?.map(toProLayoutMenu)
+    };
+}
 
 const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/user': 'system:user:list',

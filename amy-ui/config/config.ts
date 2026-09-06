@@ -32,9 +32,32 @@ export default defineConfig({
         { path: '/system/logininfor', name: '登录日志', component: '@/pages/System/Logininfor' }
       ]
     },
+    {
+      path: '/monitor',
+      name: '监控管理',
+      icon: 'EyeOutlined',
+      routes: [
+        { path: '/monitor/operlog', name: '操作日志', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/logininfor', name: '登录日志', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/online', name: '在线用户', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/cache', name: '缓存监控', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/druid', name: '数据源', component: '@/pages/PagePlaceholder' },
+        { path: '/monitor/server', name: '服务监控', component: '@/pages/PagePlaceholder' }
+      ]
+    },
+    {
+      path: '/tool',
+      name: '系统工具',
+      icon: 'ToolOutlined',
+      routes: [
+        { path: '/tool/build', name: '表单构建', component: '@/pages/PagePlaceholder' },
+        { path: '/tool/gen', name: '代码生成', component: '@/pages/PagePlaceholder' },
+        { path: '/tool/swagger', name: '系统接口', component: '@/pages/PagePlaceholder' }
+      ]
+    },
     { path: '/system/user/profile', name: '个人中心', hideInMenu: true, component: '@/pages/System/Profile' },
     { path: '/403', layout: false, component: '@/pages/403' },
-    { path: '*', component: '@/pages/404' }
+    { path: '*', component: '@/pages/PagePlaceholder' }
   ],
   proxy: {
     '/dev-api': {
