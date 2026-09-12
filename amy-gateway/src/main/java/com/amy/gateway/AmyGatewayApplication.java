@@ -15,6 +15,6 @@ public class AmyGatewayApplication
     public static void main(String[] args)
     {
         SpringApplication.run(AmyGatewayApplication.class, args);
-        System.out.println("(♥◠‿◠)ﾉﾞ  若依网关启动成功   ლ(´ڡ`ლ)ﾞ");
+        System.out.println("(♥◠‿◠)ﾉﾞ 网关启动成功   ლ(´ڡ`ლ)ﾞ");
     }
 }
