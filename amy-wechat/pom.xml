@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.amy</groupId>
+        <artifactId>amy</artifactId>
+        <version>3.6.8</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>amy-wechat</artifactId>
+    <description>amy-wechat微信模块</description>
+
+    <properties>
+        <wx-java.version>4.8.6.B</wx-java.version>
+    </properties>
+
+    <!-- 注意：不要 import wx-java-bom。
+         wx-java 的父 pom（com.github.binarywang:wx-java）dependencyManagement 里
+         import 了 jackson-bom 2.18.4、把 slf4j-api 锁到 1.7.30、把 logback-classic 锁成
+         1.3.12 且 scope=test。子模块自己 dependencyManagement 的优先级高于父 pom 继承来的
+         spring-boot-dependencies，一旦 import 就会覆盖 Spring Boot 4.1.1 的版本，
+         导致 jackson-annotations 降级（Jackson3 缺 JsonSerializeAs）、
+         slf4j 退回 1.x（日志全丢）、logback-classic 变 test scope（无日志实现），
+         启动时 Tomcat 起不来。这里改为在依赖上直接写版本。 -->
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>wx-java-miniapp-spring-boot-starter</artifactId>
+            <version>${wx-java.version}</version>
+        </dependency>
+
+        <!-- SpringCloud Alibaba Nacos -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- SpringCloud Alibaba Nacos Config -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+        <!-- SpringCloud Alibaba Sentinel -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+        <!-- SpringBoot Actuator -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jackson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-core</artifactId>
+        </dependency>
+
+        <!-- Mysql Connector -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+
+        <!-- amy Common DataSource -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-datasource</artifactId>
+        </dependency>
+
+        <!-- amy Common DataScope -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-datascope</artifactId>
+        </dependency>
+
+        <!-- amy Common Redis-->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-redis</artifactId>
+        </dependency>
+
+        <!-- amy Common Log -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-log</artifactId>
+        </dependency>
+
+        <!-- amy Common Swagger -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-swagger</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
