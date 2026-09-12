@@ -226,7 +226,7 @@ export default function JobPage() {
                 open={open}
                 formRef={formRef}
                 initialValues={editing}
-                modalProps={{destroyOnClose: true, onCancel: () => setOpen(false), width: 800}}
+                modalProps={{destroyOnHidden: true, onCancel: () => setOpen(false), width: 800}}
                 onFinish={async (v) => {
                     const d = {...editing, ...v} as JobRecord;
                     if (editing?.jobId) {

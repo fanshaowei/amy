@@ -111,7 +111,7 @@ export default function NoticePage() {
             }
         })}>删除</PermissionButton>]}/>
         <ModalForm<NoticeRecord> title={editing?.noticeId ? '修改公告' : '添加公告'} open={open} initialValues={editing}
-                                 modalProps={{destroyOnClose: true, width: 800, onCancel: () => setOpen(false)}} grid
+                                 modalProps={{destroyOnHidden: true, width: 800, onCancel: () => setOpen(false)}} grid
                                  onFinish={async (v) => {
                                      const d = {...editing, ...v};
                                      editing?.noticeId ? await updateNotice(d) : await addNotice(d);
@@ -135,7 +135,7 @@ export default function NoticePage() {
                     style={{width: '100%', minHeight: 420, marginTop: 16, border: '1px solid #f0f0f0'}}/>
         </Modal>
         <Drawer title={`「${readNotice?.noticeTitle || ''}」已读用户`} width={820} open={readOpen}
-                onClose={() => setReadOpen(false)} destroyOnClose><ProTable<NoticeReadUser> rowKey="userId"
+                onClose={() => setReadOpen(false)} destroyOnHidden><ProTable<NoticeReadUser> rowKey="userId"
                                                                                             actionRef={readRef}
                                                                                             columns={[{
                                                                                                 title: '登录名称',

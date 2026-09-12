@@ -97,7 +97,7 @@ export default function DeptPage() {
             actionRef.current?.reload();
         }}>保存排序</PermissionButton>]}/>
         <ModalForm<DeptRecord> title={editing?.deptId ? '修改部门' : '添加部门'} open={open} initialValues={editing}
-                               grid modalProps={{destroyOnClose: true, onCancel: () => setOpen(false)}}
+                               grid modalProps={{destroyOnHidden: true, onCancel: () => setOpen(false)}}
                                onFinish={async (v) => {
                                    const data = {...editing, ...v};
                                    editing?.deptId ? await updateDept(data) : await addDept(data);

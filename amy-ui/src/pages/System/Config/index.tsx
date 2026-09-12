@@ -108,7 +108,7 @@ export default function ConfigPage() {
                               message.success('刷新成功');
                           }}>刷新缓存</PermissionButton>]}/>
         <ModalForm<ConfigRecord> title={editing?.configId ? '修改参数' : '添加参数'} open={open} initialValues={editing}
-                                 modalProps={{destroyOnClose: true, onCancel: () => setOpen(false)}}
+                                 modalProps={{destroyOnHidden: true, onCancel: () => setOpen(false)}}
                                  onFinish={async (v) => {
                                      const d = {...editing, ...v};
                                      editing?.configId ? await updateConfig(d) : await addConfig(d);

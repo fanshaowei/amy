@@ -174,7 +174,7 @@ export default function DictPage() {
         }}>刷新缓存</PermissionButton>]}/>
         <ModalForm<DictTypeRecord> title={typeEditing?.dictId ? '修改字典类型' : '添加字典类型'} open={typeOpen}
                                    initialValues={typeEditing}
-                                   modalProps={{destroyOnClose: true, onCancel: () => setTypeOpen(false)}}
+                                   modalProps={{destroyOnHidden: true, onCancel: () => setTypeOpen(false)}}
                                    onFinish={async (v) => {
                                        const d = {...typeEditing, ...v};
                                        typeEditing?.dictId ? await updateDictType(d) : await addDictType(d);
@@ -192,7 +192,7 @@ export default function DictPage() {
             name="status" label="状态" options={normalDict.options}/><ProFormTextArea name="remark"
                                                                                       label="备注"/></ModalForm>
         <Drawer title={`字典数据 - ${activeType?.dictName || ''}`} width="88%" open={drawerOpen}
-                onClose={() => setDrawerOpen(false)} destroyOnClose><ProTable<DictDataRecord> rowKey="dictCode"
+                onClose={() => setDrawerOpen(false)} destroyOnHidden><ProTable<DictDataRecord> rowKey="dictCode"
                                                                                               actionRef={dataRef}
                                                                                               columns={dataColumns}
                                                                                               rowSelection={{
@@ -219,7 +219,7 @@ export default function DictPage() {
                               onClick={() => void downloadFile('/system/dict/data/export', {dictType: activeType?.dictType}, `data_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/></Drawer>
         <ModalForm<DictDataRecord> title={dataEditing?.dictCode ? '修改字典数据' : '添加字典数据'} open={dataOpen}
                                    initialValues={dataEditing}
-                                   modalProps={{destroyOnClose: true, onCancel: () => setDataOpen(false)}}
+                                   modalProps={{destroyOnHidden: true, onCancel: () => setDataOpen(false)}}
                                    onFinish={async (v) => {
                                        const d = {...dataEditing, ...v};
                                        dataEditing?.dictCode ? await updateDictData(d) : await addDictData(d);

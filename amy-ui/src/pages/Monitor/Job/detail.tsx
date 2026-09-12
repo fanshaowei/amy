@@ -27,7 +27,7 @@ export default function JobDetail({type, record, onClose}: JobDetailProps) {
             width={780}
             open={Boolean(record)}
             onClose={onClose}
-            destroyOnClose
+            destroyOnHidden
         >
             {type === 'job' ? (
                 <Descriptions bordered column={2} size="middle">

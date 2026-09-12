@@ -174,7 +174,7 @@ export default function RolePage() {
         />
 
         <ModalForm<RoleRecord> title={editing?.roleId ? '修改角色' : '添加角色'} open={formOpen} initialValues={editing}
-                               modalProps={{destroyOnClose: true, onCancel: () => setFormOpen(false)}}
+                               modalProps={{destroyOnHidden: true, onCancel: () => setFormOpen(false)}}
                                onFinish={async (values) => {
                                    const data = {...editing, ...values};
                                    if (editing?.roleId) await updateRole(data); else await addRole(data);
@@ -200,7 +200,7 @@ export default function RolePage() {
         </ModalForm>
 
         <ModalForm<RoleRecord> title="分配数据权限" open={dataScopeOpen} initialValues={editing}
-                               modalProps={{destroyOnClose: true, onCancel: () => setDataScopeOpen(false)}}
+                               modalProps={{destroyOnHidden: true, onCancel: () => setDataScopeOpen(false)}}
                                onFinish={async (values) => {
                                    await updateDataScope({...editing, ...values});
                                    message.success('修改成功');
@@ -233,7 +233,7 @@ export default function RolePage() {
         </ModalForm>
 
         <Drawer title={`分配用户 - ${authRole?.roleName || ''}`} width="88%" open={authOpen}
-                onClose={() => setAuthOpen(false)} destroyOnClose>
+                onClose={() => setAuthOpen(false)} destroyOnHidden>
             <ProTable<UserRecord> rowKey="userId" actionRef={authActionRef} columns={userColumns}
                                   rowSelection={{selectedRowKeys: authUserIds, onChange: setAuthUserIds}}
                                   request={async ({current, pageSize, ...params}) => {
