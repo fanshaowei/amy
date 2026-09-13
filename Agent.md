@@ -508,6 +508,26 @@ public class SysConfig extends BaseEntity        // 树形结构继承 TreeEntit
 - `MybatisPlusConfig` 的 `typeAliasesPackage = "com.amy.**.domain"` 通过递归扫描覆盖 `domain` 及其全部子包，`domain.entity/vo/...` 下的类会自动注册别名（`type="XxxVO"` 可解析）。
 - 简单模块可只建 `entity` + `req` + `resp`；逻辑复杂、类多时再按上表补齐。
 
+### 5.5.2 Controller 职责边界（强制）
+
+Controller **只**做四件事：
+
+1. 入参接收（`@RequestBody` / `@PathVariable` / Query 参数绑定）
+2. 权限注解（`@RequiresPermissions`）+ 日志注解（`@Log`）
+3. 委托 Service（**直接传入 `Req` 对象**，不在 Controller 做转换）
+4. 返回 `AjaxResult` / `TableDataInfo` / `void`
+
+**禁止**在 Controller 写：
+
+- ❌ `req` ↔ `entity` 互转方法（如 `convertToEntity`）—— 放 Service
+- ❌ 多实体组装 / 计算字段 → 放 Service（必要时引入 `domain/bo`）
+- ❌ 设置审计字段（`createBy / createTime / updateBy / updateTime`）→ 放 Service，通过 `SecurityUtils.getUsername()` + `DateUtils.getNowDate()` 完成
+- ❌ 生成单号 / 业务编号 / 默认状态等
+
+Service 私有方法（如 `convertToEntity(req)`、`generateReservationNum()`）承担上述逻辑；若多处复用，抽到 `domain/bo` 或独立 Converter。
+
+适用范围：所有**新模块 / 新功能**。旧 RuoYi 平台模块（`amy-modules/**`）维持现状。
+
 ---
 
 ## 5.6 MyBatis-Plus 使用规范（新业务模块纯单表优先）
