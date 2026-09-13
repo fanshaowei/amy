@@ -18,7 +18,7 @@
         <result property="idNum" column="id_num"/>
         <result property="guestsNum" column="guests_num"/>
         <result property="reservationTime" column="reservation_time"/>
-        <result property="reservationStatus" column="status"/>
+        <result property="reservationStatus" column="reservation_status"/>
         <result property="verifyBy" column="verify_by"/>
         <result property="verifyTime" column="verify_time"/>
         <result property="createTime" column="create_time"/>
@@ -38,7 +38,7 @@
                r.id_num,
                r.guests_num,
                r.reservation_time,
-               r.status,
+               r.reservation_status + 0 as reservation_status,
                r.verify_by,
                r.verify_time,
                r.create_time
@@ -63,8 +63,8 @@
         <if test="phone != null and phone != ''">
             and r.phone like concat('%', #{phone}, '%')
         </if>
-        <if test="reservationStatus != null and reservationStatus != ''">
-            and r.status = #{reservationStatus}
+        <if test="reservationStatus != null">
+            and r.reservation_status = #{reservationStatus}
         </if>
         <if test="reservationTime != null">
             and date(r.reservation_time) = date(#{reservationTime})

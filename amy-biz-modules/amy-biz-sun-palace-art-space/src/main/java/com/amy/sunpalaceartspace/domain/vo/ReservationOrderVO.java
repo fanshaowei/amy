@@ -72,11 +72,11 @@ public class ReservationOrderVO {
     private Date reservationTime;
 
     /**
-     * 状态值（0/1/2/3，对应数据库列 {@code status}）。
+     * 状态码（0/1/2/3，对应数据库列 {@code reservation_status}）。
      * <p>SQL/XML 把 DB 列直接灌到这里；中文名见 {@link #reservationStatusName}。</p>
      */
     @Excel(name = "状态", readConverterExp = "0=待核销,1=已完成,2=已过期,3=已取消")
-    private String reservationStatus;
+    private Integer reservationStatus;
 
     /**
      * 状态中文名（{@link ReservationOrderStatus#name}），优先返回此字段给前端展示。
@@ -102,7 +102,7 @@ public class ReservationOrderVO {
      * <p>供 Service 在装配 VO 时调用；XML 完成后由调用方负责。</p>
      */
     public void fillReservationStatusName() {
-        ReservationOrderStatus s = ReservationOrderStatus.fromCodeString(this.reservationStatus);
+        ReservationOrderStatus s = ReservationOrderStatus.fromCode(this.reservationStatus);
         this.reservationStatusName = s == null ? null : s.getName();
     }
 }

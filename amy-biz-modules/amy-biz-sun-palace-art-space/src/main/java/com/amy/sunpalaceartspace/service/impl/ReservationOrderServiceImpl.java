@@ -62,7 +62,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public boolean saveReservationOrder(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
-        order.setReservationStatusEnum(ReservationOrderStatus.WAIT_VERIFY);
+        order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
         order.setReservationNum(generateReservationNum(order.getReservationTime()));
         order.setCreateBy(SecurityUtils.getUsername());
         order.setCreateTime(DateUtils.getNowDate());
@@ -101,9 +101,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setIdNum(req.getIdNum());
         order.setGuestsNum(req.getGuestsNum());
         order.setReservationTime(req.getReservationTime());
-        if (req.getReservationStatus() != null)
-        {
-            order.setReservationStatusEnum(req.getReservationStatus());
+        if(req.getReservationStatus() != null) {
+            order.setReservationStatus(req.getReservationStatus());
         }
         return order;
     }

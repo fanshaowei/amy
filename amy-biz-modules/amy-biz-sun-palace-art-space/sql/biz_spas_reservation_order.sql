@@ -12,7 +12,7 @@ create table biz_spas_reservation_order
     id_num                 varchar(50)     not null                   comment '证件号码',
     guests_num             int(11)         default null               comment '预约人数（含预约人本人）',
     reservation_time       datetime        default null               comment '预约时间',
-    status                 char(1)         default '0'                comment '状态（0待核销 1已完成 2已过期 3已取消）',
+    reservation_status       char(1)         default '0'                comment '状态（0待核销 1已完成 2已过期 3已取消）',
     verify_by              varchar(64)     default ''                 comment '核销人员',
     verify_time            datetime        default null               comment '核销时间',
     create_by              varchar(64)     default ''                 comment '创建者',

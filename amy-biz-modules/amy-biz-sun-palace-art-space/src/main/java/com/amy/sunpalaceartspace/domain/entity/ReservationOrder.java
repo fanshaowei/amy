@@ -59,10 +59,10 @@ public class ReservationOrder extends BaseEntity {
     /** 联系电话 */
     @Excel(name = "电话")
     @NotBlank(message = "联系电话不能为空")
-    @Size(min = 0, max = 11, message = "联系电话长度不能超过20个字符")
+    @Size(min = 0, max = 11, message = "联系电话长度不能超过11个字符")
     private String phone;
 
-    /** 证件类型（身份证、护照等） */
+    /** {@link com.amy.sunpalaceartspace.enums.IdType }证件类型（身份证、护照等） */
     @Excel(name = "证件类型")
     @NotBlank(message = "证件类型不能为空")
     @Size(min = 0, max = 20, message = "证件类型长度不能超过20个字符")
@@ -84,12 +84,12 @@ public class ReservationOrder extends BaseEntity {
     private Date reservationTime;
 
     /**
-     * 预约状态（业务值用 {@link ReservationOrderStatus}，数据库列名保留 {@code status}）
+     * 预约状态码（业务值用 {@link ReservationOrderStatus}）
      * <p>0待核销 1已完成 2已过期 3已取消</p>
      */
     @Excel(name = "状态", readConverterExp = "0=待核销,1=已完成,2=已过期,3=已取消")
-    @TableField("status")
-    private String reservationStatus;
+    @TableField("reservation_status")
+    private Integer reservationStatus;
 
     /** 核销人员 */
     @Excel(name = "核销人员")
@@ -99,32 +99,4 @@ public class ReservationOrder extends BaseEntity {
     @Excel(name = "核销时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date verifyTime;
-
-    /**
-     * 业务侧的预约状态枚举（不持久化）
-     */
-    @TableField(exist = false)
-    private ReservationOrderStatus reservationStatusEnum;
-
-    /**
-     * 把 {@link #reservationStatus} 转成枚举，方便业务侧按枚举处理。
-     */
-    public ReservationOrderStatus getReservationStatusEnum() {
-        if (reservationStatus == null || reservationStatus.isEmpty()) {
-            return reservationStatusEnum;
-        }
-        return ReservationOrderStatus.fromCodeString(reservationStatus);
-    }
-
-    /**
-     * 通过枚举设置状态，写入到持久化字段 {@link #reservationStatus}。
-     */
-    public void setReservationStatusEnum(ReservationOrderStatus status) {
-        this.reservationStatusEnum = status;
-        if (status == null) {
-            this.reservationStatus = null;
-        } else {
-            this.reservationStatus = String.valueOf(status.getStatus());
-        }
-    }
 }

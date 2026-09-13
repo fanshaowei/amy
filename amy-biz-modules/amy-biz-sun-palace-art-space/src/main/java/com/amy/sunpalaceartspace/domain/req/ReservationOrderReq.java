@@ -64,7 +64,5 @@ public class ReservationOrderReq {
      * 预约状态。前端可传 {@code "0"/"1"/"2"/"3"} 或 {@code "WAIT_VERIFY"/...}，
      * 后端通过 {@link ReservationOrderStatus} 的 {@code @JsonCreator} 解析。
      */
-    private ReservationOrderStatus reservationStatus;
-
-
+    private Integer reservationStatus;
 }
