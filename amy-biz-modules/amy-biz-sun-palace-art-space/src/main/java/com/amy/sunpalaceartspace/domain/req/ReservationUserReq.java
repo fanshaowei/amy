@@ -52,10 +52,9 @@ public class ReservationUserReq {
     @Size(min = 0, max = 500, message = "token 长度不能超过500个字符")
     private String token;
 
-    /** 状态（1正常 2禁用） */
-    @NotBlank(message = "状态不能为空")
-    @Size(min = 0, max = 1, message = "状态长度不能超过1个字符")
-    private String status;
+    /** 状态（0=正常,1=停用,2=删除） */
+    @NotNull(message = "状态不能为空")
+    private Integer status;
 
     /** 类型（1用户 2核销员） */
     @NotNull(message = "类型不能为空")

@@ -49,9 +49,9 @@ public class ReservationUserVO {
     @Excel(name = "身份证号")
     private String idNum;
 
-    /** 状态（1正常 2禁用） */
-    @Excel(name = "状态", readConverterExp = "1=正常,2=禁用")
-    private String status;
+    /** 状态（0=正常,1=停用,2=删除） */
+    @Excel(name = "状态", readConverterExp = "0=正常,1=停用,2=删除")
+    private Integer status;
 
     /** 类型（1用户 2核销员） */
     @Excel(name = "类型", readConverterExp = "1=用户,2=核销员")

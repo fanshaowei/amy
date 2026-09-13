@@ -28,7 +28,7 @@
                head_img_url,
                open_id,
                id_num,
-               status,
+               status + 0 as status,
                type,
                is_verified,
                create_time
@@ -51,7 +51,7 @@
         <if test="entity.phone != null and entity.phone != ''">
             and phone like concat('%', #{entity.phone}, '%')
         </if>
-        <if test="entity.status != null and entity.status != ''">
+        <if test="entity.status != null">
             and status = #{entity.status}
         </if>
         <if test="entity.type != null">

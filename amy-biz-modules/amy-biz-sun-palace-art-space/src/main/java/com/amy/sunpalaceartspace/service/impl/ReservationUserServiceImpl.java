@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.amy.common.core.enums.UserStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,34 +30,27 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         implements IReservationUserService {
 
     @Override
-    public IPage<ReservationUserVO> selectReservationUserList(Page<ReservationUserVO> page, ReservationUser entity)
-    {
+    public IPage<ReservationUserVO> selectReservationUserList(Page<ReservationUserVO> page, ReservationUser entity) {
         return page.setRecords(baseMapper.selectReservationUserList(entity));
     }
 
     @Override
-    public List<ReservationUserVO> selectReservationUserExportList(ReservationUser entity)
-    {
+    public List<ReservationUserVO> selectReservationUserExportList(ReservationUser entity) {
         return baseMapper.selectReservationUserList(entity);
     }
 
     @Override
-    public ReservationUserVO selectReservationUserById(Long reservationUserId)
-    {
+    public ReservationUserVO selectReservationUserById(Long reservationUserId) {
         return baseMapper.selectReservationUserById(reservationUserId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean saveReservationUser(ReservationUserReq req)
-    {
+    public boolean saveReservationUser(ReservationUserReq req) {
         ReservationUser user = convertToEntity(req);
-        if (user.getStatus() == null || user.getStatus().isEmpty())
-        {
-            user.setStatus("1");
-        }
-        if (user.getNumber() == null || user.getNumber().trim().isEmpty())
-        {
+        user.setStatus(Integer.parseInt(UserStatus.OK.getCode()));
+
+        if (user.getNumber() == null || user.getNumber().trim().isEmpty()) {
             user.setNumber(generateUserNumber());
         }
         user.setCreateBy(SecurityUtils.getUsername());
@@ -66,8 +60,7 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateReservationUser(ReservationUserReq req)
-    {
+    public boolean updateReservationUser(ReservationUserReq req) {
         ReservationUser user = convertToEntity(req);
         user.setUpdateBy(SecurityUtils.getUsername());
         user.setUpdateTime(DateUtils.getNowDate());
@@ -76,16 +69,14 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean removeReservationUserByIds(Long[] reservationUserIds)
-    {
+    public boolean removeReservationUserByIds(Long[] reservationUserIds) {
         return removeByIds(Arrays.asList(reservationUserIds));
     }
 
     /**
      * 请求对象转实体（Controller 只负责入参接收，业务转换放 Service）
      */
-    private ReservationUser convertToEntity(ReservationUserReq req)
-    {
+    private ReservationUser convertToEntity(ReservationUserReq req) {
         ReservationUser user = new ReservationUser();
         user.setReservationUserId(req.getReservationUserId());
         user.setNumber(req.getNumber());
@@ -96,7 +87,9 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         user.setOpenId(req.getOpenId());
         user.setIdNum(req.getIdNum());
         user.setToken(req.getToken());
-        user.setStatus(req.getStatus());
+        if(req.getStatus() != null) {
+            user.setStatus(req.getStatus());
+        }
         user.setType(req.getType());
         user.setIsVerified(req.getIsVerified());
         return user;
