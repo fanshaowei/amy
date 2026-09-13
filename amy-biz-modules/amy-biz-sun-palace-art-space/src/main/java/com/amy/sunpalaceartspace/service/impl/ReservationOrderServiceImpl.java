@@ -104,6 +104,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         if(req.getReservationStatus() != null) {
             order.setReservationStatus(req.getReservationStatus());
         }
+        // 随行人身份信息：List<String> 直接透传，由字段注解上的 StringListJsonTypeHandler 自动 JSON 化
+        order.setCompUsers(req.getCompUsers());
         return order;
     }
 

@@ -12,6 +12,10 @@
     <artifactId>amy-biz-sun-palace-art-space</artifactId>
     <description>太阳宫艺术空间</description>
 
+    <properties>
+        <wx-java.version>4.8.6.B</wx-java.version>
+    </properties>
+
     <dependencies>
         <!-- SpringCloud Alibaba Nacos -->
         <dependency>
@@ -75,6 +79,12 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>wx-java-miniapp-spring-boot-starter</artifactId>
+            <version>${wx-java.version}</version>
         </dependency>
 
         <!-- POC 验证用：聚焦测试 MyBatis-Plus 运行时行为；仅 test 作用域，不进入生产构建 -->

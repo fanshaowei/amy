@@ -15,6 +15,7 @@ create table biz_spas_reservation_order
     reservation_status       char(1)         default '0'                comment '状态（0待核销 1已完成 2已过期 3已取消）',
     verify_by              varchar(64)     default ''                 comment '核销人员',
     verify_time            datetime        default null               comment '核销时间',
+    comp_users             varchar(2000)   default null               comment '预约随行人身份信息（JSON 数组字符串，每个元素为 UserIdentity 字段序列化结果）',
     create_by              varchar(64)     default ''                 comment '创建者',
     create_time            datetime        default null               comment '创建时间',
     update_by              varchar(64)     default ''                 comment '更新者',

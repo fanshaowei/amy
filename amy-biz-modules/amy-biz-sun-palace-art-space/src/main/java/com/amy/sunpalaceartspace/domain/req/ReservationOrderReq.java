@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.domain.req;
 
 import java.util.Date;
+import java.util.List;
 
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -65,4 +66,17 @@ public class ReservationOrderReq {
      * 后端通过 {@link ReservationOrderStatus} 的 {@code @JsonCreator} 解析。
      */
     private Integer reservationStatus;
+
+    /**
+     * 预约随行人身份信息（数组列表字符串）。
+     *
+     * <p>每个元素内容为 {@code com.amy.sunpalaceartspace.domain.entity.UserIdentity}
+     * 字段序列化后的 JSON 字符串，例如：
+     * {@code "{\"name\":\"张三\",\"idNum\":\"110101199001011234\",\"phone\":\"13800138000\"}"}。</p>
+     *
+     * <p>前端可空数组 {@code []} 或 null；后端会在持久化时通过
+     * {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler}
+     * 自动序列化为 JSON 数组字符串存入 {@code comp_users} 列。</p>
+     */
+    private List<String> compUsers;
 }

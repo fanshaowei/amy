@@ -50,8 +50,7 @@ public class ReservationOrderController extends BaseController {
      */
     @RequiresPermissions("sunpalaceartspace:reservationOrder:list")
     @GetMapping("/list")
-    public R<TableDataInfo> list(ReservationOrder reservationOrder)
-    {
+    public R<TableDataInfo> list(ReservationOrder reservationOrder) {
         PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<ReservationOrderVO> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
         IPage<ReservationOrderVO> result = reservationOrderService.selectReservationOrderList(page, reservationOrder);
@@ -64,8 +63,7 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:export")
     @Log(title = "预约订单管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, ReservationOrder reservationOrder)
-    {
+    public void export(HttpServletResponse response, ReservationOrder reservationOrder) {
         List<ReservationOrderVO> list = reservationOrderService.selectReservationOrderExportList(reservationOrder);
         ExcelUtil<ReservationOrderVO> util = new ExcelUtil<>(ReservationOrderVO.class);
         util.exportExcel(response, list, "预约订单数据");
@@ -76,8 +74,7 @@ public class ReservationOrderController extends BaseController {
      */
     @RequiresPermissions("sunpalaceartspace:reservationOrder:query")
     @GetMapping(value = "/{reservationOrderId}")
-    public R<ReservationOrderVO> getInfo(@PathVariable("reservationOrderId") Long reservationOrderId)
-    {
+    public R<ReservationOrderVO> getInfo(@PathVariable("reservationOrderId") Long reservationOrderId) {
         return R.ok(reservationOrderService.selectReservationOrderById(reservationOrderId));
     }
 
@@ -87,8 +84,7 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:add")
     @Log(title = "预约订单管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public R<Boolean> add(@Validated @RequestBody ReservationOrderReq req)
-    {
+    public R<Boolean> add(@Validated @RequestBody ReservationOrderReq req) {
         return R.ok(reservationOrderService.saveReservationOrder(req));
     }
 
@@ -98,8 +94,7 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:edit")
     @Log(title = "预约订单管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public R<Boolean> edit(@Validated @RequestBody ReservationOrderReq req)
-    {
+    public R<Boolean> edit(@Validated @RequestBody ReservationOrderReq req) {
         return R.ok(reservationOrderService.updateReservationOrder(req));
     }
 
@@ -110,8 +105,7 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:remove")
     @Log(title = "预约订单管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{reservationOrderIds}")
-    public R<Boolean> remove(@PathVariable Long[] reservationOrderIds)
-    {
+    public R<Boolean> remove(@PathVariable Long[] reservationOrderIds) {
         return R.ok(reservationOrderService.removeReservationOrderByIds(reservationOrderIds));
     }
 }

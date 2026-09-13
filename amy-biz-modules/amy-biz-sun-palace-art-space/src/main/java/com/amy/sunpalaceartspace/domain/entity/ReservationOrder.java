@@ -1,10 +1,12 @@
 package com.amy.sunpalaceartspace.domain.entity;
 
 import java.util.Date;
+import java.util.List;
 
 import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
 import com.amy.common.core.web.domain.BaseEntity;
+import com.amy.sunpalaceartspace.config.StringListJsonTypeHandler;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -99,4 +101,20 @@ public class ReservationOrder extends BaseEntity {
     @Excel(name = "核销时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date verifyTime;
+
+    /**
+     * 预约随行人身份信息（数组列表字符串）。
+     *
+     * <p>类型 {@code List<String>}，每个元素的内容为 {@code com.amy.sunpalaceartspace.domain.entity.UserIdentity}
+     * 字段序列化后的 JSON 字符串（如 {@code "{\"name\":\"张三\",\"idNum\":\"110101199001011234\"}"}）。</p>
+     *
+     * <p>通过字段级 typeHandler {@link StringListJsonTypeHandler} 把 {@code List<String>}
+     * 以 JSON 数组字符串形式存入 {@code comp_users} VARCHAR(2000) 列；读取时自动反序列化。</p>
+     *
+     * <p>仅保存随行人"快照信息"，不与 {@code biz_spas_user_identity} 表建立 FK，
+     * 避免随行人后续修改/删除时影响历史预约单的可追溯性。</p>
+     */
+    @Excel(name = "随行人信息")
+    @TableField(value = "comp_users", typeHandler = StringListJsonTypeHandler.class)
+    private List<String> compUsers;
 }
