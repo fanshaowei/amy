@@ -1,21 +1,9 @@
 package com.amy.sunpalaceartspace.controller;
 
-import java.util.Arrays;
-import java.util.List;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.amy.common.core.utils.poi.ExcelUtil;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.domain.AjaxResult;
+import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.common.log.annotation.Log;
@@ -26,6 +14,12 @@ import com.amy.sunpalaceartspace.domain.Projects;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 项目管理 信息操作处理（MyBatis-Plus 模式）
@@ -47,7 +41,7 @@ public class ProjectsController extends BaseController
     public TableDataInfo list(Projects projects)
     {
         // 读取前端分页参数（pageNum/pageSize），不再依赖 PageHelper
-        com.amy.common.core.web.page.PageDomain pageDomain = TableSupport.buildPageRequest();
+        PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<Projects> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
         IPage<Projects> result = projectsService.selectProjectsList(page, projects);
         return new TableDataInfo(result.getRecords(), (int) result.getTotal());
@@ -101,7 +95,8 @@ public class ProjectsController extends BaseController
     }
 
     /**
-     * 删除项目（物理删除，biz_projects 无 del_flag 列）
+     * 删除项目（软删除：Projects 继承 BaseEntity 且 del_flag 标注 @TableLogic，
+     * MP 的 removeByIds 会转换为 UPDATE ... SET del_flag='1'，物理行不会被移除）
      */
     @RequiresPermissions("sunpalaceartspace:project:remove")
     @Log(title = "项目管理", businessType = BusinessType.DELETE)

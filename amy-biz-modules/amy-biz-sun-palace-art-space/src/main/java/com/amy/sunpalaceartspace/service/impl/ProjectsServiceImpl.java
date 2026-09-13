@@ -34,6 +34,10 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     @Override
     public boolean saveProjects(Projects projects)
     {
+        if (projects.getStatus() == null)
+        {
+            projects.setStatus("0");
+        }
         projects.setCreateTime(DateUtils.getNowDate());
         return save(projects);
     }

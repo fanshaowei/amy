@@ -1,0 +1,27 @@
+# Tomcat
+server:
+  port: __APP_PORT__
+
+# Spring
+spring:
+  application:
+    # 应用名称（同时作为 Nacos 服务名与配置 dataId 前缀）
+    name: __APP_NAME__
+  profiles:
+    # 环境配置
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        # 服务注册地址
+        server-addr: 127.0.0.1:8848
+      config:
+        # 配置中心地址
+        server-addr: 127.0.0.1:8848
+  config:
+    # 配置文件格式
+    file-extension: yml
+    # 使用 optional: 前缀：Nacos 不可用时（如本地仅跑 POC）不阻断启动
+    import:
+      - optional:nacos:application-${spring.profiles.active}.${spring.config.file-extension}
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.${spring.config.file-extension}

@@ -2,6 +2,7 @@ package com.amy.common.core.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusPropertiesCustomizer;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +42,14 @@ public class MybatisPlusConfig
             properties.setTypeAliasesPackage("com.amy.**.domain");
             // 与原有 Nacos mybatis.mapper-locations 保持一致
             properties.setMapperLocations(new String[] { "classpath*:mapper/**/*Mapper.xml" });
+            // 全局逻辑删除取值（项目约定）：0=存在 1=删除（覆盖若依的 0/2 约定；RuoYi 系统表 sys_* 仍走 0/2）。
+            // （BaseEntity.delFlag 已用 @TableLogic 标注，此处兜底，确保任何未显式赋值的 delFlag 字段一致。）
+            GlobalConfig.DbConfig dbConfig = properties.getGlobalConfig().getDbConfig();
+            if (dbConfig != null)
+            {
+                dbConfig.setLogicNotDeleteValue("0");
+                dbConfig.setLogicDeleteValue("1");
+            }
         };
     }
 }

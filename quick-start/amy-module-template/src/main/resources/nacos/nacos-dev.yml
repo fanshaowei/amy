@@ -1,0 +1,24 @@
+# Nacos 配置样例（模板）。
+# 由 amy-module-scaffold 技能生成到 <module>/src/main/resources/nacos/__APP_NAME__-dev.yml，
+# 并在 Nacos 可达时通过 Open API 发布（dataId=__APP_NAME__-dev.yml, group=DEFAULT_GROUP）。
+# 这里只放「模块私有」的配置（数据源 / Redis）；公共配置（如 sentinel、mybatis 全局）放共享的 application-dev.yml。
+# 本模块业务表前缀（见 Agent.md §4.4）：__TABLE_PREFIX__（新建业务表命名形如 __TABLE_PREFIX___<业务>）
+spring:
+  datasource:
+    dynamic:
+      # 默认数据源
+      primary: master
+      # 严格模式：未匹配到数据源时是否抛异常（false=宽松）
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/amy?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          username: root
+          password: fansw!@#
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      # password:            # 有密码时取消注释

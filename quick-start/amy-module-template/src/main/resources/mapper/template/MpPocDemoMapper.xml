@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.template.mapper.MpPocDemoMapper">
+
+    <resultMap type="MpPocDemo" id="MpPocDemoResult">
+        <id     column="demo_id"     property="demoId"/>
+        <result column="demo_name"   property="demoName"/>
+        <result column="status"       property="status"/>
+        <result column="del_flag"     property="delFlag"/>
+        <result column="create_time"  property="createTime"/>
+        <result column="update_time"  property="updateTime"/>
+        <result column="create_by"    property="createBy"/>
+        <result column="update_by"    property="updateBy"/>
+        <result column="remark"       property="remark"/>
+    </resultMap>
+
+    <sql id="MpPocDemo_Column">
+        demo_id, demo_name, status, del_flag, create_time, update_time, create_by, update_by, remark
+    </sql>
+
+    <!-- 分页列表：MP 自动根据第一个 IPage 参数物化分页；数据权限由 @DataScope 切面注入到 entity.params.dataScope（表别名 d 对应 @DataScope(deptAlias="d")） -->
+    <select id="selectMpPocDemoList" resultMap="MpPocDemoResult">
+        SELECT <include refid="MpPocDemo_Column"/>
+        FROM mp_poc_demo d
+        WHERE d.del_flag = '0'
+        <if test="entity.demoName != null and entity.demoName != ''">
+            AND d.demo_name LIKE CONCAT('%', #{entity.demoName}, '%')
+        </if>
+        <if test="entity.status != null">
+            AND d.status = #{entity.status}
+        </if>
+        ${entity.params.dataScope}
+    </select>
+
+</mapper>

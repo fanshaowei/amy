@@ -1,0 +1,14 @@
+# 测试专用 bootstrap（覆盖 main 资源中的 bootstrap.yaml）。
+# 关键点：不配置 Nacos server-addr，也不写 spring.config.import:nacos:...，
+# 这样 @SpringBootTest 完全不依赖 Nacos 可用性；数据源由 @TestPropertySource 注入。
+spring:
+  application:
+    name: __APP_NAME__
+  profiles:
+    active: test
+  cloud:
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false

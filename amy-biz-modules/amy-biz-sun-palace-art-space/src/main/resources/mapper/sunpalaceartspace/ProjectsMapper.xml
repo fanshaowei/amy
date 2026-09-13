@@ -23,14 +23,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"                 column="update_by"                 />
         <result property="updateTime"               column="update_time"               />
         <result property="remark"                   column="remark"                    />
+        <result property="delFlag"                  column="del_flag"                  />
+        <result property="status"                   column="status"                   />
     </resultMap>
 
     <sql id="selectProjectsVo">
         select project_id, project_name, cover_art_url, cut_off_time, reservation_stay_second,
                reservation_start_time, reservation_end_time, reservation_interval_second,
                reservation_count, advance_reservation_days, traveler_count, reservation_notes, sort,
-               create_by, create_time, update_by, update_time, remark
-        from biz_projects
+               create_by, create_time, update_by, update_time, remark, del_flag, status
+        from biz_spas_projects
     </sql>
 
     <!--

@@ -50,7 +50,7 @@ public interface IProjectsService extends IService<Projects>
     boolean updateProjects(Projects projects);
 
     /**
-     * 批量物理删除项目
+     * 批量删除项目（软删除，由 BaseEntity 的 @TableLogic 实现，物理行不会被移除）
      *
      * @param projectIds 项目主键集合
      * @return 是否成功

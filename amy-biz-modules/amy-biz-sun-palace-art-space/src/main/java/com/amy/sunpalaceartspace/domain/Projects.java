@@ -4,6 +4,7 @@ import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
 import com.amy.common.core.web.domain.BaseEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.NotBlank;
@@ -12,7 +13,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 项目管理对象 biz_projects
+ * 项目管理对象 biz_spas_projects
  *
  * @Description 管理每个项目的预约信息（项目名称、封面、预约时间规则、预约须知等）
  * @Author fantasyfan
@@ -20,7 +21,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("biz_projects")
+@TableName("biz_spas_projects")
 public class Projects extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
@@ -83,4 +84,9 @@ public class Projects extends BaseEntity {
     /** 排序 */
     @Excel(name = "排序", cellType = ColumnType.NUMERIC)
     private Integer sort;
+
+    /** 状态（0正常/启用 1停用） */
+    @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
+    @TableField("status")
+    private String status;
 }
