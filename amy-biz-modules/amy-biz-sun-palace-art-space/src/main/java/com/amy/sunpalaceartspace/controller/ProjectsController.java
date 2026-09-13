@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.controller;
 
+import com.amy.common.core.domain.R;
 import com.amy.common.core.utils.poi.ExcelUtil;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.domain.AjaxResult;
@@ -10,7 +11,7 @@ import com.amy.common.log.annotation.Log;
 import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
 import com.amy.common.security.utils.SecurityUtils;
-import com.amy.sunpalaceartspace.domain.Projects;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,13 +39,13 @@ public class ProjectsController extends BaseController
      */
     @RequiresPermissions("sunpalaceartspace:project:list")
     @GetMapping("/list")
-    public TableDataInfo list(Projects projects)
+    public R<TableDataInfo> list(Projects projects)
     {
         // 读取前端分页参数（pageNum/pageSize），不再依赖 PageHelper
         PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<Projects> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
         IPage<Projects> result = projectsService.selectProjectsList(page, projects);
-        return new TableDataInfo(result.getRecords(), (int) result.getTotal());
+        return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
     }
 
     /**
@@ -65,9 +66,9 @@ public class ProjectsController extends BaseController
      */
     @RequiresPermissions("sunpalaceartspace:project:query")
     @GetMapping(value = "/{projectId}")
-    public AjaxResult getInfo(@PathVariable("projectId") Long projectId)
+    public R<Projects> getInfo(@PathVariable("projectId") Long projectId)
     {
-        return success(projectsService.getById(projectId));
+        return R.ok(projectsService.getById(projectId));
     }
 
     /**
@@ -76,10 +77,10 @@ public class ProjectsController extends BaseController
     @RequiresPermissions("sunpalaceartspace:project:add")
     @Log(title = "项目管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@Validated @RequestBody Projects projects)
+    public R<Boolean> add(@Validated @RequestBody Projects projects)
     {
         projects.setCreateBy(SecurityUtils.getUsername());
-        return toAjax(projectsService.saveProjects(projects));
+        return R.ok(projectsService.saveProjects(projects));
     }
 
     /**
@@ -88,10 +89,10 @@ public class ProjectsController extends BaseController
     @RequiresPermissions("sunpalaceartspace:project:edit")
     @Log(title = "项目管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@Validated @RequestBody Projects projects)
+    public R<Boolean> edit(@Validated @RequestBody Projects projects)
     {
         projects.setUpdateBy(SecurityUtils.getUsername());
-        return toAjax(projectsService.updateProjects(projects));
+        return R.ok(projectsService.updateProjects(projects));
     }
 
     /**
@@ -101,8 +102,8 @@ public class ProjectsController extends BaseController
     @RequiresPermissions("sunpalaceartspace:project:remove")
     @Log(title = "项目管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{projectIds}")
-    public AjaxResult remove(@PathVariable Long[] projectIds)
+    public R<Boolean> remove(@PathVariable Long[] projectIds)
     {
-        return toAjax(projectsService.removeProjectsByIds(projectIds));
+        return R.ok(projectsService.removeProjectsByIds(projectIds));
     }
 }

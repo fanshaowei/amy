@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.amy.common.core.utils.DateUtils;
-import com.amy.sunpalaceartspace.domain.Projects;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 

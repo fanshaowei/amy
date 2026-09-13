@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.sunpalaceartspace.mapper.ReservationOrderMapper">
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO" id="ReservationOrderResult">
+        <id property="reservationOrderId" column="reservation_order_id"/>
+        <result property="reservationNum" column="reservation_num"/>
+        <result property="projectId" column="project_id"/>
+        <result property="projectName" column="project_name"/>
+        <result property="reservationUserId" column="reservation_user_id"/>
+        <result property="reservationUserNumber" column="reservation_user_number"/>
+        <result property="reservationUserName" column="reservation_user_name"/>
+        <result property="name" column="name"/>
+        <result property="phone" column="phone"/>
+        <result property="idType" column="id_type"/>
+        <result property="idNum" column="id_num"/>
+        <result property="guestsNum" column="guests_num"/>
+        <result property="reservationTime" column="reservation_time"/>
+        <result property="reservationStatus" column="status"/>
+        <result property="verifyBy" column="verify_by"/>
+        <result property="verifyTime" column="verify_time"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="selectReservationOrderVo">
+        select r.reservation_order_id,
+               r.reservation_num,
+               r.project_id,
+               p.project_name,
+               r.reservation_user_id,
+               u.user_number          as reservation_user_number,
+               u.name                 as reservation_user_name,
+               r.name,
+               r.phone,
+               r.id_type,
+               r.id_num,
+               r.guests_num,
+               r.reservation_time,
+               r.status,
+               r.verify_by,
+               r.verify_time,
+               r.create_time
+        from biz_spas_reservation_order r
+        left join biz_spas_projects p on p.project_id = r.project_id and p.del_flag = '0'
+        left join biz_spas_reservation_user u on u.reservation_user_id = r.reservation_user_id and u.del_flag = '0'
+    </sql>
+
+    <select id="selectReservationOrderList" parameterType="com.amy.sunpalaceartspace.domain.entity.ReservationOrder"
+            resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        where r.del_flag = '0'
+        <if test="reservationNum != null and reservationNum != ''">
+            and r.reservation_num like concat('%', #{reservationNum}, '%')
+        </if>
+        <if test="projectId != null">
+            and r.project_id = #{projectId}
+        </if>
+        <if test="name != null and name != ''">
+            and r.name like concat('%', #{name}, '%')
+        </if>
+        <if test="phone != null and phone != ''">
+            and r.phone like concat('%', #{phone}, '%')
+        </if>
+        <if test="reservationStatus != null and reservationStatus != ''">
+            and r.status = #{reservationStatus}
+        </if>
+        <if test="reservationTime != null">
+            and date(r.reservation_time) = date(#{reservationTime})
+        </if>
+        <!-- 数据权限 -->
+        ${params.dataScope}
+        order by r.create_time desc
+    </select>
+
+    <select id="selectReservationOrderById" parameterType="Long" resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        where r.reservation_order_id = #{reservationOrderId} and r.del_flag = '0'
+    </select>
+</mapper>

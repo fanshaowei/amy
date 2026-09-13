@@ -2,9 +2,8 @@ package com.amy.sunpalaceartspace.mapper;
 
 import java.util.List;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.amy.sunpalaceartspace.domain.Projects;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

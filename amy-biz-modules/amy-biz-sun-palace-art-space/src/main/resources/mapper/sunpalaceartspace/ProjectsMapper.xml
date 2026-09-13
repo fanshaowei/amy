@@ -4,7 +4,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.amy.sunpalaceartspace.mapper.ProjectsMapper">
 
-    <resultMap type="Projects" id="ProjectsResult">
+    <resultMap type="com.amy.sunpalaceartspace.domain.entity.Projects" id="ProjectsResult">
         <id     property="projectId"                column="project_id"                />
         <result property="projectName"              column="project_name"              />
         <result property="coverArtUrl"              column="cover_art_url"             />

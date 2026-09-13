@@ -16,6 +16,7 @@ public class AmyBizSunPalaceArtSpaceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(AmyBizSunPalaceArtSpaceApplication.class, args);
+        System.out.println("(♥◠‿◠)ﾉﾞ  太阳宫艺术空间模块启动成功   ლ(´ڡ`ლ)ﾞ");
     }
 
 }

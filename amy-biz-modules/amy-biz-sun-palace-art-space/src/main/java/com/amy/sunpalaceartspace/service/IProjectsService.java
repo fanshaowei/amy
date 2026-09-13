@@ -4,7 +4,7 @@ import java.util.List;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.amy.sunpalaceartspace.domain.Projects;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 
 /**
  * 项目管理 服务层（MyBatis-Plus 模式）

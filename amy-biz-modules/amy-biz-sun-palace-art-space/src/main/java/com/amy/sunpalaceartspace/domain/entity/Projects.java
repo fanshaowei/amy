@@ -1,4 +1,4 @@
-package com.amy.sunpalaceartspace.domain;
+package com.amy.sunpalaceartspace.domain.entity;
 
 import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
