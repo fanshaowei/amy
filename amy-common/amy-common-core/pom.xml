@@ -51,12 +51,40 @@
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
+            <exclusions>
+                <!-- MP 的 spring-boot4-starter 已提供 mybatis 能力，排除 pagehelper 传递引入的 mybatis starter，避免两套 SqlSessionFactory 自动配置共存 -->
+                <exclusion>
+                    <groupId>org.mybatis.spring.boot</groupId>
+                    <artifactId>mybatis-spring-boot-starter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
-        <!-- Mybatis Spring -->
+        <!-- MyBatis-Plus（面向 Spring Boot 4 / MyBatis 4 的专用 starter），新功能优先走 MP，存量 XML 仍兼容 -->
         <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+        </dependency>
+
+        <!-- MP 3.5.17 起将分页插件所在的 jsqlparser 标记为 optional，需显式引入；版本与 dynamic-datasource 传递拉取的保持一致 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser-4.9</artifactId>
+            <version>3.5.12</version>
+        </dependency>
+
+        <!-- MP 核心扩展（IService/ServiceImpl/MybatisPlusInterceptor 所在），3.5.17 起为 optional，需显式声明为直接依赖以便向所有下游模块传播 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-extension</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
+        <!-- MP 3.5.17(Spring Boot4 构建) 将 IService/ServiceImpl 拆分到 mybatis-plus-spring，且为 optional，需显式引入 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring</artifactId>
+            <version>${mybatis-plus.version}</version>
         </dependency>
 
         <!-- Hibernate Validator -->

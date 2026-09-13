@@ -6,7 +6,7 @@
         <groupId>com.amy</groupId>
         <artifactId>amy-biz-modules</artifactId>
         <version>3.6.8</version>
-        <relativePath/>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>amy-biz-sun-palace-art-space</artifactId>
@@ -76,6 +76,20 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
+        <!-- POC 验证用：聚焦测试 MyBatis-Plus 运行时行为；仅 test 作用域，不进入生产构建 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Surefire 3.x 启动 JUnit5 引擎所需；缺失会导致 jupiter 测试被静默忽略（0 tests） -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -91,6 +105,13 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- 项目根 pom 非 spring-boot-starter-parent，未管理 surefire；默认 2.12.4 不支持 JUnit Platform。
+                 显式声明 3.5.5 以驱动 JUnit6（jupiter 6.0.3）测试。仅用于验证，不影响生产构建。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.5</version>
             </plugin>
         </plugins>
     </build>
