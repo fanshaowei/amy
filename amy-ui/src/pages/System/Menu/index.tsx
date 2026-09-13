@@ -172,7 +172,7 @@ export default function MenuPage() {
         />
         <ModalForm<MenuRecord> title={editing?.menuId ? '修改菜单' : '添加菜单'} open={open} initialValues={editing}
                                formRef={formRef}
-                               modalProps={{destroyOnClose: true, width: 760, onCancel: () => setOpen(false)}} grid
+                               modalProps={{destroyOnHidden: true, width: 760, onCancel: () => setOpen(false)}} grid
                                onFinish={async (values) => {
                                    // 直接从 form 实例拿所有字段值（含 IconSelect 通过 setFieldValue 写入的 icon），
                                    // 避免 ProForm 的 values 收集丢失非受控自定义组件的字段。

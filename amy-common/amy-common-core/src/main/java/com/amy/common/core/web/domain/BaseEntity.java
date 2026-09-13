@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -19,6 +21,7 @@ public class BaseEntity implements Serializable
 
     /** 搜索值 */
     @JsonIgnore
+    @TableField(exist = false)
     private String searchValue;
 
     /** 创建者 */
@@ -38,8 +41,14 @@ public class BaseEntity implements Serializable
     /** 备注 */
     private String remark;
 
+    /** 删除标志（0代表存在 1代表删除）；由 @TableLogic 实现全局默认软删除 */
+    @TableLogic(value = "0", delval = "1")
+    @TableField("del_flag")
+    private String delFlag;
+
     /** 请求参数 */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @TableField(exist = false)
     private Map<String, Object> params;
 
     public String getSearchValue()

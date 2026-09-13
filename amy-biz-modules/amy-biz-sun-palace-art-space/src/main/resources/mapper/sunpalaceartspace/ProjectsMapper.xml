@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.sunpalaceartspace.mapper.ProjectsMapper">
+
+    <resultMap type="Projects" id="ProjectsResult">
+        <id     property="projectId"                column="project_id"                />
+        <result property="projectName"              column="project_name"              />
+        <result property="coverArtUrl"              column="cover_art_url"             />
+        <result property="cutOffTime"               column="cut_off_time"              />
+        <result property="reservationStaySecond"    column="reservation_stay_second"   />
+        <result property="reservationStartTime"     column="reservation_start_time"    />
+        <result property="reservationEndTime"       column="reservation_end_time"      />
+        <result property="reservationIntervalSecond" column="reservation_interval_second" />
+        <result property="reservationCount"         column="reservation_count"         />
+        <result property="advanceReservationDays"   column="advance_reservation_days"  />
+        <result property="travelerCount"            column="traveler_count"            />
+        <result property="reservationNotes"         column="reservation_notes"         />
+        <result property="sort"                     column="sort"                      />
+        <result property="createBy"                 column="create_by"                 />
+        <result property="createTime"               column="create_time"               />
+        <result property="updateBy"                 column="update_by"                 />
+        <result property="updateTime"               column="update_time"               />
+        <result property="remark"                   column="remark"                    />
+        <result property="delFlag"                  column="del_flag"                  />
+        <result property="status"                   column="status"                   />
+    </resultMap>
+
+    <sql id="selectProjectsVo">
+        select project_id, project_name, cover_art_url, cut_off_time, reservation_stay_second,
+               reservation_start_time, reservation_end_time, reservation_interval_second,
+               reservation_count, advance_reservation_days, traveler_count, reservation_notes, sort,
+               create_by, create_time, update_by, update_time, remark, del_flag, status
+        from biz_spas_projects
+    </sql>
+
+    <!--
+        分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
+        完成 count + limit，本处【不要】写 limit。
+        条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 预留给 @DataScope 切面注入
+        （本表无部门字段，暂不启用 @DataScope；如需启用请加表别名并补充部门条件）。
+    -->
+    <select id="selectProjectsList" resultMap="ProjectsResult">
+        <include refid="selectProjectsVo"/>
+        <where>
+            <if test="entity.projectName != null and entity.projectName != ''">
+                AND project_name like concat('%', #{entity.projectName}, '%')
+            </if>
+            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
+                and date_format(create_time,'%Y%m%d') &gt;= date_format(#{entity.params.beginTime},'%Y%m%d')
+            </if>
+            <if test="entity.params.endTime != null and entity.params.endTime != ''">
+                and date_format(create_time,'%Y%m%d') &lt;= date_format(#{entity.params.endTime},'%Y%m%d')
+            </if>
+            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+                ${entity.params.dataScope}
+            </if>
+        </where>
+        order by sort, project_id
+    </select>
+
+    <!-- 导出列表：不分页 -->
+    <select id="selectProjectsExportList" resultMap="ProjectsResult">
+        <include refid="selectProjectsVo"/>
+        <where>
+            <if test="entity.projectName != null and entity.projectName != ''">
+                AND project_name like concat('%', #{entity.projectName}, '%')
+            </if>
+            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
+                and date_format(create_time,'%Y%m%d') &gt;= date_format(#{entity.params.beginTime},'%Y%m%d')
+            </if>
+            <if test="entity.params.endTime != null and entity.params.endTime != ''">
+                and date_format(create_time,'%Y%m%d') &lt;= date_format(#{entity.params.endTime},'%Y%m%d')
+            </if>
+            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+                ${entity.params.dataScope}
+            </if>
+        </where>
+        order by sort, project_id
+    </select>
+
+</mapper>

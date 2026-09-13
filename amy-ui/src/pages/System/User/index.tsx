@@ -243,7 +243,7 @@ export default function UserPage() {
                 title={editing?.userId ? '修改用户' : '添加用户'}
                 open={formOpen}
                 initialValues={editing}
-                modalProps={{destroyOnClose: true, onCancel: () => setFormOpen(false)}}
+                modalProps={{destroyOnHidden: true, onCancel: () => setFormOpen(false)}}
                 grid
                 onFinish={async (values) => {
                     const data = {...editing, ...values};

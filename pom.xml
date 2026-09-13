@@ -16,12 +16,13 @@
         <amy.version>3.6.8</amy.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <spring-boot.version>4.0.6</spring-boot.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
         <spring-boot-admin.version>4.0.4</spring-boot-admin.version>
         <mybatis-spring-boot.version>4.0.1</mybatis-spring-boot.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <kaptcha.version>2.3.3</kaptcha.version>
         <pagehelper.boot.version>4.1.0</pagehelper.boot.version>
         <druid.version>1.2.28</druid.version>
@@ -98,6 +99,12 @@
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>
                 <version>${mybatis-spring-boot.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
 
             <!-- io常用工具类 -->
@@ -211,7 +218,6 @@
                 <artifactId>amy-api-system</artifactId>
                 <version>${amy.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 
@@ -222,6 +228,8 @@
         <module>amy-modules</module>
         <module>amy-api</module>
         <module>amy-common</module>
+        <module>amy-wechat</module>
+        <module>amy-biz-modules</module>
     </modules>
     <packaging>pom</packaging>
 

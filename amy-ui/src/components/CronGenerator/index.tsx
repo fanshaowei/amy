@@ -441,7 +441,7 @@ export default function CronGenerator({value, onChange, open, onOk, onCancel, ti
                 </span>
             }
             width={760}
-            destroyOnClose
+            destroyOnHidden
             okText="确定"
             cancelText="取消"
         >

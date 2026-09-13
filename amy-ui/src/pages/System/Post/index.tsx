@@ -90,7 +90,7 @@ export default function PostPage() {
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:post:export"
                           onClick={() => void downloadFile('/system/post/export', {}, `post_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/>
         <ModalForm<PostRecord> title={editing?.postId ? '修改岗位' : '添加岗位'} open={open} initialValues={editing}
-                               modalProps={{destroyOnClose: true, onCancel: () => setOpen(false)}}
+                               modalProps={{destroyOnHidden: true, onCancel: () => setOpen(false)}}
                                onFinish={async (v) => {
                                    const data = {...editing, ...v};
                                    editing?.postId ? await updatePost(data) : await addPost(data);

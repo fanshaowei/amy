@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>amy-modules-system</artifactId>
+    <artifactId>amy-system</artifactId>
 
     <description>
         amy-modules-system系统模块

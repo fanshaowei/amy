@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>amy-modules-gen</artifactId>
+    <artifactId>amy-gen</artifactId>
 
     <description>
         amy-modules-gen代码生成

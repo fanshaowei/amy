@@ -1,1 +1,2 @@
 com.amy.common.core.utils.SpringUtils
+com.amy.common.core.config.MybatisPlusConfig
