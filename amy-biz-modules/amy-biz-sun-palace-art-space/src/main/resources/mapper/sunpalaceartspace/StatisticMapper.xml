@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.sunpalaceartspace.mapper.StatisticMapper">
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.DashboardTrendItemVO" id="TrendItemResult">
+        <result property="date" column="stat_date"/>
+        <result property="count" column="cnt"/>
+    </resultMap>
+
+    <!-- 今日预约人数 -->
+    <select id="selectTodayReservationCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_order
+        where del_flag = '0'
+          and date(reservation_time) = curdate()
+    </select>
+
+    <!-- 今日核销人数 -->
+    <select id="selectTodayVerifyCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_order
+        where del_flag = '0'
+          and reservation_status = '1'
+          and date(verify_time) = curdate()
+    </select>
+
+    <!-- 明日预约人数 -->
+    <select id="selectTomorrowReservationCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_order
+        where del_flag = '0'
+          and date(reservation_time) = date_add(curdate(), interval 1 day)
+    </select>
+
+    <!-- 预约总数 -->
+    <select id="selectTotalReservationCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_order
+        where del_flag = '0'
+    </select>
+
+    <!-- 今日新增会员 -->
+    <select id="selectTodayNewUserCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_user
+        where del_flag = '0'
+          and date(create_time) = curdate()
+    </select>
+
+    <!-- 会员总数 -->
+    <select id="selectTotalUserCount" resultType="java.lang.Long">
+        select count(*)
+        from biz_spas_reservation_user
+        where del_flag = '0'
+    </select>
+
+    <!-- 近30天预约趋势 -->
+    <select id="selectLast30DaysReservationTrend" resultMap="TrendItemResult">
+        select date(reservation_time) as stat_date,
+               count(*) as cnt
+        from biz_spas_reservation_order
+        where del_flag = '0'
+          and date(reservation_time) &gt;= date_sub(curdate(), interval 29 day)
+        group by date(reservation_time)
+        order by stat_date asc
+    </select>
+
+    <!-- 近30天用户增长趋势 -->
+    <select id="selectLast30DaysUserTrend" resultMap="TrendItemResult">
+        select date(create_time) as stat_date,
+               count(*) as cnt
+        from biz_spas_reservation_user
+        where del_flag = '0'
+          and date(create_time) &gt;= date_sub(curdate(), interval 29 day)
+        group by date(create_time)
+        order by stat_date asc
+    </select>
+</mapper>
