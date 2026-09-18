@@ -69,7 +69,8 @@ export default defineConfig({
       icon: 'ProjectOutlined',
       routes: [
         { path: '/sunpalaceartspace/project', name: '项目管理', component: '@/pages/sunpalaceartspace/project' },
-        { path: '/sunpalaceartspace/order', name: '预约订单', component: '@/pages/sunpalaceartspace/order' }
+        { path: '/sunpalaceartspace/order', name: '预约订单', component: '@/pages/sunpalaceartspace/order' },
+        { path: '/sunpalaceartspace/reservationUser', name: '会员列表', component: '@/pages/sunpalaceartspace/reservationUser' }
       ]
     },
     { path: '/system/user/profile', name: '个人中心', hideInMenu: true, component: '@/pages/System/Profile' },

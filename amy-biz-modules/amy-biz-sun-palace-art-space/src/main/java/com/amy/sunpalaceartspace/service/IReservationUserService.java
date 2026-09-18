@@ -59,6 +59,15 @@ public interface IReservationUserService extends IService<ReservationUser> {
     boolean updateReservationUser(ReservationUserReq req);
 
     /**
+     * 切换会员身份（1用户 2核销员）
+     *
+     * @param reservationUserId 会员ID
+     * @param type              目标类型（1用户 2核销员）
+     * @return 是否成功
+     */
+    boolean changeUserType(Long reservationUserId, Integer type);
+
+    /**
      * 批量删除预约会员（软删除）
      *
      * @param reservationUserIds 会员ID集合

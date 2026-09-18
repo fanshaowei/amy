@@ -165,7 +165,7 @@ export default function ProjectPage() {
             rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
             request={async ({current, pageSize, ...params}) => {
                 const result = await listProjects({...params, pageNum: current, pageSize});
-                return {data: result.rows, total: result.total, success: result.code === 200 || result.code == 0};
+                return {data: result.data.rows, total: result.data.total, success: result.code === 200 || result.code == 0};
             }}
             toolBarRender={() => [
                 <PermissionButton key="add" type="primary" icon={<PlusOutlined/>}
