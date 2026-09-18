@@ -87,7 +87,7 @@ export const request: RequestConfig = {
             // umi-request 默认只对 data.success === false 触发 errorThrower，
             // RuoYi 后端无该字段，所以这里手动拦截并提示错误 + reject。
             const body = response.data as { code?: number; msg?: string } | undefined;
-            if (body && typeof body === 'object' && typeof body.code === 'number' && body.code !== 200) {
+            if (body && typeof body === 'object' && typeof body.code === 'number' && body.code !== 200 && body.code !== 0) {
                 const errorMsg = body.msg || '请求失败';
                 antdMessage.error(errorMsg);
                 return Promise.reject(new Error(errorMsg));
@@ -147,7 +147,7 @@ const UserMenu = ({currentUser}: { currentUser?: CurrentUser }) => {
 };
 
 export const layout: RunTimeLayoutConfig = ({initialState}) => ({
-    title: '若依管理系统',
+    title: '太阳宫艺术空间',
     logo: false,
     fixedHeader: true,
     fixSiderbar: true,
@@ -287,6 +287,7 @@ const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/notice': 'system:notice:list',
     '/system/log/operlog': 'system:operlog:list',
     '/system/log/logininfor': 'system:logininfor:list',
+    '/sunpalaceartspace/project': 'sunpalaceartspace:project:list',
     '/monitor/job': 'monitor:job:list',
     '/monitor/job-log': 'monitor:job:list',
     '/monitor/online': 'monitor:online:list'
