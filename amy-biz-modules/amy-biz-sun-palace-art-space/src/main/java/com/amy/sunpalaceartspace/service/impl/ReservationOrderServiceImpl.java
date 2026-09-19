@@ -13,6 +13,10 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
@@ -84,6 +88,24 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public boolean removeReservationOrderByIds(Long[] reservationOrderIds)
     {
         return removeByIds(Arrays.asList(reservationOrderIds));
+    }
+
+    @Override
+    public List<ReservationOrderStatisticVO> selectReservationOrderStatisticByDate(ReservationOrderStatisticCriteria req)
+    {
+        return baseMapper.selectReservationOrderStatisticByDate(req);
+    }
+
+    @Override
+    public List<ReservationOrderStatisticByTimeVO> selectReservationOrderStatisticByTime(ReservationOrderStatisticCriteria criteria)
+    {
+        return baseMapper.selectReservationOrderStatisticByTime(criteria);
+    }
+
+    @Override
+    public List<ReservationOrderStatisticByProjectVO> selectReservationOrderStatisticByProject(ReservationOrderStatisticCriteria criteria)
+    {
+        return baseMapper.selectReservationOrderStatisticByProject(criteria);
     }
 
     /**

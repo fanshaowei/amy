@@ -27,6 +27,12 @@
                 typeHandler="com.amy.sunpalaceartspace.config.StringListJsonTypeHandler"/>
     </resultMap>
 
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO" id="ReservationOrderStatisticResult">
+        <result property="projectId" column="project_id"/>
+        <result property="reservationDate" column="reservation_date"/>
+        <result property="count" column="cnt"/>
+    </resultMap>
+
     <sql id="selectReservationOrderVo">
         select r.reservation_order_id,
                r.reservation_num,
@@ -81,5 +87,86 @@
     <select id="selectReservationOrderById" parameterType="Long" resultMap="ReservationOrderResult">
         <include refid="selectReservationOrderVo"/>
         where r.reservation_order_id = #{reservationOrderId} and r.del_flag = '0'
+    </select>
+
+    <!-- 按预约时间（日期）统计各时间段的预约订单数 -->
+    <select id="selectReservationOrderStatisticByDate"
+            parameterType="com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria"
+            resultMap="ReservationOrderStatisticResult">
+        select
+            r.project_id as project_id,
+            date_format(r.reservation_time, '%Y-%m-%d') as reservation_date,
+            count(*) as cnt
+        from biz_spas_reservation_order r
+        where r.del_flag = '0'
+        <if test="projectId != null">
+            and r.project_id = #{projectId}
+        </if>
+        <if test="reservationTimeStart != null">
+            and r.reservation_time &gt;= #{reservationTimeStart}
+        </if>
+        <if test="reservationTimeEnd != null">
+            and r.reservation_time &lt;= #{reservationTimeEnd}
+        </if>
+        group by r.project_id, date_format(r.reservation_time, '%Y-%m-%d')
+        order by project_id asc, reservation_date asc
+    </select>
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO" id="ReservationOrderStatisticByTimeResult">
+        <result property="projectId" column="project_id"/>
+        <result property="reservationDate" column="reservation_date"/>
+        <result property="reservationTime" column="reservation_time_label"/>
+        <result property="count" column="cnt"/>
+    </resultMap>
+
+    <!-- 按预约时间（日期+时间段）统计各时间段的预约订单数 -->
+    <select id="selectReservationOrderStatisticByTime"
+            parameterType="com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria"
+            resultMap="ReservationOrderStatisticByTimeResult">
+        select
+            r.project_id as project_id,
+            date_format(r.reservation_time, '%Y-%m-%d') as reservation_date,
+            date_format(r.reservation_time, '%H:%i:%s') as reservation_time_label,
+            count(*) as cnt
+        from biz_spas_reservation_order r
+        where r.del_flag = '0'
+        <if test="projectId != null">
+            and r.project_id = #{projectId}
+        </if>
+        <if test="reservationTimeStart != null">
+            and r.reservation_time &gt;= #{reservationTimeStart}
+        </if>
+        <if test="reservationTimeEnd != null">
+            and r.reservation_time &lt;= #{reservationTimeEnd}
+        </if>
+        group by r.project_id, date_format(r.reservation_time, '%Y-%m-%d'), date_format(r.reservation_time, '%H:%i:%s')
+        order by project_id asc, reservation_date asc, reservation_time_label asc
+    </select>
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO" id="ReservationOrderStatisticByProjectResult">
+        <result property="projectId" column="project_id"/>
+        <result property="count" column="cnt"/>
+    </resultMap>
+
+    <!-- 按项目分组统计预约订单总数（按日期时间范围） -->
+    <select id="selectReservationOrderStatisticByProject"
+            parameterType="com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria"
+            resultMap="ReservationOrderStatisticByProjectResult">
+        select
+            r.project_id as project_id,
+            count(*) as cnt
+        from biz_spas_reservation_order r
+        where r.del_flag = '0'
+        <if test="projectId != null">
+            and r.project_id = #{projectId}
+        </if>
+        <if test="reservationTimeStart != null">
+            and r.reservation_time &gt;= #{reservationTimeStart}
+        </if>
+        <if test="reservationTimeEnd != null">
+            and r.reservation_time &lt;= #{reservationTimeEnd}
+        </if>
+        group by r.project_id
+        order by project_id asc
     </select>
 </mapper>

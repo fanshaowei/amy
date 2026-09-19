@@ -1,17 +1,19 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.utils.DateUtils;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
+import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.Array;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.List;
 @Service
 public class MinaAppService {
     private final IProjectsService projectsService;
+    private final IReservationOrderService reservationOrderService;
 
     public IPage<MinaHomePageProjectResp> extractProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -37,13 +40,16 @@ public class MinaAppService {
         IPage<MinaHomePageProjectResp> pageResp = new Page();
         List<MinaHomePageProjectResp> list = projectsIPage.getRecords().stream().map(project -> {
             List<String> reservationDates = calculateReservationData(project.getAdvanceReservationDays());
-            Integer remainingReservationCount = calculateRemainingReservationCount();
+            // 可预约总数
             Integer totalReservationCount = calculateTotalReservationCount(
                     project.getReservationStartTime(),
                     project.getReservationEndTime(),
                     project.getReservationIntervalSecond(),
                     project.getReservationCount());
-            Integer reservationStatus = calculateReservationStatus();
+            //剩余可预约次数 = 预约总次数 - 已预约次数
+            Integer reservationCount = calculateDateReservationCount(project.getProjectId(), project.getAdvanceReservationDays());
+            Integer remainingReservationCount = totalReservationCount - reservationCount;
+            Integer reservationStatus = calculateReservationStatus(totalReservationCount, reservationCount);
 
             MinaHomePageProjectResp resp = MinaHomePageProjectResp.builder()
                     .projectId(project.getProjectId())
@@ -53,8 +59,8 @@ public class MinaAppService {
                     .reservationEndDate(reservationDates.get(1))
                     .reservationStartTime(project.getReservationStartTime())
                     .reservationEndTime(project.getReservationEndTime())
-                    .remainingReservationCount(remainingReservationCount)
                     .totalReservationCount(totalReservationCount)
+                    .remainingReservationCount(remainingReservationCount)
                     .reservationStatus(reservationStatus)
                     .cutOffTime(project.getCutOffTime())
                     .reservationStaySecond(project.getReservationStaySecond())
@@ -78,9 +84,14 @@ public class MinaAppService {
         );
     }
 
-    private Integer calculateRemainingReservationCount() {
-
-        return 0;
+    private Integer calculateDateReservationCount(Long projectId, Integer dateInterval) {
+        ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
+                .projectId(projectId)
+                .reservationTimeStart(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + "00:00:00"), 1))
+                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + "23:59:59"), dateInterval))
+                .build();
+        List<ReservationOrderStatisticByProjectVO> vos = reservationOrderService.selectReservationOrderStatisticByProject(criteria);
+        return vos.getFirst().getCount();
     }
 
     private Integer calculateTotalReservationCount(String startTime, String endTime, Integer interval, Integer count){
@@ -97,7 +108,13 @@ public class MinaAppService {
         return result.size() * count;
     }
 
-    private Integer calculateReservationStatus() {
-        return 0;
+    private Integer calculateReservationStatus(Integer totalReservationCount, Integer reservationCount) {
+        Integer reservationPercent = 0;
+        if(reservationCount > totalReservationCount) return ReservationStatusEnum.FILLED.getValue();
+
+        reservationPercent = Math.divideExact(reservationCount, totalReservationCount) * 100;
+
+        return reservationPercent > 80 ? (reservationPercent >= 100 ? ReservationStatusEnum.FILLED.getValue() : ReservationStatusEnum.TIGHT.getValue() )
+                : ReservationStatusEnum.AMPLE.getValue();
     }
 }
