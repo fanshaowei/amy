@@ -21,7 +21,7 @@ import com.amy.system.api.model.LoginUser;
 
 /**
  * token验证处理
- * 
+ *
  * @author amy
  */
 @Component
@@ -31,6 +31,9 @@ public class TokenService
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     protected static final long MILLIS_SECOND = 1000;
 
@@ -64,7 +67,7 @@ public class TokenService
 
         // 接口返回信息
         Map<String, Object> rspMap = new HashMap<String, Object>();
-        rspMap.put("access_token", JwtUtils.createToken(claimsMap));
+        rspMap.put("access_token", jwtUtils.createToken(claimsMap));
         rspMap.put("expires_in", TOKEN_EXPIRE_TIME);
         return rspMap;
     }
@@ -103,7 +106,7 @@ public class TokenService
         {
             if (StringUtils.isNotEmpty(token))
             {
-                String userkey = JwtUtils.getUserKey(token);
+                String userkey = jwtUtils.getUserKey(token);
                 user = redisService.getCacheObject(getTokenKey(userkey));
                 return user;
             }
@@ -133,7 +136,7 @@ public class TokenService
     {
         if (StringUtils.isNotEmpty(token))
         {
-            String userkey = JwtUtils.getUserKey(token);
+            String userkey = jwtUtils.getUserKey(token);
             redisService.deleteObject(getTokenKey(userkey));
         }
     }

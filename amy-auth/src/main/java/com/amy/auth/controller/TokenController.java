@@ -20,7 +20,7 @@ import com.amy.system.api.model.LoginUser;
 
 /**
  * token 控制
- * 
+ *
  * @author amy
  */
 @RestController
@@ -31,6 +31,9 @@ public class TokenController
 
     @Autowired
     private SysLoginService sysLoginService;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @PostMapping("login")
     public R<?> login(@RequestBody LoginBody form)
@@ -47,7 +50,7 @@ public class TokenController
         String token = SecurityUtils.getToken(request);
         if (StringUtils.isNotEmpty(token))
         {
-            String username = JwtUtils.getUserName(token);
+            String username = jwtUtils.getUserName(token);
             // 删除用户缓存记录
             AuthUtil.logoutByToken(token);
             // 记录用户退出日志

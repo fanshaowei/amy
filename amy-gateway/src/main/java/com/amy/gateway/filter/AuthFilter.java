@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * 网关鉴权
- * 
+ *
  * @author amy
  */
 @Component
@@ -38,6 +38,8 @@ public class AuthFilter implements GlobalFilter, Ordered
     @Autowired
     private RedisService redisService;
 
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
@@ -56,19 +58,19 @@ public class AuthFilter implements GlobalFilter, Ordered
         {
             return unauthorizedResponse(exchange, "令牌不能为空");
         }
-        Claims claims = JwtUtils.parseToken(token);
+        Claims claims = jwtUtils.parseToken(token);
         if (claims == null)
         {
             return unauthorizedResponse(exchange, "令牌已过期或验证不正确！");
         }
-        String userkey = JwtUtils.getUserKey(claims);
+        String userkey = jwtUtils.getUserKey(claims);
         boolean islogin = redisService.hasKey(getTokenKey(userkey));
         if (!islogin)
         {
             return unauthorizedResponse(exchange, "登录状态已过期");
         }
-        String userid = JwtUtils.getUserId(claims);
-        String username = JwtUtils.getUserName(claims);
+        String userid = jwtUtils.getUserId(claims);
+        String username = jwtUtils.getUserName(claims);
         if (StringUtils.isEmpty(userid) || StringUtils.isEmpty(username))
         {
             return unauthorizedResponse(exchange, "令牌验证失败");
