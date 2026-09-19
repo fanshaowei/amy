@@ -69,6 +69,17 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public boolean changeUserType(Long reservationUserId, Integer type) {
+        ReservationUser user = new ReservationUser();
+        user.setReservationUserId(reservationUserId);
+        user.setType(type);
+        user.setUpdateBy(SecurityUtils.getUsername());
+        user.setUpdateTime(DateUtils.getNowDate());
+        return updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean removeReservationUserByIds(Long[] reservationUserIds) {
         return removeByIds(Arrays.asList(reservationUserIds));
     }

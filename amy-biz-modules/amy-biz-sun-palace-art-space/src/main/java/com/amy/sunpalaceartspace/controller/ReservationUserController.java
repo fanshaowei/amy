@@ -104,6 +104,17 @@ public class ReservationUserController extends BaseController {
     }
 
     /**
+     * 切换会员身份（1用户 2核销员）
+     */
+    @RequiresPermissions("sunpalaceartspace:reservationUser:edit")
+    @Log(title = "预约会员管理", businessType = BusinessType.UPDATE)
+    @PutMapping("/changeType/{reservationUserId}/{type}")
+    public R<AjaxResult> changeType(@PathVariable Long reservationUserId, @PathVariable Integer type)
+    {
+        return R.ok(toAjax(reservationUserService.changeUserType(reservationUserId, type)));
+    }
+
+    /**
      * 删除预约会员（软删除：ReservationUser 继承 BaseEntity 且 del_flag 标注 @TableLogic，
      * MP 的 removeByIds 会转换为 UPDATE ... SET del_flag='1'，物理行不会被移除）
      */
