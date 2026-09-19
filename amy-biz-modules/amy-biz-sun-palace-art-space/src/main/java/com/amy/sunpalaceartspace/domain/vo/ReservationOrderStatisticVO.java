@@ -19,5 +19,5 @@ public class ReservationOrderStatisticVO {
     private String reservationDate;
 
     /** 该时间段的预约订单数 */
-    private Long count;
+    private Integer count = 0;
 }

@@ -4,7 +4,9 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
@@ -18,6 +20,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -32,14 +35,14 @@ public class MinaAppService {
     private final IProjectsService projectsService;
     private final IReservationOrderService reservationOrderService;
 
-    public IPage<MinaHomePageProjectResp> extractProjectInfo(Page<Projects> page) {
+    public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
         criteria.setStatus("0");
         IPage<Projects> projectsIPage = projectsService.selectProjectsList(page, criteria);
 
         IPage<MinaHomePageProjectResp> pageResp = new Page();
         List<MinaHomePageProjectResp> list = projectsIPage.getRecords().stream().map(project -> {
-            List<String> reservationDates = calculateReservationData(project.getAdvanceReservationDays());
+            List<String> reservationDates = calculateReservationDates(project.getAdvanceReservationDays());
             // 可预约总数
             Integer totalReservationCount = calculateTotalReservationCount(
                     project.getReservationStartTime(),
@@ -55,8 +58,8 @@ public class MinaAppService {
                     .projectId(project.getProjectId())
                     .projectName(project.getProjectName())
                     .coverArtUrl(project.getCoverArtUrl())
-                    .reservationStartDate(reservationDates.get(0))
-                    .reservationEndDate(reservationDates.get(1))
+                    .reservationStartDate(reservationDates.getFirst())
+                    .reservationEndDate(reservationDates.getLast())
                     .reservationStartTime(project.getReservationStartTime())
                     .reservationEndTime(project.getReservationEndTime())
                     .totalReservationCount(totalReservationCount)
@@ -75,13 +78,18 @@ public class MinaAppService {
         return pageResp;
     }
 
-    private List<String> calculateReservationData(Integer dateInterval) {
+    private List<String> calculateReservationDates(Integer dateInterval) {
+        List<String> dates = new LinkedList<>();
+
         Date dateStart = DateUtils.addDays(DateUtils.getNowDate(), 1);
         Date dateEnd = DateUtils.addDays(DateUtils.getNowDate(), dateInterval);
-        return List.of(
-                DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, dateStart),
-                DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, dateEnd)
-        );
+
+        while(!dateStart.after(dateEnd)) {
+            dates.add(DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, dateStart));
+            dateStart = DateUtils.addDays(dateStart, 1);
+        }
+
+        return dates;
     }
 
     private Integer calculateDateReservationCount(Long projectId, Integer dateInterval) {
@@ -95,6 +103,11 @@ public class MinaAppService {
     }
 
     private Integer calculateTotalReservationCount(String startTime, String endTime, Integer interval, Integer count){
+        List<String> result = calculateReservationTimes(startTime, endTime, interval, count);
+        return result.size() * count;
+    }
+
+    private List<String> calculateReservationTimes(String startTime, String endTime, Integer interval, Integer count){
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtils.HH_MM_SS);
         LocalTime start = LocalTime.parse(startTime, formatter);
         LocalTime end = LocalTime.parse(endTime, formatter);
@@ -105,7 +118,7 @@ public class MinaAppService {
             start = start.plusMinutes(interval / 60);
         }
 
-        return result.size() * count;
+        return result;
     }
 
     private Integer calculateReservationStatus(Integer totalReservationCount, Integer reservationCount) {
@@ -116,5 +129,73 @@ public class MinaAppService {
 
         return reservationPercent > 80 ? (reservationPercent >= 100 ? ReservationStatusEnum.FILLED.getValue() : ReservationStatusEnum.TIGHT.getValue() )
                 : ReservationStatusEnum.AMPLE.getValue();
+    }
+
+    public MinaProjectReservationInfoResp extractProjectReservationInfo(Long projectId) {
+        Projects project = projectsService.getBaseMapper().selectById(projectId);
+
+        MinaProjectReservationInfoResp resp = MinaProjectReservationInfoResp.builder()
+                .reservationNotes(project.getReservationNotes())
+                .reservationDetails(new LinkedList<>())
+                .build();
+
+        // 获取预约时间段
+        List<String> reservationTimes = calculateReservationTimes(
+                project.getReservationStartTime(),
+                project.getReservationEndTime(),
+                project.getReservationIntervalSecond(),
+                project.getReservationCount()
+        );
+        // 获取预约日期
+        List<String> reservationDatas = calculateReservationDates(project.getAdvanceReservationDays());
+
+        reservationDatas.forEach(reservationDate -> {
+            // 构造返回的结果
+            MinaProjectReservationInfoResp.ReservationDetails reservationDetails = MinaProjectReservationInfoResp.ReservationDetails
+                    .builder()
+                    .reservationDate(reservationDate)
+                    .reservationTimeDetails(new LinkedList<>())
+                    .build();
+
+            // 查询对应日期的各个时间段已经预约数量
+            ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
+                    .projectId(projectId)
+                    .reservationTimeStart(DateUtils.parseDate(reservationDate + "00:00:00"))
+                    .reservationTimeEnd(DateUtils.parseDate(reservationDate + "23:59:59"))
+                    .build();
+            List<ReservationOrderStatisticByTimeVO> statisticByTimeVOS = reservationOrderService.selectReservationOrderStatisticByTime(criteria);
+
+            reservationTimes.forEach(reservationTime -> {
+                statisticByTimeVOS.stream()
+                        // 匹配对就时间段的统计结果
+                        .filter(statisticByTimeVO -> reservationTime.equals(statisticByTimeVO.getReservationTime()))
+                        .findFirst()
+                        .ifPresentOrElse(
+                                statisticByTimeVO -> {
+                                    // 设置匹配到的统计结果
+                                    MinaProjectReservationInfoResp.ReservationTimeDetails reservationTimeDetails = MinaProjectReservationInfoResp.ReservationTimeDetails
+                                            .builder()
+                                            .reservationTime(reservationTime)
+                                            .remainingReservationCount(project.getReservationCount() - statisticByTimeVO.getCount())
+                                            .reservationStatus(calculateReservationStatus(project.getReservationCount(), statisticByTimeVO.getCount()))
+                                            .build();
+                                    reservationDetails.getReservationTimeDetails().add(reservationTimeDetails);
+                                },
+                                () -> {
+                                    // 没有匹配到说明该时段没有人预约
+                                    MinaProjectReservationInfoResp.ReservationTimeDetails reservationTimeDetails = MinaProjectReservationInfoResp.ReservationTimeDetails
+                                            .builder()
+                                            .reservationTime(reservationTime)
+                                            .remainingReservationCount(project.getReservationCount())
+                                            .reservationStatus(ReservationStatusEnum.AMPLE.getValue())
+                                            .build();
+                                    reservationDetails.getReservationTimeDetails().add(reservationTimeDetails);
+                                }
+                        );
+            });
+
+            resp.getReservationDetails().add(reservationDetails);
+        });
+        return resp;
     }
 }

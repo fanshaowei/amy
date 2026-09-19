@@ -16,5 +16,5 @@ public class ReservationOrderStatisticByProjectVO {
     private Long projectId;
 
     /** 该项目的预约订单总数 */
-    private Integer count;
+    private Integer count = 0;
 }
