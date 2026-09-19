@@ -5,7 +5,7 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectInfoResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.service.impl.MinaAppService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -30,7 +30,7 @@ public class MinaAppController {
     public R<TableDataInfo> getHomePage() {
         PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<Projects> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
-        IPage<MinaProjectInfoResp> result = minaAppService.extractProjectInfo(page);
+        IPage<MinaHomePageProjectResp> result = minaAppService.extractProjectInfo(page);
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
     }
 }
