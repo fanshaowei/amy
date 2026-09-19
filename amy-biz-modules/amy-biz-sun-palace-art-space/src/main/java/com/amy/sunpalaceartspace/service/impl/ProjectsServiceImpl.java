@@ -20,20 +20,17 @@ import com.amy.sunpalaceartspace.service.IProjectsService;
 public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> implements IProjectsService
 {
     @Override
-    public IPage<Projects> selectProjectsList(Page<Projects> page, Projects projects)
-    {
+    public IPage<Projects> selectProjectsList(Page<Projects> page, Projects projects) {
         return baseMapper.selectProjectsList(page, projects);
     }
 
     @Override
-    public List<Projects> selectProjectsExportList(Projects projects)
-    {
+    public List<Projects> selectProjectsExportList(Projects projects) {
         return baseMapper.selectProjectsExportList(projects);
     }
 
     @Override
-    public boolean saveProjects(Projects projects)
-    {
+    public boolean saveProjects(Projects projects) {
         if (projects.getStatus() == null)
         {
             projects.setStatus("0");
@@ -43,15 +40,13 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     }
 
     @Override
-    public boolean updateProjects(Projects projects)
-    {
+    public boolean updateProjects(Projects projects) {
         projects.setUpdateTime(DateUtils.getNowDate());
         return updateById(projects);
     }
 
     @Override
-    public boolean removeProjectsByIds(Long[] projectIds)
-    {
+    public boolean removeProjectsByIds(Long[] projectIds) {
         return removeByIds(Arrays.asList(projectIds));
     }
 }
