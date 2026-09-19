@@ -28,7 +28,7 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      * @param reservationOrder 查询条件
      * @return 分页结果
      */
-    IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrder reservationOrder);
+    IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req);
 
     /**
      * 查询预约订单导出列表

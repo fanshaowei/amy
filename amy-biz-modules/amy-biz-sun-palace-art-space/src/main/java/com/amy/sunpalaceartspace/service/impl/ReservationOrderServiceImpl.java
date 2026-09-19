@@ -36,9 +36,10 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         implements IReservationOrderService {
 
     @Override
-    public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrder reservationOrder)
+    public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
     {
-        List<ReservationOrderVO> rows = baseMapper.selectReservationOrderList(reservationOrder);
+        ReservationOrder order = convertToEntity(req);
+        List<ReservationOrderVO> rows = baseMapper.selectReservationOrderList(order);
         rows.forEach(ReservationOrderVO::fillReservationStatusName);
         return page.setRecords(rows);
     }

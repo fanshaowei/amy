@@ -22,7 +22,7 @@ public class MinaProjectReservationInfoResp {
 
     @Data
     @Builder
-    public class ReservationDetails{
+    public static class ReservationDetails{
         /** 预约日期 **/
         private String reservationDate;
 
@@ -31,7 +31,7 @@ public class MinaProjectReservationInfoResp {
 
     @Data
     @Builder
-    public class ReservationTimeDetails {
+    public static class ReservationTimeDetails {
         /** 预约时间段 **/
         private String reservationTime;
         /** 剩余预约号数 **/

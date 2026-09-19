@@ -40,10 +40,10 @@ public class ReservationOrderController extends BaseController {
      */
     @RequiresPermissions("sunpalaceartspace:reservationOrder:list")
     @GetMapping("/list")
-    public R<TableDataInfo> list(ReservationOrder reservationOrder) {
+    public R<TableDataInfo> list(ReservationOrderReq req) {
         PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<ReservationOrderVO> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
-        IPage<ReservationOrderVO> result = reservationOrderService.selectReservationOrderList(page, reservationOrder);
+        IPage<ReservationOrderVO> result = reservationOrderService.selectReservationOrderList(page, req);
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
     }
 
