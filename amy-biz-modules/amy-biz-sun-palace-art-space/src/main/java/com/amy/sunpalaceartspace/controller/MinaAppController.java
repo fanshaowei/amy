@@ -5,17 +5,21 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
-import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class MinaAppController {
     private final MinaAppService minaAppService;
     private final IReservationOrderService reservationOrderService;
+    private final IReservationUserService reservationUserService;
 
     /**
      * 小程序首页项目列表信息
@@ -49,7 +54,9 @@ public class MinaAppController {
      * @return
      */
     @GetMapping("/project/reservation/info/{projectId}")
-    public R<MinaProjectReservationInfoResp> getProjectReservationInfo(@PathVariable("projectId") Long projectId) {
+    public R<MinaProjectReservationInfoResp> getProjectReservationInfo(@PathVariable("projectId")
+                                                                           @NotNull @Min(1)
+                                                                           Long projectId) {
         MinaProjectReservationInfoResp resp = minaAppService.extractProjectReservationInfo(projectId);
         return R.ok(resp);
     }
@@ -60,7 +67,7 @@ public class MinaAppController {
      * @return
      */
     @PostMapping("/reservation/submit")
-    public R<Boolean> createReservation(@RequestBody ReservationOrderReq request) {
+    public R<Boolean> submitReservation(@RequestBody @Validated ReservationOrderReq request) {
         return R.ok(reservationOrderService.saveReservationOrder(request));
     }
 
@@ -69,8 +76,10 @@ public class MinaAppController {
      * @param reservationUserId
      * @return
      */
-    @GetMapping("/reservation/list/{reservationUserId}")
-    public R<TableDataInfo> list(@PathVariable("reservationUserId") Long reservationUserId) {
+    @GetMapping("/user/reservation/records/{reservationUserId}")
+    public R<TableDataInfo> userReservationRecords(@PathVariable("reservationUserId")
+                                     @NotNull(message = "预约用户id不能为空")
+                                     @Min(1) Long reservationUserId) {
         ReservationOrderReq request = new ReservationOrderReq();
         request.setReservationUserId(reservationUserId);
 
@@ -78,6 +87,11 @@ public class MinaAppController {
         Page<ReservationOrderVO> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
         IPage<ReservationOrderVO> result = reservationOrderService.selectReservationOrderList(page, request);
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
+    }
+
+    @GetMapping("/user/info")
+    public R<MinaReservationUserInfoResp> getUserInfo(@RequestHeader("Authorization") String token) {
+        return R.ok(minaAppService.extractUserInfo(token));
     }
 
 }

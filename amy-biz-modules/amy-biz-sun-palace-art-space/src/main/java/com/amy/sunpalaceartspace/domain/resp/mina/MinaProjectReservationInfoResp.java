@@ -25,7 +25,7 @@ public class MinaProjectReservationInfoResp {
     public static class ReservationDetails{
         /** 预约日期 **/
         private String reservationDate;
-
+        /** 各时间段预约信息 **/
         private List<ReservationTimeDetails> reservationTimeDetails;
     }
 

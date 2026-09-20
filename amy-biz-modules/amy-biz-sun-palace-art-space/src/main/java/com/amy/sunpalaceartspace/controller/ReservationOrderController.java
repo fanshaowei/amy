@@ -53,8 +53,8 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:export")
     @Log(title = "预约订单管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, ReservationOrder reservationOrder) {
-        List<ReservationOrderVO> list = reservationOrderService.selectReservationOrderExportList(reservationOrder);
+    public void export(HttpServletResponse response, ReservationOrderReq req) {
+        List<ReservationOrderVO> list = reservationOrderService.selectReservationOrderExportList(req);
         ExcelUtil<ReservationOrderVO> util = new ExcelUtil<>(ReservationOrderVO.class);
         util.exportExcel(response, list, "预约订单数据");
     }

@@ -29,8 +29,9 @@ public class ReservationOrderReq {
 
     /**
      * 预约会员ID（关联 biz_spas_reservation_user.reservation_user_id）。
-     * <p>可空：允许匿名预约；非空时后端不会校验会员是否存在，由数据库外键约束兜底。</p>
+     * 非空时后端不会校验会员是否存在
      */
+    @NotNull(message = "预约用户不能为空")
     private Long reservationUserId;
 
     /** 预约人姓名 */
@@ -54,6 +55,7 @@ public class ReservationOrderReq {
     private String idNum;
 
     /** 预约人数（含预约人本人） */
+    @NotNull(message = "预约人数不能为空")
     private Integer guestsNum;
 
     /** 预约时间 */

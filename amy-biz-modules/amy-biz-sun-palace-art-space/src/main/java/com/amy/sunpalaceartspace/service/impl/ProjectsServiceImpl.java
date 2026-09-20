@@ -2,6 +2,8 @@ package com.amy.sunpalaceartspace.service.impl;
 
 import java.util.Arrays;
 import java.util.List;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -49,4 +51,12 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     public boolean removeProjectsByIds(Long[] projectIds) {
         return removeByIds(Arrays.asList(projectIds));
     }
+
+    @Override
+    public boolean checkProjectExistById(Long projectId) {
+        LambdaQueryWrapper<Projects> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(Projects::getProjectId, projectId);
+        return this.exists(lambdaQueryWrapper);
+    }
+
 }

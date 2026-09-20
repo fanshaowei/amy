@@ -1,15 +1,19 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
@@ -23,6 +27,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_ID;
+
 /**
  * @ClassName MinaAppService
  * @Description TODO
@@ -34,6 +40,8 @@ import java.util.List;
 public class MinaAppService {
     private final IProjectsService projectsService;
     private final IReservationOrderService reservationOrderService;
+    private final IReservationUserService reservationUserService;
+    private final RedisService redisService;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -197,5 +205,17 @@ public class MinaAppService {
             resp.getReservationDetails().add(reservationDetails);
         });
         return resp;
+    }
+
+    public MinaReservationUserInfoResp extractUserInfo(String token) {
+        Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
+        ReservationUser userInfo = reservationUserService.getUserInfoByOpenId((String) openId);
+        return MinaReservationUserInfoResp.builder()
+                .reservationUserId(userInfo.getReservationUserId())
+                .type(userInfo.getType())
+                .nickname(userInfo.getNickname())
+                .phone(userInfo.getPhone())
+                .avatarImgUrl(userInfo.getAvatarImgUrl())
+                .build();
     }
 }

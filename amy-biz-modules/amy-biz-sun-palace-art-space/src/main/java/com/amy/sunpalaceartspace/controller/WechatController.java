@@ -5,14 +5,13 @@ import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaUserInfo;
 import com.amy.common.core.domain.R;
 import com.amy.common.core.web.controller.BaseController;
+import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.service.impl.WechatService;
 import jakarta.websocket.server.PathParam;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @ClassName WechatController
@@ -30,14 +29,26 @@ public class WechatController extends BaseController {
     /**
      * 小程序调用后端接口前，获取鉴权token,后续调用业务接口，都要在请求头携带该token
      * eg: Authorization: Bearer <token>
-     * @param jsCode
+     * @param req
      * @return
      * @throws WxErrorException
      */
-    @GetMapping("/mina/api/auth/login/{jsCode}")
-    public R<String> login(@PathVariable("jsCode") String jsCode) throws WxErrorException {
-        String token = wechatService.generalApiAuthToken(jsCode);
+    @PostMapping("/mina/api/auth/login")
+    public R<String> login(@RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
+        String token = wechatService.generalApiAuthToken(req);
         return R.ok(token);
+    }
+
+    /**
+     * 获取用户手机号 并更新预约会号记录
+     * @param token
+     * @param jsCode
+     * @return
+     */
+    @GetMapping("/user/phone/get/{jsCode}")
+    public R<String> getWechatPhone(@RequestHeader("Authorization") String token,
+                                    @PathVariable("jsCode") String jsCode) {
+        return R.ok(wechatService.getWechatUserPhone(token, jsCode));
     }
 
     @GetMapping("/access-token/get")
@@ -48,10 +59,5 @@ public class WechatController extends BaseController {
     @GetMapping("/user/session/info")
     public R<WxMaJscode2SessionResult> getWechatSession(@PathParam("jsCode") String jsCode) throws WxErrorException {
         return R.ok(wxMaService.getUserService().getSessionInfo(jsCode));
-    }
-
-    @GetMapping("/user/info")
-    public R<WxMaUserInfo> getWechatUserInfo(String sessionKey, String encryptedData, String ivStr ) {
-        return R.ok(wxMaService.getUserService().getUserInfo(sessionKey, encryptedData, ivStr));
     }
 }

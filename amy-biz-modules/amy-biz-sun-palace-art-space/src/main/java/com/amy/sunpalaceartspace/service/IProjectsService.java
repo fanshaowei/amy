@@ -56,4 +56,6 @@ public interface IProjectsService extends IService<Projects>
      * @return 是否成功
      */
     boolean removeProjectsByIds(Long[] projectIds);
+
+    boolean checkProjectExistById(Long projectId);
 }

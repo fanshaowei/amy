@@ -23,5 +23,5 @@ create table biz_spas_reservation_user
     primary key (reservation_user_id),
     unique key uk_user_number (user_number),
     key idx_phone (phone),
-    key idx_open_id (open_id)
+    unique key uk_open_id (open_id)
 ) engine=innodb auto_increment=1 default charset=utf8mb4 comment='预约会员表';

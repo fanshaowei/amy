@@ -6,6 +6,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.amy.sunpalaceartspace.domain.vo.*;
+import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.service.IReservationUserService;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +18,6 @@ import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
@@ -31,9 +31,13 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
  * @author fantasyfan
  * @date 2026-09-13
  */
+@AllArgsConstructor
 @Service
 public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMapper, ReservationOrder>
         implements IReservationOrderService {
+
+    private final IReservationUserService reservationUserService;
+    private final IProjectsService projectsService;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -45,9 +49,10 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    public List<ReservationOrderVO> selectReservationOrderExportList(ReservationOrder reservationOrder)
+    public List<ReservationOrderVO> selectReservationOrderExportList(ReservationOrderReq req)
     {
-        List<ReservationOrderVO> list = baseMapper.selectReservationOrderList(reservationOrder);
+        ReservationOrder order = convertToEntity(req);
+        List<ReservationOrderVO> list = baseMapper.selectReservationOrderList(order);
         list.forEach(ReservationOrderVO::fillReservationStatusName);
         return list;
     }
@@ -66,6 +71,16 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     @Transactional(rollbackFor = Exception.class)
     public boolean saveReservationOrder(ReservationOrderReq req)
     {
+        // 验证预约会员是否存在
+        boolean userExists = reservationUserService.checkUserExistById(req.getReservationUserId());
+        if(!userExists) {
+            throw new IllegalArgumentException("预约会员不存在，无法创建预约订单");
+        }
+        boolean projectExist = projectsService.checkProjectExistById(req.getProjectId());
+        if(!projectExist) {
+            throw new IllegalArgumentException("预约项目不存在，无法创建预约订单");
+        }
+
         ReservationOrder order = convertToEntity(req);
         order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
         order.setReservationNum(generateReservationNum(order.getReservationTime()));

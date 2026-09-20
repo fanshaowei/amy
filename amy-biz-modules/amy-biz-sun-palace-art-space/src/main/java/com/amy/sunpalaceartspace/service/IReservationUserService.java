@@ -74,4 +74,27 @@ public interface IReservationUserService extends IService<ReservationUser> {
      * @return 是否成功
      */
     boolean removeReservationUserByIds(Long[] reservationUserIds);
+
+    /**
+     * 校验用户是否存在
+     * @param reservationUserId
+     * @return
+     */
+    boolean checkUserExistById(Long reservationUserId);
+
+    /**
+     * 根据openId更新手机号
+     *
+     * @param openId
+     * @param phone
+     * @return
+     */
+    boolean updatePhoneByOpenId(String openId, String phone);
+
+    /**
+     * 根据token获取当前小程序用户信息
+     * @param token
+     * @return
+     */
+    ReservationUser getUserInfoByOpenId(String openId);
 }

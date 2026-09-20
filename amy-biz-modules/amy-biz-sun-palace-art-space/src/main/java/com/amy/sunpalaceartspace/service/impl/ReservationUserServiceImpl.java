@@ -9,9 +9,11 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationUserVO;
 import com.amy.sunpalaceartspace.mapper.ReservationUserMapper;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author fantasyfan
  * @date 2026-09-13
  */
+@AllArgsConstructor
 @Service
 public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMapper, ReservationUser>
         implements IReservationUserService {
@@ -89,6 +92,32 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         LambdaQueryWrapper<ReservationUser> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ReservationUser::getReservationUserId, reservationUserId);
         return this.baseMapper.exists(queryWrapper);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean updatePhoneByOpenId(String openId, String phone) {
+        LambdaQueryWrapper<ReservationUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationUser::getOpenId, openId);
+        List<ReservationUser> reservationUsers = this.baseMapper.selectList(queryWrapper);
+        if (null == reservationUsers || reservationUsers.isEmpty()) {
+            throw new RuntimeException("user not found by openId: " + openId);
+        }
+        if(reservationUsers.size() > 1) {
+            throw new RuntimeException("multiple users found by openId: " + openId);
+        }
+        ReservationUser reservationUser = reservationUsers.getFirst();
+        LambdaUpdateWrapper<ReservationUser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ReservationUser::getReservationUserId, reservationUser.getReservationUserId());
+        updateWrapper.set(ReservationUser::getPhone, phone);
+        return this.update(updateWrapper);
+    }
+
+    @Override
+    public ReservationUser getUserInfoByOpenId(String openId) {
+        LambdaQueryWrapper<ReservationUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationUser::getOpenId, openId);
+        return this.getOne(queryWrapper);
     }
 
     /**
