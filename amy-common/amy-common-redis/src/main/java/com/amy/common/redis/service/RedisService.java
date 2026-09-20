@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * spring redis 工具类
- * 
+ *
  * @author amy
  **/
 @SuppressWarnings(value = { "unchecked", "rawtypes" })
@@ -34,6 +34,14 @@ public class RedisService
     public <T> void setCacheObject(final String key, final T value)
     {
         redisTemplate.opsForValue().set(key, value);
+    }
+
+    public <T> boolean setIfAbsent(final String key, final T value, final Long duration, TimeUnit timeUnit) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, duration, timeUnit);
+    }
+
+    public Long increment(String key) {
+        return redisTemplate.opsForValue().increment(key);
     }
 
     /**

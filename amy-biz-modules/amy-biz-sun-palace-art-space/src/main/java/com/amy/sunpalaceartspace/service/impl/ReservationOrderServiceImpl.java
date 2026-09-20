@@ -1,31 +1,34 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import com.amy.common.core.utils.DateUtils;
+import com.amy.common.redis.service.RedisService;
+import com.amy.common.security.utils.SecurityUtils;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
+import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
+import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
-import com.amy.sunpalaceartspace.domain.vo.*;
-import com.amy.sunpalaceartspace.service.IProjectsService;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.AllArgsConstructor;
-import org.springframework.beans.BeanUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.amy.common.core.utils.DateUtils;
-import com.amy.common.security.utils.SecurityUtils;
-import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
-import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
-import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
-import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
-import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
-import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_NUM_SEQ;
 
 /**
  * 预约订单 服务层实现（MyBatis-Plus 模式）
@@ -40,6 +43,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
 
     private final IReservationUserService reservationUserService;
     private final IProjectsService projectsService;
+    private final RedisService redisService;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -165,7 +169,11 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     {
         Date baseTime = reservationTime != null ? reservationTime : DateUtils.getNowDate();
         String timePart = new SimpleDateFormat("yyyyMMddHHmmss").format(baseTime);
-        String randomPart = String.format("%04d", ThreadLocalRandom.current().nextInt(0, 10000));
-        return timePart + randomPart;
+
+        String key = String.format(RESERVATION_ORDER_NUM_SEQ, DateUtils.parseDateToStr("yyyyMMdd", baseTime));
+        Long increment = redisService.increment(key);
+        String sequencePart = String.format("%06d", increment);
+
+        return timePart + sequencePart;
     }
 }

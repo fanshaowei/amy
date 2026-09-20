@@ -7,6 +7,9 @@ package com.amy.sunpalaceartspace.constant;
  * @Date 2026-09-18 23:29
  */
 public class SpasConstant {
+
+    public static final String RESERVATION_ORDER_NUM_SEQ = "reservation:order:seq:%s";
+
     public static final String WX_API_TOKEN_OPEN_ID = "wx:api:token:%s";
     public static final String WX_OPEN_ID_SESSION_KEY = "wx:sessionKey:%s";
 
