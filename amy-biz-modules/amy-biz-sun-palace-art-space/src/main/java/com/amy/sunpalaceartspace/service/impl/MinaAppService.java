@@ -21,6 +21,7 @@ import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
@@ -226,12 +227,10 @@ public class MinaAppService {
 
     @Transactional
     public boolean verifyReservationOrder(String token, String orderNum) {
-        Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
-        if (null == openId) {
-           throw new InnerAuthException("用户未登录或登录已过期，请重新登录");
-        }
-        ReservationUser verifyUser = reservationUserService.selectUserInfoByOpenId((String) openId);
+        ReservationUser verifyUser = getUserByToken(token);
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+
+        //校验订单是否待核销状态
         Integer reservationStatus = reservationOrder.getReservationStatus();
         if(!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), reservationStatus)) {
             ReservationOrderStatus statusEnum = ReservationOrderStatus.fromCode(reservationStatus);
@@ -245,5 +244,46 @@ public class MinaAppService {
         reservationOrder.setVerifyBy(verifyUser.getName());
         reservationOrder.setVerifyTime(new Date());
         return reservationOrderService.updateReservationOrder(req);
+    }
+
+    @Transactional
+    public boolean submitReservationOrder(String token, ReservationOrderReq req) {
+        ReservationUser user = getUserByToken(token);
+        req.setReservationUserId(user.getReservationUserId());
+
+        // 验证预约会员是否存在
+        boolean userExists = reservationUserService.checkUserExistById(req.getReservationUserId());
+        if(!userExists) {
+            throw new ServiceException("预约会员不存在，无法进行预约");
+        }
+        // 验证项目是否存在
+        boolean projectExist = projectsService.checkProjectExistById(req.getProjectId());
+        if(!projectExist) {
+            throw new ServiceException("预约项目不存在，无法进行预约");
+        }
+        //验证是否同一时间预约过
+        LambdaQueryWrapper<ReservationOrder> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationOrder::getProjectId, req.getProjectId())
+                .and(wrapper -> wrapper
+                        .eq(ReservationOrder::getReservationUserId, req.getReservationUserId())
+                        .or()
+                        .eq(ReservationOrder::getIdNum, req.getIdNum())
+                )
+                .eq(ReservationOrder::getReservationTime, req.getReservationTime())
+                .eq(ReservationOrder::getReservationStatus, ReservationOrderStatus.WAIT_VERIFY.getStatus());
+        boolean exists = reservationOrderService.count(queryWrapper) > 0;
+        if (exists) {
+            throw new ServiceException("会员在同一时间已经存在预约订单，无法重复预约");
+        }
+        return reservationOrderService.saveReservationOrder(req);
+    }
+
+    public ReservationUser getUserByToken(String token) {
+        Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
+        if (null == openId) {
+            throw new InnerAuthException("用户未登录或登录已过期，请重新登录");
+        }
+
+        return reservationUserService.selectUserInfoByOpenId((String) openId);
     }
 }

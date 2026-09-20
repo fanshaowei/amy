@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.common.security.utils.SecurityUtils;
@@ -21,6 +22,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
@@ -82,19 +84,9 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public boolean saveReservationOrder(ReservationOrderReq req)
     {
-        // 验证预约会员是否存在
-        boolean userExists = reservationUserService.checkUserExistById(req.getReservationUserId());
-        if(!userExists) {
-            throw new IllegalArgumentException("预约会员不存在，无法创建预约订单");
-        }
-        boolean projectExist = projectsService.checkProjectExistById(req.getProjectId());
-        if(!projectExist) {
-            throw new IllegalArgumentException("预约项目不存在，无法创建预约订单");
-        }
-
         ReservationOrder order = convertToEntity(req);
         order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
         order.setReservationNum(generateReservationNum(order.getReservationTime()));
