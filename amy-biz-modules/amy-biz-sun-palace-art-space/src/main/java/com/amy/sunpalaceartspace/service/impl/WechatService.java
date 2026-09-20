@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service.impl;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.JwtUtils;
 import com.amy.common.core.utils.uuid.IdUtils;
 import com.amy.common.redis.service.RedisService;
@@ -18,6 +19,7 @@ import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
 
@@ -42,8 +44,7 @@ public class WechatService {
         try {
             wxMaJscode2SessionResult = wxMaService.jsCode2SessionInfo(req.getJsCode());
         } catch (WxErrorException e) {
-            log.error("fail to get session info by jsCode");
-            throw new RuntimeException(e);
+            throw new ServiceException("fail to get session info by jsCode");
         }
         String openId = wxMaJscode2SessionResult.getOpenid();
         String sessionKey = wxMaJscode2SessionResult.getSessionKey();
@@ -77,7 +78,7 @@ public class WechatService {
                 throw new RuntimeException("illegal user,token and openId not match");
             }
         } else {
-            redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token), openId);
+            redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token), openId, 2L, TimeUnit.HOURS);
             redisService.setCacheObject(String.format(SpasConstant.WX_OPEN_ID_SESSION_KEY, openId), sessionKey);
         }
     }

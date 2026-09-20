@@ -41,6 +41,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Spring AOP（@Aspect 织入所需：提供 aspectjweaver，激活 AopAutoConfiguration） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
+
         <!-- Mysql Connector -->
         <dependency>
             <groupId>com.mysql</groupId>

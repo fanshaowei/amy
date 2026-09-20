@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.enums.UserStatus;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -17,6 +18,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.rmi.server.ServerCloneException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -101,10 +103,10 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         queryWrapper.eq(ReservationUser::getOpenId, openId);
         List<ReservationUser> reservationUsers = this.baseMapper.selectList(queryWrapper);
         if (null == reservationUsers || reservationUsers.isEmpty()) {
-            throw new RuntimeException("user not found by openId: " + openId);
+            throw new ServiceException("user not found by openId: " + openId);
         }
         if(reservationUsers.size() > 1) {
-            throw new RuntimeException("multiple users found by openId: " + openId);
+            throw new ServiceException("multiple users found by openId: " + openId);
         }
         ReservationUser reservationUser = reservationUsers.getFirst();
         LambdaUpdateWrapper<ReservationUser> updateWrapper = new LambdaUpdateWrapper<>();

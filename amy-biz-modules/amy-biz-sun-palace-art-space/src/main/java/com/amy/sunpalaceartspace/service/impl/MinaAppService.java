@@ -1,5 +1,7 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import com.amy.common.core.exception.PreAuthorizeException;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
@@ -228,7 +230,7 @@ public class MinaAppService {
     public boolean verifyReservationOrder(String token, String orderNum) {
         Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
         if (null == openId) {
-           throw new RuntimeException("用户未登录或登录已过期，请重新登录");
+           throw new ServiceException("用户未登录或登录已过期，请重新登录");
         }
         ReservationUser verifyUser = reservationUserService.selectUserInfoByOpenId((String) openId);
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);

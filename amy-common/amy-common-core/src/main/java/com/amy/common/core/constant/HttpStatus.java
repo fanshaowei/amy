@@ -2,7 +2,7 @@ package com.amy.common.core.constant;
 
 /**
  * 返回状态码
- * 
+ *
  * @author amy
  */
 public class HttpStatus
@@ -91,4 +91,6 @@ public class HttpStatus
      * 系统警告消息
      */
     public static final int WARN = 601;
+
+    public static final int BUSINESS_ERROR = 600;
 }

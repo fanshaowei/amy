@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableCustomConfig
 @EnableRyFeignClients
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.amy.sunpalaceartspace"})
 public class AmyBizSunPalaceArtSpaceApplication {
 
     public static void main(String[] args) {

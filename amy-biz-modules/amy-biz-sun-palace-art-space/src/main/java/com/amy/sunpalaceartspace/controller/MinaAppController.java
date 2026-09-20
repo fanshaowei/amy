@@ -4,9 +4,9 @@ import com.amy.common.core.domain.R;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
+import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
-import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
@@ -42,6 +42,7 @@ public class MinaAppController {
      * 小程序首页项目列表信息
      * @return
      */
+    @MinaApiAuth
     @GetMapping("/homepage/project")
     public R<TableDataInfo> getHomePage() {
         PageDomain pageDomain = TableSupport.buildPageRequest();
@@ -55,6 +56,7 @@ public class MinaAppController {
      * @param projectId
      * @return
      */
+    @MinaApiAuth
     @GetMapping("/project/reservation/info/{projectId}")
     public R<MinaProjectReservationInfoResp> getProjectReservationInfo(@PathVariable("projectId")
                                                                            @NotNull @Min(1)
@@ -68,6 +70,7 @@ public class MinaAppController {
      * @param request
      * @return
      */
+    @MinaApiAuth
     @PostMapping("/reservation/submit")
     public R<Boolean> submitReservation(@RequestBody @Validated ReservationOrderReq request) {
         return R.ok(reservationOrderService.saveReservationOrder(request));
@@ -78,6 +81,7 @@ public class MinaAppController {
      * @param reservationUserId
      * @return
      */
+    @MinaApiAuth
     @GetMapping("/user/reservation/records/{reservationUserId}")
     public R<TableDataInfo> userReservationRecords(@PathVariable("reservationUserId")
                                      @NotNull(message = "预约用户id不能为空")
@@ -91,11 +95,13 @@ public class MinaAppController {
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
     }
 
+    @MinaApiAuth
     @GetMapping("/user/info")
     public R<MinaReservationUserInfoResp> getUserInfo(@RequestHeader("Authorization") String token) {
         return R.ok(minaAppService.extractUserInfo(token));
     }
 
+    @MinaApiAuth
     @GetMapping("/reservation/{orderNum}")
     public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
@@ -104,6 +110,7 @@ public class MinaAppController {
         return R.ok(vo);
     }
 
+    @MinaApiAuth
     @GetMapping("/reservation/verify/{orderNum}")
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
             @PathVariable("orderNum") String orderNum) {
