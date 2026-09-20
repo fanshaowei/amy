@@ -111,7 +111,7 @@ public class MinaAppController {
     }
 
     @MinaApiAuth
-    @GetMapping("/reservation/verify/{orderNum}")
+    @PostMapping("/reservation/verify/{orderNum}")
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
             @PathVariable("orderNum") String orderNum) {
         return R.ok(minaAppService.verifyReservationOrder(token, orderNum));

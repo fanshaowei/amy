@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.PreAuthorizeException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
@@ -29,10 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_ID;
 
@@ -230,10 +228,15 @@ public class MinaAppService {
     public boolean verifyReservationOrder(String token, String orderNum) {
         Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
         if (null == openId) {
-           throw new ServiceException("用户未登录或登录已过期，请重新登录");
+           throw new InnerAuthException("用户未登录或登录已过期，请重新登录");
         }
         ReservationUser verifyUser = reservationUserService.selectUserInfoByOpenId((String) openId);
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+        Integer reservationStatus = reservationOrder.getReservationStatus();
+        if(!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), reservationStatus)) {
+            ReservationOrderStatus statusEnum = ReservationOrderStatus.fromCode(reservationStatus);
+            throw new ServiceException("该订单" + statusEnum.getName());
+        }
 
         ReservationOrderReq req = new ReservationOrderReq();
         BeanUtils.copyProperties(reservationOrder, req);
