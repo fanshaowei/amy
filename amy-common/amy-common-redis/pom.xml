@@ -23,6 +23,11 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+        </dependency>
+
         <!-- amy Common Core-->
         <dependency>
             <groupId>com.amy</groupId>
