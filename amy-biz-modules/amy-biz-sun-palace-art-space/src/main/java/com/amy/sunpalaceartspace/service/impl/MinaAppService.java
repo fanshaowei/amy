@@ -4,12 +4,16 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
@@ -19,6 +23,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -209,7 +214,7 @@ public class MinaAppService {
 
     public MinaReservationUserInfoResp extractUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
-        ReservationUser userInfo = reservationUserService.getUserInfoByOpenId((String) openId);
+        ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
         return MinaReservationUserInfoResp.builder()
                 .reservationUserId(userInfo.getReservationUserId())
                 .type(userInfo.getType())
@@ -217,5 +222,23 @@ public class MinaAppService {
                 .phone(userInfo.getPhone())
                 .avatarImgUrl(userInfo.getAvatarImgUrl())
                 .build();
+    }
+
+    @Transactional
+    public boolean verifyReservationOrder(String token, String orderNum) {
+        Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token));
+        if (null == openId) {
+           throw new RuntimeException("用户未登录或登录已过期，请重新登录");
+        }
+        ReservationUser verifyUser = reservationUserService.selectUserInfoByOpenId((String) openId);
+        ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+
+        ReservationOrderReq req = new ReservationOrderReq();
+        BeanUtils.copyProperties(reservationOrder, req);
+
+        req.setReservationStatus(ReservationOrderStatus.COMPLETED.getStatus());
+        reservationOrder.setVerifyBy(verifyUser.getName());
+        reservationOrder.setVerifyTime(new Date());
+        return reservationOrderService.updateReservationOrder(req);
     }
 }

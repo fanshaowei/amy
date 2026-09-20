@@ -114,7 +114,7 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
     }
 
     @Override
-    public ReservationUser getUserInfoByOpenId(String openId) {
+    public ReservationUser selectUserInfoByOpenId(String openId) {
         LambdaQueryWrapper<ReservationUser> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ReservationUser::getOpenId, openId);
         return this.getOne(queryWrapper);

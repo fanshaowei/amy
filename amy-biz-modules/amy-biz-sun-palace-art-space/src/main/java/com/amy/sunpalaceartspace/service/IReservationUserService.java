@@ -92,9 +92,9 @@ public interface IReservationUserService extends IService<ReservationUser> {
     boolean updatePhoneByOpenId(String openId, String phone);
 
     /**
-     * 根据token获取当前小程序用户信息
-     * @param token
+     * 根据openId获取当前小程序用户信息
+     * @param openId
      * @return
      */
-    ReservationUser getUserInfoByOpenId(String openId);
+    ReservationUser selectUserInfoByOpenId(String openId);
 }

@@ -5,6 +5,7 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
@@ -19,6 +20,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -94,4 +96,17 @@ public class MinaAppController {
         return R.ok(minaAppService.extractUserInfo(token));
     }
 
+    @GetMapping("/reservation/{orderNum}")
+    public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
+        ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+        ReservationOrderVO vo = new ReservationOrderVO();
+        BeanUtils.copyProperties(reservationOrder, vo);
+        return R.ok(vo);
+    }
+
+    @GetMapping("/reservation/verify/{orderNum}")
+    public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
+            @PathVariable("orderNum") String orderNum) {
+        return R.ok(minaAppService.verifyReservationOrder(token, orderNum));
+    }
 }

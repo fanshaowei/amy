@@ -9,7 +9,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.amy.sunpalaceartspace.domain.vo.*;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +67,14 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             vo.fillReservationStatusName();
         }
         return vo;
+    }
+
+    @Override
+    public ReservationOrder selectReservationOrderByNum(String orderNum) {
+        LambdaQueryWrapper<ReservationOrder> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationOrder::getReservationNum, orderNum);
+        ReservationOrder one = getOne(queryWrapper);
+        return one;
     }
 
     @Override
