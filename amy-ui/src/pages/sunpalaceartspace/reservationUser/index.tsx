@@ -60,11 +60,11 @@ export default function ReservationUserPage() {
         width: 110
     }, {
         title: '用户头像',
-        dataIndex: 'headImgUrl',
+        dataIndex: 'avatarImgUrl',
         search: false,
         width: 90,
         align: 'center',
-        render: (_, row) => <Avatar src={row.headImgUrl}>{(row.nickname || '?').slice(0, 1)}</Avatar>
+        render: (_, row) => <Avatar src={row.avatarImgUrl}>{(row.nickname || '?').slice(0, 1)}</Avatar>
     }, {
         title: '微信昵称',
         dataIndex: 'nickname',

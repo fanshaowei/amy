@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.domain.req;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -12,6 +13,7 @@ import lombok.Data;
  * @Author fantasyfan
  * @Date 2026-09-13
  */
+@Builder
 @Data
 public class ReservationUserReq {
 
@@ -38,7 +40,7 @@ public class ReservationUserReq {
 
     /** 微信头像地址 */
     @Size(min = 0, max = 255, message = "头像地址长度不能超过255个字符")
-    private String headImgUrl;
+    private String avatarImgUrl;
 
     /** 微信 openid */
     @Size(min = 0, max = 100, message = "openid 长度不能超过100个字符")

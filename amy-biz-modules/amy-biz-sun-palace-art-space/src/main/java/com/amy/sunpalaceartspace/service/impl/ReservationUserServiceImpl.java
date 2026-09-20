@@ -1,13 +1,6 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-
 import com.amy.common.core.enums.UserStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -15,9 +8,16 @@ import com.amy.sunpalaceartspace.domain.req.ReservationUserReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationUserVO;
 import com.amy.sunpalaceartspace.mapper.ReservationUserMapper;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 预约会员 服务层实现（MyBatis-Plus 模式）
@@ -84,6 +84,13 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         return removeByIds(Arrays.asList(reservationUserIds));
     }
 
+    @Override
+    public boolean checkUserExistById(Long reservationUserId) {
+        LambdaQueryWrapper<ReservationUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationUser::getReservationUserId, reservationUserId);
+        return this.baseMapper.exists(queryWrapper);
+    }
+
     /**
      * 请求对象转实体（Controller 只负责入参接收，业务转换放 Service）
      */
@@ -94,7 +101,7 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         user.setNickname(req.getNickname());
         user.setName(req.getName());
         user.setPhone(req.getPhone());
-        user.setHeadImgUrl(req.getHeadImgUrl());
+        user.setAvatarImgUrl(req.getAvatarImgUrl());
         user.setOpenId(req.getOpenId());
         user.setIdNum(req.getIdNum());
         user.setToken(req.getToken());

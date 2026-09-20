@@ -10,7 +10,7 @@
         <result property="nickname" column="nickname"/>
         <result property="name" column="name"/>
         <result property="phone" column="phone"/>
-        <result property="headImgUrl" column="head_img_url"/>
+        <result property="avatarImgUrl" column="avatar_img_url"/>
         <result property="openId" column="open_id"/>
         <result property="idNum" column="id_num"/>
         <result property="status" column="status"/>
@@ -25,7 +25,7 @@
                nickname,
                name,
                phone,
-               head_img_url,
+               avatar_img_url,
                open_id,
                id_num,
                status + 0 as status,

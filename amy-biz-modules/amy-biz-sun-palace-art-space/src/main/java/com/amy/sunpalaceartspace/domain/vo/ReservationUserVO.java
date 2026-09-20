@@ -39,7 +39,7 @@ public class ReservationUserVO {
 
     /** 微信头像地址 */
     @Excel(name = "用户头像")
-    private String headImgUrl;
+    private String avatarImgUrl;
 
     /** 微信 openid */
     @Excel(name = "openid")

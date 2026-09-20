@@ -57,8 +57,8 @@ public class ReservationUser extends BaseEntity {
     /** 微信头像地址 */
     @Excel(name = "用户头像")
     @Size(min = 0, max = 255, message = "头像地址长度不能超过255个字符")
-    @TableField("head_img_url")
-    private String headImgUrl;
+    @TableField("avatar_img_url")
+    private String avatarImgUrl;
 
     /** 微信 openid */
     @Excel(name = "openid")

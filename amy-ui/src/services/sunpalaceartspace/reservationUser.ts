@@ -13,7 +13,7 @@ export interface ReservationUserRecord {
     /** 电话 */
     phone?: string;
     /** 用户头像 */
-    headImgUrl?: string;
+    avatarImgUrl?: string;
     /** openid */
     openId?: string;
     /** 身份证号 */

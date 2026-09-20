@@ -7,7 +7,7 @@ create table biz_spas_reservation_user
     nickname               varchar(100)    default ''                 comment '微信昵称',
     name                   varchar(50)     default ''                 comment '真实姓名',
     phone                  varchar(11)     not null                   comment '手机号',
-    head_img_url           varchar(255)    default ''                 comment '微信头像地址',
+    avatar_img_url         varchar(255)    default ''                 comment '微信头像地址',
     open_id                varchar(100)    default ''                 comment '微信 openid',
     id_num                  varchar(18)     default ''                 comment '身份证号码',
     token                  varchar(500)    default ''                 comment '微信接口 token',
