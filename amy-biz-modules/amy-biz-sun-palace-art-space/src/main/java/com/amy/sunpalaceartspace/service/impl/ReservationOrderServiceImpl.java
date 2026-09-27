@@ -2,6 +2,8 @@ package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.mq.bo.AmyMqProducerBO;
+import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.common.redis.service.RedisService;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
@@ -43,8 +45,6 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_
 public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMapper, ReservationOrder>
         implements IReservationOrderService {
 
-    private final IReservationUserService reservationUserService;
-    private final IProjectsService projectsService;
     private final RedisService redisService;
 
     @Override

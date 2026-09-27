@@ -16,4 +16,9 @@ public class SpasConstant {
     public static final Long API_TOKEN_EXPIRE_INTERVAL = 7200 * 1000L;
     public static final String ISSUER = "amy-service";
     public static final String AUDIENCE = "MINA_APP";
+
+    public static final String MQ_TOPIC = "amy_message_spas_mq_topic";
+    public static final String MQ_TAG = "amy_message_spas_mq_tag";
+    public static final String MQ_CONSUMER_GROUP = "amy_message_spas_mq_consumer_group";
+    public static final String MQ_DESTINATE = MQ_TOPIC + ":" + MQ_TAG;
 }

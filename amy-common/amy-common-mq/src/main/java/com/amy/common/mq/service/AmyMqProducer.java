@@ -1,7 +1,8 @@
-package com.amy.amycommonmq.service;
+package com.amy.common.mq.service;
 
 import com.alibaba.fastjson.JSONObject;
-import com.amy.amycommonmq.bo.AmyMqBO;
+import com.amy.common.mq.bo.AmyMqProducerBO;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -17,9 +18,9 @@ import java.util.function.Consumer;
 
 @Slf4j
 @Component
-public class RocketmqProducer<T extends AmyMqBO> {
-    @Autowired
-    private RocketMQTemplate rocketMQTemplate;
+@AllArgsConstructor
+public class AmyMqProducer<T extends AmyMqProducerBO> {
+    private final RocketMQTemplate rocketMQTemplate;
 
     /**
      * 普通字符串消息，同步
@@ -91,7 +92,8 @@ public class RocketmqProducer<T extends AmyMqBO> {
             @Override
             public void onSuccess(SendResult sendResult) {
                 log.info( "asyncSend onSuccess, sendResult : {}" , JSONObject.toJSONString(sendResult));
-                consumer.accept(sendResult);
+                if(null != consumer)
+                    consumer.accept(sendResult);
             }
 
             @Override
@@ -115,11 +117,13 @@ public class RocketmqProducer<T extends AmyMqBO> {
                 new RocketMQLocalRequestCallback<String>() {
                     @Override public void onSuccess(String message) {
                         log.info("sendAndReceiveAsync on Success , topic : {}, messageData : {}, successMsg : {}", topic, messageData, message);
-                        consumer.accept(message);
+                        if(null != consumer) {
+                            consumer.accept(message);
+                        }
                     }
 
                     @Override public void onException(Throwable e) {
-                        log.error("sendAndReceiveAsync on onException , topic : {}, messageData : {}, errorMsg : {}", topic, messageData, message);
+                        log.error("sendAndReceiveAsync on onException , topic : {}, messageData : {}, errorMsg : {}", topic, messageData, e.getMessage());
                     }
                 }, 5000);
     }

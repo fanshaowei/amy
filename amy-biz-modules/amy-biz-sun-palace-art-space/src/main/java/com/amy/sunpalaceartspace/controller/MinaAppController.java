@@ -6,6 +6,7 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
+import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -39,6 +40,11 @@ public class MinaAppController extends BaseController {
     private final MinaAppService minaAppService;
     private final IReservationOrderService reservationOrderService;
     private final IReservationUserService reservationUserService;
+
+    @GetMapping("/reservation/order/mq")
+    public void sendReservationOrderMq(ReservationOrderMqSendBO reservationOrderMqSendBO) {
+        minaAppService.sendReservationOrderMq(reservationOrderMqSendBO);
+    }
 
     /**
      * 小程序首页项目列表信息

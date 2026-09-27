@@ -4,7 +4,10 @@ import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.PreAuthorizeException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.mq.bo.AmyMqProducerBO;
+import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.common.redis.service.RedisService;
+import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
@@ -25,6 +28,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +37,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import static com.amy.sunpalaceartspace.constant.SpasConstant.MQ_DESTINATE;
 import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_ID;
 
 /**
@@ -41,6 +46,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_
  * @Author fantasyfan
  * @Date 2026-09-19 12:00
  */
+@Slf4j
 @AllArgsConstructor
 @Service
 public class MinaAppService {
@@ -48,6 +54,19 @@ public class MinaAppService {
     private final IReservationOrderService reservationOrderService;
     private final IReservationUserService reservationUserService;
     private final RedisService redisService;
+    private final AmyMqProducer<AmyMqProducerBO> amyMqProducer;
+
+    public void sendReservationOrderMq(ReservationOrderMqSendBO bo) {
+        amyMqProducer.asyncSend(MQ_DESTINATE,
+                ReservationOrderMqSendBO.builder()
+                        .userId(1000L)
+                        .projectId(1L)
+                        .reservationTime(DateUtils.parseDateToStr(DateUtils.YYYYMMDDHH, new Date()))
+                        .build(),
+                (sendResult) -> {
+                    log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
+                });
+    }
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -243,7 +262,9 @@ public class MinaAppService {
         req.setReservationStatus(ReservationOrderStatus.COMPLETED.getStatus());
         reservationOrder.setVerifyBy(verifyUser.getName());
         reservationOrder.setVerifyTime(new Date());
-        return reservationOrderService.updateReservationOrder(req);
+        boolean verifyFlag = reservationOrderService.updateReservationOrder(req);
+        log.info("verifyReservationOrder: {} result: {}", orderNum, verifyFlag);
+        return verifyFlag;
     }
 
     @Transactional
@@ -275,6 +296,18 @@ public class MinaAppService {
         if (exists) {
             throw new ServiceException("会员在同一时间已经存在预约订单，无法重复预约");
         }
+
+        // 进入队列
+        amyMqProducer.asyncSend(MQ_DESTINATE,
+                ReservationOrderMqSendBO.builder()
+                .userId(user.getReservationUserId())
+                .projectId(req.getProjectId())
+                .reservationTime(DateUtils.parseDateToStr(DateUtils.YYYYMMDDHH, req.getReservationTime()))
+                .build(),
+                (sendResult) -> {
+                    log.info("submitReservationOrder: {} sendResult: {}", req, sendResult);
+                    reservationOrderService.saveReservationOrder(req);
+                });
         return reservationOrderService.saveReservationOrder(req);
     }
 
