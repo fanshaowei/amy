@@ -298,7 +298,7 @@ public class MinaAppService {
         }
 
         // 进入队列
-        amyMqProducer.asyncSend(MQ_DESTINATE,
+        /*amyMqProducer.asyncSend(MQ_DESTINATE,
                 ReservationOrderMqSendBO.builder()
                 .userId(user.getReservationUserId())
                 .projectId(req.getProjectId())
@@ -307,7 +307,7 @@ public class MinaAppService {
                 (sendResult) -> {
                     log.info("submitReservationOrder: {} sendResult: {}", req, sendResult);
                     reservationOrderService.saveReservationOrder(req);
-                });
+                });*/
         return reservationOrderService.saveReservationOrder(req);
     }
 
