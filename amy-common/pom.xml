@@ -18,6 +18,7 @@
         <module>amy-common-sensitive</module>
         <module>amy-common-datascope</module>
         <module>amy-common-datasource</module>
+        <module>amy-common-mq</module>
     </modules>
 
     <artifactId>amy-common</artifactId>

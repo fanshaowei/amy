@@ -58,6 +58,11 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-mq</artifactId>
+        </dependency>
+
         <!-- amy Common DataSource -->
         <dependency>
             <groupId>com.amy</groupId>

@@ -35,6 +35,9 @@
         <poi.version>4.1.2</poi.version>
         <springdoc.version>3.0.3</springdoc.version>
         <transmittable-thread-local.version>2.14.5</transmittable-thread-local.version>
+        <rocketmq-spring-boot-starter.version>2.3.6</rocketmq-spring-boot-starter.version>
+        <rocketmqClient.version>5.5.0</rocketmqClient.version>
+        <redis.version>4.7.0</redis.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -110,7 +113,19 @@
             <dependency>
                 <groupId>org.redisson</groupId>
                 <artifactId>redisson-spring-boot-starter</artifactId>
-                <version>4.7.0</version>
+                <version>${redis.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq-spring-boot-starter.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>${rocketmqClient.version}</version>
             </dependency>
 
             <!-- io常用工具类 -->
@@ -215,6 +230,12 @@
             <dependency>
                 <groupId>com.amy</groupId>
                 <artifactId>amy-common-redis</artifactId>
+                <version>${amy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.amy</groupId>
+                <artifactId>amy-common-mq</artifactId>
                 <version>${amy.version}</version>
             </dependency>
 
