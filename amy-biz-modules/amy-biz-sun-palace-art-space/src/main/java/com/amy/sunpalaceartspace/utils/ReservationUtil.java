@@ -47,7 +47,7 @@ public class ReservationUtil {
      * <p>规则：从 startTime 开始，每隔 interval 秒，直到 endTime 结束。</p>
      */
     public List<String> extractReservationTimes(String startTime, String endTime, Integer interval){
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtils.HH_MM_SS);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtils.HHMMSS);
         LocalTime start = LocalTime.parse(startTime, formatter);
         LocalTime end = LocalTime.parse(endTime, formatter);
 

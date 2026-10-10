@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.service;
 
+import java.util.Date;
 import java.util.List;
 
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
@@ -52,6 +53,16 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      * @return
      */
     ReservationOrder selectReservationOrderByNum(String orderNum);
+
+    /**
+     *
+     * @param userId
+     * @param idNum
+     * @param statuses
+     * @param since
+     * @return
+     */
+    long countUserOrders(Long userId, String idNum, List<Integer> statuses, Date since);
 
     /**
      * 新增预约订单

@@ -71,6 +71,15 @@ public interface IReservationStockService extends IService<ReservationStock> {
     boolean incrementReservationCount(Long reservationStockId, int delta);
 
     /**
+     * 预约成功后累加已预约数（用于库存统计：可用 = 已放号 - 已预约）
+     *
+     * @param projectId       项目ID
+     * @param reservationTime 预约时段，格式 yyyyMMddHHmm
+     * @return 是否成功
+     */
+    boolean incrementReservedCount(Long projectId, String reservationTime);
+
+    /**
      * 更新库存状态
      *
      * @param reservationStockId 库存ID

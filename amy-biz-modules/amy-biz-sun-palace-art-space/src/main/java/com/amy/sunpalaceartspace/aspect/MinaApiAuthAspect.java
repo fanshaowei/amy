@@ -1,7 +1,6 @@
 package com.amy.sunpalaceartspace.aspect;
 
 import com.amy.common.core.exception.InnerAuthException;
-import com.amy.common.core.exception.PreAuthorizeException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.core.utils.JwtUtils;
@@ -23,7 +22,7 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_ID;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
 
 /**
  * @ClassName MinaApiAuthAspect
@@ -58,12 +57,12 @@ public class MinaApiAuthAspect {
                 throw new InnerAuthException(errMsg);
             }
 
-            Object openId = redisService.getCacheObject(WX_API_TOKEN_OPEN_ID.formatted(token));
+            Object openId = redisService.getCacheObject(CASH_WX_API_TOKEN_OPEN_ID.formatted(token));
             if (null == openId) {
                 throw new InnerAuthException(errMsg);
             } else {
                 // 续期
-                redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token), openId, 2L, TimeUnit.HOURS);
+                redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token), openId, 2L, TimeUnit.HOURS);
             }
         } catch (ExpiredJwtException e) {
             log.error("token expired, {}", e.getMessage());

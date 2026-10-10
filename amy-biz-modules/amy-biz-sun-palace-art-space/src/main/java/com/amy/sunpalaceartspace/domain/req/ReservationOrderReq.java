@@ -30,10 +30,15 @@ public class ReservationOrderReq {
 
     /**
      * 预约会员ID（关联 biz_spas_reservation_user.reservation_user_id）。
-     * 非空时后端不会校验会员是否存在
+     * 预约时前端不用传,非空时后端不会校验会员是否存在
      */
     @NotNull(message = "预约用户不能为空")
     private Long reservationUserId;
+
+    /**
+     * 微信 OpenId, 预约时前端不用传
+     */
+    private String openId;
 
     /** 预约人姓名 */
     @NotBlank(message = "姓名不能为空")

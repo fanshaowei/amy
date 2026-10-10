@@ -11,15 +11,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
-import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_STOCK_KEY_PREFIX;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
 
 /**
- * @ClassName ReservationRulesService
- * @Description TODO
- * @Author fantasyfan
+ * 预约放号（库存）规则
+ *
+ * <p>放号规则：每天 6 时段 × 每时段 20 = 120 名；分两批释放，每批每时段 +10（共 60）。
+ * 批次1（12:00）释放“第二天”的第一批；批次2（00:00）释放“当天”的剩余名额（补足至满）。</p>
+ *
+ * <p>幂等：基于 batch1Released / batch2Released 标记，定时器重跑或集群多节点重复触发均不会重复放号。</p>
+ *
+ * @author fantasyfan
  * @Date 2026-09-27 16:19
  */
 @Slf4j
@@ -32,52 +38,96 @@ public class ReservationRulesService {
     private final ReservationUtil reservationUtil;
 
     /**
-     * 免费开放时间为AM9:00-12:00，30分钟为一个时间段，全天共6个时段，
-     * 因空间接纳有限及安全考虑，每个时段参观名额为20名，全天共计120名。
+     * 分批放号核心逻辑：在每个项目、目标日的每个时段上，按批次累加“已放号”并同步 Redis 可用库存。
      *
-     * 游客可对两日内时段免费进行预约，每天中午12:00系统将自动释放第二天预约名额60名，晚上24点将释放剩余预约名额60名，请提前做好预约安排并及时预约
-     *
-     * @param currentDate
+     * @param targetDate 要放号的目标日期
+     * @param batch      1=12:00 第一批（每时段 +10）；2=00:00 第二批（补足至满）
      */
-    public void createReservationStock(Date currentDate) {
+    public void releaseStock(Date targetDate, int batch) {
+        String targetDateStr = DateUtils.parseDateToStr("yyyyMMdd", targetDate);
         List<Projects> projects = projectsService.getBaseMapper().selectList(null);
-        projects.forEach(project -> {
-            createProjectReservationStock(project, currentDate);
-        });
+        for (Projects project : projects) {
+            List<String> times = reservationUtil.extractReservationTimes(
+                    project.getReservationStartTime(), project.getReservationEndTime(), project.getReservationIntervalSecond());
+            for (String time : times) {
+                String reservationTimeStr = time.split(":")[0] + time.split(":")[1];
+                String fullReservationTime = targetDateStr + reservationTimeStr;
+                String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationTime);
+
+                // 1. 确保库存行存在（total = 项目配置的每时段名额）
+                ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationTime);
+                if (stock == null) {
+                    stock = new ReservationStock();
+                    stock.setProjectId(project.getProjectId());
+                    stock.setReservationTime(fullReservationTime);
+                    stock.setReservationCount(project.getReservationCount());
+                    stock.setReleaseCount(0);
+                    stock.setReservedCount(0);
+                    stock.setBatch1Released(false);
+                    stock.setBatch2Released(false);
+                    stock.setStatus(true);
+                    reservationStockService.saveReservationStock(stock);
+                }
+
+                // 2. 按批次计算本次放号增量（已放过的批次直接跳过，保证幂等）
+                int total = stock.getReservationCount() == null ? 0 : stock.getReservationCount();
+                int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
+                int delta;
+                if (batch == 1) {
+                    if (Boolean.TRUE.equals(stock.getBatch1Released())) {
+                        continue;
+                    }
+                    delta = Math.min(RESERVATION_RELEASE_BATCH_STEP, total - released);
+                    stock.setBatch1Released(true);
+                } else if (batch == 2) {
+                    if (Boolean.TRUE.equals(stock.getBatch2Released())) {
+                        continue;
+                    }
+                    delta = total - released; // 补足至满
+                    stock.setBatch2Released(true);
+                } else {
+                    continue;
+                }
+                if (delta <= 0) {
+                    reservationStockService.updateById(stock);
+                    continue;
+                }
+
+                // 3. 持久化已放号数与批次标记
+                stock.setReleaseCount(released + delta);
+                reservationStockService.updateById(stock);
+
+                // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
+                redisService.redisTemplate.opsForValue().increment(stockKey, delta);
+                log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationTime, batch, delta);
+            }
+        }
     }
 
-    private void createProjectReservationStock(Projects project, Date currentDate) {
-        String reservationStartTime = project.getReservationStartTime();
-        String reservationEndTime = project.getReservationEndTime();
-        Integer reservationIntervalSecond = project.getReservationIntervalSecond();
-        Integer advanceReservationDays = project.getAdvanceReservationDays();
-        Integer reservationCount = project.getReservationCount();
+    /**
+     * 从 MySQL 重建 Redis 可用库存（可用 = 已放号 - 已预约），用于启动恢复与每日对账，修复崩溃/漂移。
+     */
+    public void reconcileStockToRedis() {
+        List<ReservationStock> all = reservationStockService.list();
+        for (ReservationStock stock : all) {
+            int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
+            int reserved = stock.getReservedCount() == null ? 0 : stock.getReservedCount();
+            int available = released - reserved;
+            String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, stock.getProjectId(), stock.getReservationTime());
+            redisService.setCacheObject(stockKey, available);
+        }
+        log.info("reconcileStockToRedis done, size:{}", all.size());
+    }
 
-        // 提取预约时间段
-        List<String> reservationTimes = reservationUtil.extractReservationTimes(reservationStartTime, reservationEndTime, reservationIntervalSecond);
-
-        // 设置可提前预约的库存
-        for (int i = 0; i < advanceReservationDays; i++) {
-            String reservationDate = DateUtils.parseDateToStr(DateUtils.YYYYMMDD, DateUtils.addDays(currentDate, i+1));
-
-            reservationTimes.forEach(reservationTime -> {
-                //创建库存记录
-                String reservationTimeStr = reservationTime.split(":")[0] + reservationTime.split(":")[1];
-                ReservationStock reservationStock = new ReservationStock();
-                reservationStock.setProjectId(project.getProjectId());
-                reservationStock.setReservationTime(reservationDate + reservationTimeStr);
-                reservationStock.setReservationCount(reservationCount);
-                boolean success = reservationStockService.saveReservationStock(reservationStock);
-
-                //设置redis库存
-                if(success) {
-                    log.info("成功创建库存:{} {}", reservationStock.getReservationTime(), reservationCount);
-                    redisService.setCacheObject(
-                            String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), reservationStock.getReservationTime()),
-                            reservationCount
-                    );
-                }
-            });
+    /**
+     * 启动补偿：重建 Redis 后，对“今天”补足到满（批次2），若已过中午则对“明天”放第一批。
+     * 保证服务刚启动时当日即可预约。
+     */
+    public void initStockOnStartup() {
+        reconcileStockToRedis();
+        releaseStock(new Date(), 2);
+        if (LocalTime.now().getHour() >= 12) {
+            releaseStock(DateUtils.addDays(new Date(), 1), 1);
         }
     }
 }

@@ -85,6 +85,17 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public boolean incrementReservedCount(Long projectId, String reservationTime) {
+        LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(ReservationStock::getProjectId, projectId)
+                .eq(ReservationStock::getReservationTime, reservationTime)
+                .setSql("reserved_count = reserved_count + 1")
+                .set(ReservationStock::getUpdateTime, DateUtils.getNowDate());
+        return update(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateStatus(Long reservationStockId, Boolean status) {
         ReservationStock update = new ReservationStock();
         update.setStatus(status);

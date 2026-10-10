@@ -4,6 +4,8 @@ import com.amy.common.mq.bo.AmyMqProducerBO;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Date;
+
 /**
  * @ClassName ReservationOrderMqSendBO
  * @Description TODO
@@ -14,8 +16,8 @@ import lombok.Data;
 @Data
 public class ReservationOrderMqSendBO extends AmyMqProducerBO {
     private Long reservationMessageId;
-    private Long userId;
+    private Long reservationUserId;
     private Long projectId;
     private String reservationNum;
-    private String reservationTime;
+    private Date reservationTime;
 }

@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -72,6 +73,18 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         queryWrapper.eq(ReservationOrder::getReservationNum, orderNum);
         ReservationOrder one = getOne(queryWrapper);
         return one;
+    }
+
+    @Override
+    public long countUserOrders(Long userId, String idNum, List<Integer> statuses, Date since) {
+        // 注：del_flag 由 BaseEntity 的 @TableLogic 自动过滤（仅统计未删除订单），无需手动 eq
+        return this.count(
+                new LambdaQueryWrapper<ReservationOrder>()
+                        .and(w -> w.eq(ReservationOrder::getReservationUserId, userId)
+                                .or().eq(ReservationOrder::getIdNum, idNum))
+                        .in(ReservationOrder::getReservationStatus, statuses)
+                        .ge(ReservationOrder::getCreateTime, since)
+        );
     }
 
     @Override

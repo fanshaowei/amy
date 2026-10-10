@@ -4,7 +4,6 @@ import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
 import com.amy.common.core.exception.ServiceException;
-import com.amy.common.core.utils.DateUtils;
 import com.amy.common.core.utils.JwtUtils;
 import com.amy.common.core.utils.uuid.IdUtils;
 import com.amy.common.redis.service.RedisService;
@@ -20,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -103,8 +101,8 @@ public class MinaAppLoginService {
     }
 
     private void saveMinaUserLoginCache(String spasToken, String openId, String sessionKey) {
-        redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, spasToken), openId, 2L, TimeUnit.HOURS);
-        redisService.setCacheObject(String.format(SpasConstant.WX_OPEN_ID_SESSION_KEY, openId), sessionKey);
+        redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken), openId, 2L, TimeUnit.HOURS);
+        redisService.setCacheObject(String.format(SpasConstant.CASH_WX_OPEN_ID_SESSION_KEY, openId), sessionKey);
     }
 
 
@@ -116,7 +114,7 @@ public class MinaAppLoginService {
             log.error("fail to get phone number by jsCode");
             throw new RuntimeException(e);
         }
-        Object openId = redisService.getCacheObject(String.format(WX_API_TOKEN_OPEN_ID, spasToken));
+        Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken));
         if(null != openId) {
             log.info("start to update phone by openId:{}", openId);
             reservationUserService.updatePhoneByOpenId((String) openId, phoneNumberInfo.getPurePhoneNumber());

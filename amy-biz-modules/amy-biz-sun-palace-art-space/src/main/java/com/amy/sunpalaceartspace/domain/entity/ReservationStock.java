@@ -33,6 +33,18 @@ public class ReservationStock extends BaseEntity {
     /** 可预约数量 */
     private Integer reservationCount;
 
+    /** 已放号数量（分批释放累计，0~reservationCount） */
+    private Integer releaseCount;
+
+    /** 已预约数量 */
+    private Integer reservedCount;
+
+    /** 批次1是否已放号（12:00 第一批，每时段 +10） */
+    private Boolean batch1Released;
+
+    /** 批次2是否已放号（00:00 第二批，补足至 reservationCount） */
+    private Boolean batch2Released;
+
     /** 库存状态（true=有效可预约，false=失效） */
     private Boolean status;
 }
