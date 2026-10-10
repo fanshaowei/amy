@@ -1,6 +1,8 @@
 package com.amy.sunpalaceartspace.aspect;
 
 import com.amy.common.core.exception.InnerAuthException;
+import com.amy.common.core.exception.PreAuthorizeException;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.core.utils.JwtUtils;
 import com.amy.common.core.utils.ServletUtils;
@@ -9,7 +11,9 @@ import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.bo.WechatApiTokenClaimBO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -27,6 +31,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_
  * @Author fantasyfan
  * @Date 2026-09-20 17:33
  */
+@Slf4j
 @AllArgsConstructor
 @Aspect
 @Component
@@ -44,19 +49,28 @@ public class MinaApiAuthAspect {
             throw new InnerAuthException(errMsg);
         }
 
-        Claims claims = jwtUtils.parseToken(token);
-        WechatApiTokenClaimBO wechatApiTokenClaimBO = objectMapper.convertValue(claims, WechatApiTokenClaimBO.class);
-        Long exp = wechatApiTokenClaimBO.getExp();
-        if (DateUtils.getNowDate().after(new Date(exp))) {
-            throw new InnerAuthException(errMsg);
-        }
+        try {
+            Claims claims = jwtUtils.parseToken(token);
+            WechatApiTokenClaimBO wechatApiTokenClaimBO = objectMapper.convertValue(claims, WechatApiTokenClaimBO.class);
+            Long exp = wechatApiTokenClaimBO.getExp();
+            // exp 已是秒（NumericDate），转回毫秒再比较
+            if (DateUtils.getNowDate().after(new Date(exp * 1000))) {
+                throw new InnerAuthException(errMsg);
+            }
 
-        Object openId = redisService.getCacheObject(WX_API_TOKEN_OPEN_ID.formatted(token));
-        if (null == openId) {
-           throw new InnerAuthException(errMsg);
-        } else {
-            // 续期
-            redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token), openId, 2L, TimeUnit.HOURS);
+            Object openId = redisService.getCacheObject(WX_API_TOKEN_OPEN_ID.formatted(token));
+            if (null == openId) {
+                throw new InnerAuthException(errMsg);
+            } else {
+                // 续期
+                redisService.setCacheObject(String.format(WX_API_TOKEN_OPEN_ID, token), openId, 2L, TimeUnit.HOURS);
+            }
+        } catch (ExpiredJwtException e) {
+            log.error("token expired, {}", e.getMessage());
+            throw new InnerAuthException("当前登录已过期，请重新登录");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new ServiceException("系统异常，请稍后重试");
         }
 
         return point.proceed();

@@ -21,10 +21,6 @@ public class ReservationUserVO {
     @Excel(name = "会员ID", cellType = ColumnType.NUMERIC)
     private Long reservationUserId;
 
-    /** 会员编号 */
-    @Excel(name = "用户编号")
-    private String number;
-
     /** 微信昵称 */
     @Excel(name = "微信昵称")
     private String nickname;
@@ -49,8 +45,8 @@ public class ReservationUserVO {
     @Excel(name = "身份证号")
     private String idNum;
 
-    /** 状态（0=正常,1=停用,2=删除） */
-    @Excel(name = "状态", readConverterExp = "0=正常,1=停用,2=删除")
+    /** 状态（0=停用,1=正常,-1=删除） */
+    @Excel(name = "状态", readConverterExp = "0=停用,1=正常,-1=删除")
     private Integer status;
 
     /** 类型（1用户 2核销员） */

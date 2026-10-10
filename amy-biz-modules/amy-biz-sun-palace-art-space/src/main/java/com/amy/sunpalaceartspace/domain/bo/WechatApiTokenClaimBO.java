@@ -1,7 +1,9 @@
 package com.amy.sunpalaceartspace.domain.bo;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @ClassName WechatApiTokenClaim
@@ -9,6 +11,8 @@ import lombok.Data;
  * @Author fantasyfan
  * @Date 2026-09-19 11:06
  */
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @Data
 public class WechatApiTokenClaimBO {

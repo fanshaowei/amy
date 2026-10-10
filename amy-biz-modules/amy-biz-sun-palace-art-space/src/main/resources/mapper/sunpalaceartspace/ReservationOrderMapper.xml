@@ -10,7 +10,6 @@
         <result property="projectId" column="project_id"/>
         <result property="projectName" column="project_name"/>
         <result property="reservationUserId" column="reservation_user_id"/>
-        <result property="reservationUserNumber" column="reservation_user_number"/>
         <result property="reservationUserName" column="reservation_user_name"/>
         <result property="name" column="name"/>
         <result property="phone" column="phone"/>
@@ -39,7 +38,6 @@
                r.project_id,
                p.project_name,
                r.reservation_user_id,
-               u.user_number          as reservation_user_number,
                u.name                 as reservation_user_name,
                r.name,
                r.phone,

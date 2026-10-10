@@ -20,11 +20,6 @@ public class ReservationUserReq {
     /** 会员ID（新增时为空，修改时必填） */
     private Long reservationUserId;
 
-    /** 会员编号（唯一） */
-    @NotBlank(message = "会员编号不能为空")
-    @Size(min = 0, max = 32, message = "会员编号长度不能超过32个字符")
-    private String number;
-
     /** 微信昵称 */
     @Size(min = 0, max = 100, message = "微信昵称长度不能超过100个字符")
     private String nickname;
@@ -54,7 +49,7 @@ public class ReservationUserReq {
     @Size(min = 0, max = 500, message = "token 长度不能超过500个字符")
     private String token;
 
-    /** 状态（0=正常,1=停用,2=删除） */
+    /** 状态（0=停用,1=正常,-1=删除） */
     @NotNull(message = "状态不能为空")
     private Integer status;
 

@@ -1,10 +1,6 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
-import com.amy.common.mq.bo.AmyMqProducerBO;
-import com.amy.common.mq.service.AmyMqProducer;
-import com.amy.common.redis.service.RedisService;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
@@ -15,9 +11,8 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
-import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -27,12 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
-
-import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_NUM_SEQ;
 
 /**
  * 预约订单 服务层实现（MyBatis-Plus 模式）
@@ -45,7 +36,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_
 public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMapper, ReservationOrder>
         implements IReservationOrderService {
 
-    private final RedisService redisService;
+    private final ReservationUtil reservationUtil;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -89,7 +80,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     {
         ReservationOrder order = convertToEntity(req);
         order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
-        order.setReservationNum(generateReservationNum(order.getReservationTime()));
+        order.setReservationNum(reservationUtil.generateReservationNum(order.getReservationTime()));
         order.setCreateBy(SecurityUtils.getUsername());
         order.setCreateTime(DateUtils.getNowDate());
         return save(order);
@@ -151,21 +142,5 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         // 随行人身份信息：List<String> 直接透传，由字段注解上的 StringListJsonTypeHandler 自动 JSON 化
         order.setCompUsers(req.getCompUsers());
         return order;
-    }
-
-    /**
-     * 生成预约单号
-     * <p>规则：预约时间 yyyyMMddHHmmss + 4 位随机数；若预约时间为空则取当前时间。</p>
-     */
-    private String generateReservationNum(Date reservationTime)
-    {
-        Date baseTime = reservationTime != null ? reservationTime : DateUtils.getNowDate();
-        String timePart = new SimpleDateFormat("yyyyMMddHHmmss").format(baseTime);
-
-        String key = String.format(RESERVATION_ORDER_NUM_SEQ, DateUtils.parseDateToStr("yyyyMMdd", baseTime));
-        Long increment = redisService.increment(key);
-        String sequencePart = String.format("%06d", increment);
-
-        return timePart + sequencePart;
     }
 }

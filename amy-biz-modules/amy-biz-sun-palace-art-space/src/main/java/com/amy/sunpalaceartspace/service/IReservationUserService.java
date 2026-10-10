@@ -83,6 +83,13 @@ public interface IReservationUserService extends IService<ReservationUser> {
     boolean checkUserExistById(Long reservationUserId);
 
     /**
+     *
+     * @param openId
+     * @return
+     */
+    boolean checkReservationUserByOpenId(String openId);
+
+    /**
      * 根据openId更新手机号
      *
      * @param openId

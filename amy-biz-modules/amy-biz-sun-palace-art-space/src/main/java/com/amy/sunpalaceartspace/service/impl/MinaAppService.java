@@ -10,26 +10,35 @@ import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.service.IReservationMessageService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.common.error.WxErrorException;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +46,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import static com.amy.sunpalaceartspace.constant.SpasConstant.MQ_DESTINATE;
-import static com.amy.sunpalaceartspace.constant.SpasConstant.WX_API_TOKEN_OPEN_ID;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
 
 /**
  * @ClassName MinaAppService
@@ -55,13 +63,21 @@ public class MinaAppService {
     private final IReservationUserService reservationUserService;
     private final RedisService redisService;
     private final AmyMqProducer<AmyMqProducerBO> amyMqProducer;
+    private final DefaultRedisScript<Long> reserveScript;
+    private final ReservationUtil reservationUtil;
+    private final IReservationMessageService reservationMessageService;
+    private final MinaAppLoginService minaAppLoginService;
+
+    public void miniAppLogin(WechatApiAuthLoginReq req) throws WxErrorException {
+        String token = minaAppLoginService.generalApiAuthToken(req);
+    }
 
     public void sendReservationOrderMq(ReservationOrderMqSendBO bo) {
         amyMqProducer.asyncSend(MQ_DESTINATE,
                 ReservationOrderMqSendBO.builder()
                         .userId(1000L)
                         .projectId(1L)
-                        .reservationTime(DateUtils.parseDateToStr(DateUtils.YYYYMMDDHH, new Date()))
+                        .reservationTime(DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, new Date()))
                         .build(),
                 (sendResult) -> {
                     log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
@@ -75,7 +91,7 @@ public class MinaAppService {
 
         IPage<MinaHomePageProjectResp> pageResp = new Page();
         List<MinaHomePageProjectResp> list = projectsIPage.getRecords().stream().map(project -> {
-            List<String> reservationDates = calculateReservationDates(project.getAdvanceReservationDays());
+            List<String> reservationDates = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
             // 可预约总数
             Integer totalReservationCount = calculateTotalReservationCount(
                     project.getReservationStartTime(),
@@ -111,20 +127,6 @@ public class MinaAppService {
         return pageResp;
     }
 
-    private List<String> calculateReservationDates(Integer dateInterval) {
-        List<String> dates = new LinkedList<>();
-
-        Date dateStart = DateUtils.addDays(DateUtils.getNowDate(), 1);
-        Date dateEnd = DateUtils.addDays(DateUtils.getNowDate(), dateInterval);
-
-        while(!dateStart.after(dateEnd)) {
-            dates.add(DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, dateStart));
-            dateStart = DateUtils.addDays(dateStart, 1);
-        }
-
-        return dates;
-    }
-
     private Integer calculateDateReservationCount(Long projectId, Integer dateInterval) {
         ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
                 .projectId(projectId)
@@ -136,22 +138,8 @@ public class MinaAppService {
     }
 
     private Integer calculateTotalReservationCount(String startTime, String endTime, Integer interval, Integer count){
-        List<String> result = calculateReservationTimes(startTime, endTime, interval, count);
+        List<String> result = reservationUtil.extractReservationTimes(startTime, endTime, interval);
         return result.size() * count;
-    }
-
-    private List<String> calculateReservationTimes(String startTime, String endTime, Integer interval, Integer count){
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtils.HH_MM_SS);
-        LocalTime start = LocalTime.parse(startTime, formatter);
-        LocalTime end = LocalTime.parse(endTime, formatter);
-
-        List<String> result = new ArrayList<>();
-        while (start.isBefore(end)) {
-            result.add(start.format(formatter));
-            start = start.plusMinutes(interval / 60);
-        }
-
-        return result;
     }
 
     private Integer calculateReservationStatus(Integer totalReservationCount, Integer reservationCount) {
@@ -173,14 +161,13 @@ public class MinaAppService {
                 .build();
 
         // 获取预约时间段
-        List<String> reservationTimes = calculateReservationTimes(
+        List<String> reservationTimes = reservationUtil.extractReservationTimes(
                 project.getReservationStartTime(),
                 project.getReservationEndTime(),
-                project.getReservationIntervalSecond(),
-                project.getReservationCount()
+                project.getReservationIntervalSecond()
         );
         // 获取预约日期
-        List<String> reservationDatas = calculateReservationDates(project.getAdvanceReservationDays());
+        List<String> reservationDatas = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
 
         reservationDatas.forEach(reservationDate -> {
             // 构造返回的结果
@@ -275,7 +262,7 @@ public class MinaAppService {
         // 验证预约会员是否存在
         boolean userExists = reservationUserService.checkUserExistById(req.getReservationUserId());
         if(!userExists) {
-            throw new ServiceException("预约会员不存在，无法进行预约");
+            throw new ServiceException("预约会员不存在，请先注册");
         }
         // 验证项目是否存在
         boolean projectExist = projectsService.checkProjectExistById(req.getProjectId());
@@ -298,16 +285,7 @@ public class MinaAppService {
         }
 
         // 进入队列
-        /*amyMqProducer.asyncSend(MQ_DESTINATE,
-                ReservationOrderMqSendBO.builder()
-                .userId(user.getReservationUserId())
-                .projectId(req.getProjectId())
-                .reservationTime(DateUtils.parseDateToStr(DateUtils.YYYYMMDDHH, req.getReservationTime()))
-                .build(),
-                (sendResult) -> {
-                    log.info("submitReservationOrder: {} sendResult: {}", req, sendResult);
-                    reservationOrderService.saveReservationOrder(req);
-                });*/
+        checkStockAndReservation(req.getProjectId(), req.getReservationUserId(), req.getReservationTime());
         return reservationOrderService.saveReservationOrder(req);
     }
 
@@ -319,4 +297,83 @@ public class MinaAppService {
 
         return reservationUserService.selectUserInfoByOpenId((String) openId);
     }
+
+    private void checkStockAndReservation(Long projectId, Long userId, Date reservationDate) {
+        String reservationDateStr = DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, reservationDate);
+        String reservationNum = reservationUtil.generateReservationNum(new Date());
+        String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, projectId, reservationDateStr);
+        String userKey = String.format(RESERVATION_USER_KEY_PREFIX, projectId, reservationDateStr, userId);
+        Object rawResult = null;
+        try {
+            rawResult = redisService.redisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, "3600");
+        } catch (Exception e) {
+            log.error("执行redis预约脚本失败, {}", e.getMessage());
+            throw new ServiceException("系统维护中,请联系管理员.");
+        }
+        Long result = (rawResult instanceof Number) ? ((Number) rawResult).longValue() : null;
+        if (result == null) {
+            log.error("reservationId: {} Redis script run fail.", reservationNum);
+            throw new ServiceException("系统预约失败");
+        }
+
+        // 活动不存在
+        if (result == -1) {
+            log.error("projectId: {} reservationId: {} 项目不存在.", projectId, reservationNum);
+            throw new ServiceException("预约项目不存在");
+        }
+
+        // 名额已满
+        if (result == 0) {
+            log.error("projectId: {} reservationId: {} 预约时间段: {} 预约名额已满.", projectId, reservationNum, reservationDateStr);
+            throw new ServiceException("预约名额已满");
+        }
+
+        // 重复预约
+        if (result == 2) {
+            log.error("projectId: {} reservationId: {} 预约时间段: {} 用户: {} 已预约.", projectId, reservationNum, reservationDateStr, userId);
+            throw new ServiceException("用户已预约");
+        }
+
+        // 抢到资格
+        try {
+            // 先记录消息任务
+            ReservationMessage reservationMessage = new ReservationMessage();
+            reservationMessage.setReservationId(reservationNum);
+            reservationMessage.setReservationTime(reservationNum);
+            reservationMessage.setUserId(userId);
+            reservationMessage.setRetryCount(0);
+            reservationMessage.setStatus(ReservationMessageStatus.WAITING.getCode());
+            boolean success = reservationMessageService.saveReservationMessage(reservationMessage);
+            if (success) {
+                log.info("创建预约消息 userId:{} reservationNum: {},reservationNum: {}", userId, reservationNum, reservationNum);
+                // 发送RocketMQ
+                SendResult sendResult = amyMqProducer.syncSend(MQ_DESTINATE,
+                        ReservationOrderMqSendBO.builder()
+                                .reservationMessageId(reservationMessage.getReservationMessageId())
+                                .userId(userId)
+                                .projectId(projectId)
+                                .reservationNum(reservationNum)
+                                .reservationTime(reservationDateStr)
+                                .build()
+                );
+                if(SendStatus.SEND_OK.equals(sendResult.getSendStatus())) {
+                    boolean update = reservationMessageService.updateStatus(reservationMessage.getReservationMessageId(), ReservationMessageStatus.SENT);
+                    log.info("更新预约消息userId:{} reservationNum: {},reservationNum: {}", userId, reservationNum, reservationNum);
+                }
+            }
+        } catch (Exception e) {
+            /*
+             * 注意：这里不能简单认为MQ一定没有收到。
+             * 所以不要立即Redis +1。
+             * 保留WAITING状态，后面的补偿任务继续发送。
+             */
+            /*return new ReservationResponse(
+                202,
+                reservationId,
+                "WAITING",
+                "预约申请处理中"
+            );*/
+        }
+    }
+
 }

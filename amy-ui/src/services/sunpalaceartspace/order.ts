@@ -10,8 +10,6 @@ export interface ReservationOrderRecord {
     /** 预约项目名称 */
     projectName?: string;
     reservationUserId?: number;
-    /** 会员编号 */
-    reservationUserNumber?: string;
     /** 会员姓名 */
     reservationUserName?: string;
     /** 预约人姓名 */

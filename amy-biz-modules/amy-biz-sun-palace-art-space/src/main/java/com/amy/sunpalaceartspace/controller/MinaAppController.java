@@ -11,6 +11,7 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
@@ -18,11 +19,13 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppService;
+import com.amy.sunpalaceartspace.service.impl.MinaAppLoginService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +43,20 @@ public class MinaAppController extends BaseController {
     private final MinaAppService minaAppService;
     private final IReservationOrderService reservationOrderService;
     private final IReservationUserService reservationUserService;
+    private final MinaAppLoginService minaAppLoginService;
+
+    /**
+     * 小程序调用后端接口前，获取鉴权token,后续调用业务接口，都要在请求头携带该token
+     * eg: Authorization: Bearer <token>
+     * @param req
+     * @return
+     * @throws WxErrorException
+     */
+    @PostMapping("/auth/login")
+    public R<String> login(@RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
+        String token = minaAppLoginService.generalApiAuthToken(req);
+        return R.ok(token);
+    }
 
     @GetMapping("/reservation/order/mq")
     public void sendReservationOrderMq(ReservationOrderMqSendBO reservationOrderMqSendBO) {

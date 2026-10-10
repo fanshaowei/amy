@@ -9,6 +9,7 @@ import jakarta.websocket.server.PathParam;
 import lombok.AllArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -18,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
  * @Date 2026-09-12 20:26
  */
 @AllArgsConstructor
-@RestController("/wechat")
+@RestController
+@RequestMapping("/wechat")
 public class WechatController extends BaseController {
     private final WxMaService  wxMaService;
 

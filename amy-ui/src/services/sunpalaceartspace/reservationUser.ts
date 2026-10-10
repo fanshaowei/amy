@@ -18,7 +18,7 @@ export interface ReservationUserRecord {
     openId?: string;
     /** 身份证号 */
     idNum?: string;
-    /** 状态（0=正常,1=停用,2=删除） */
+    /** 状态（0=停用,1=正常,-1=删除） */
     status?: number;
     /** 类型（1用户 2核销员） */
     type?: number;

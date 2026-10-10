@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -31,13 +30,6 @@ public class ReservationUser extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long reservationUserId;
 
-    /** 会员编号（唯一） */
-    @Excel(name = "用户编号")
-    @NotBlank(message = "会员编号不能为空")
-    @Size(min = 0, max = 32, message = "会员编号长度不能超过32个字符")
-    @TableField("user_number")
-    private String number;
-
     /** 微信昵称 */
     @Excel(name = "微信昵称")
     @Size(min = 0, max = 100, message = "微信昵称长度不能超过100个字符")
@@ -50,7 +42,6 @@ public class ReservationUser extends BaseEntity {
 
     /** 手机号 */
     @Excel(name = "电话")
-    @NotBlank(message = "手机号不能为空")
     @Size(min = 0, max = 11, message = "手机号长度不能超过11个字符")
     private String phone;
 
@@ -76,8 +67,8 @@ public class ReservationUser extends BaseEntity {
     @Size(min = 0, max = 500, message = "token 长度不能超过500个字符")
     private String token;
 
-    /** 状态（0=正常,1=停用,2=删除） */
-    @Excel(name = "状态", readConverterExp = "0=正常,1=停用,2=删除")
+    /** 状态（0=停用,1=正常,-1=删除），见 {@link com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum} */
+    @Excel(name = "状态", readConverterExp = "0=停用,1=正常,-1=删除")
     @NotNull(message = "状态不能为空")
     private Integer status;
 

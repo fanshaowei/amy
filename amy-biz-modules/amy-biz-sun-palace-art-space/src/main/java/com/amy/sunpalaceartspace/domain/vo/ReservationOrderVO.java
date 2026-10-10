@@ -39,10 +39,6 @@ public class ReservationOrderVO {
     @Excel(name = "会员ID", cellType = ColumnType.NUMERIC)
     private Long reservationUserId;
 
-    /** 会员编号（来自 biz_spas_reservation_user.user_number） */
-    @Excel(name = "会员编号")
-    private String reservationUserNumber;
-
     /** 会员真实姓名（来自 biz_spas_reservation_user.name） */
     @Excel(name = "会员姓名")
     private String reservationUserName;

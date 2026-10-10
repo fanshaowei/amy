@@ -10,7 +10,16 @@ import lombok.Data;
  */
 @Data
 public class WechatApiAuthLoginReq {
+    /**
+     * 微信jsCode
+     */
     private String jsCode;
+    /**
+     * 微信头像
+     */
     private String avatarImgUrl;
+    /**
+     * 微信昵称
+     */
     private String nickName;
 }

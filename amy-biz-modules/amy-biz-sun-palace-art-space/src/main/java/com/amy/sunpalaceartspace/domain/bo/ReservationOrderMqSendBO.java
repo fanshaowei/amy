@@ -13,7 +13,9 @@ import lombok.Data;
 @Builder
 @Data
 public class ReservationOrderMqSendBO extends AmyMqProducerBO {
+    private Long reservationMessageId;
     private Long userId;
     private Long projectId;
+    private String reservationNum;
     private String reservationTime;
 }
