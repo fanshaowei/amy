@@ -6,11 +6,11 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
-import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
 import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
@@ -18,8 +18,8 @@ import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
-import com.amy.sunpalaceartspace.service.impl.MinaAppService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppLoginService;
+import com.amy.sunpalaceartspace.service.impl.MinaAppService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
@@ -56,11 +56,6 @@ public class MinaAppController extends BaseController {
     public R<String> login(@RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
         String token = minaAppLoginService.generalApiAuthToken(req);
         return R.ok(token);
-    }
-
-    @GetMapping("/reservation/order/mq")
-    public void sendReservationOrderMq(ReservationOrderMqSendBO reservationOrderMqSendBO) {
-        minaAppService.sendReservationOrderMq(reservationOrderMqSendBO);
     }
 
     /**

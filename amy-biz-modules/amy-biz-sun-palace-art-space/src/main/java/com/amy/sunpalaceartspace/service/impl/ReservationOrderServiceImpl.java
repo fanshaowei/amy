@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.AllArgsConstructor;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,7 +94,9 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     {
         ReservationOrder order = convertToEntity(req);
         order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
-        order.setReservationNum(reservationUtil.generateReservationNum(order.getReservationTime()));
+        if(Strings.isBlank(req.getReservationNum())) {
+            order.setReservationNum(reservationUtil.generateReservationNum(order.getReservationTime()));
+        }
         order.setCreateBy(SecurityUtils.getUsername());
         order.setCreateTime(DateUtils.getNowDate());
         return save(order);
@@ -149,9 +152,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setIdNum(req.getIdNum());
         order.setGuestsNum(req.getGuestsNum());
         order.setReservationTime(req.getReservationTime());
-        if(req.getReservationStatus() != null) {
-            order.setReservationStatus(req.getReservationStatus());
-        }
+        order.setReservationStatus(req.getReservationStatus());
+
         // 随行人身份信息：List<String> 直接透传，由字段注解上的 StringListJsonTypeHandler 自动 JSON 化
         order.setCompUsers(req.getCompUsers());
         return order;

@@ -24,6 +24,8 @@ public class ReservationOrderReq {
     /** 预约订单ID（新增时为空，修改时必填） */
     private Long reservationOrderId;
 
+    private String reservationNum;
+
     /** 预约项目ID */
     @NotNull(message = "预约项目不能为空")
     private Long projectId;

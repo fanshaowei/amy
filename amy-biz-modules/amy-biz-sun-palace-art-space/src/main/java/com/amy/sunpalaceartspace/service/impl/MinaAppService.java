@@ -14,7 +14,6 @@ import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
-import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
@@ -23,19 +22,14 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
-import com.amy.sunpalaceartspace.service.IProjectsService;
-import com.amy.sunpalaceartspace.service.IReservationMessageService;
-import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.service.IReservationStockService;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.amy.sunpalaceartspace.service.*;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.chanjar.weixin.common.error.WxErrorException;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -45,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
+import static org.apache.rocketmq.client.producer.SendStatus.SEND_OK;
 
 /**
  * @ClassName MinaAppService
@@ -66,6 +61,7 @@ public class MinaAppService {
     private final IReservationMessageService reservationMessageService;
     private final MinaAppLoginService minaAppLoginService;
     private final IReservationStockService reservationStockService;
+    private final ObjectMapper objectMapper;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -261,17 +257,42 @@ public class MinaAppService {
         return reservationNum;
     }
 
+    @Transactional
     public void sendReservationOrderMq(SubmitReservationReq req, ReservationUser user, String reservationNum) {
-        ReservationOrderMqSendBO bo = ReservationOrderMqSendBO.builder()
-                .reservationUserId(user.getReservationUserId())
-                .projectId(req.getProjectId())
-                .reservationNum(reservationNum)
-                .reservationTime(req.getReservationTime())
-                .build();
+        // 构建要发送mq的消息体
+        ReservationOrderMqSendBO bo = ReservationOrderMqSendBO.builder().build();
+        BeanUtils.copyProperties(req, bo);
+        bo.setReservationNum(reservationNum);
+        bo.setReservationUserId(user.getReservationUserId());
+
+        // 保存mq发送记录
+        ReservationMessage reservationMessage = new ReservationMessage();
+        try {
+            reservationMessage.setMsgContent(objectMapper.writeValueAsString(bo));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        reservationMessage.setRetryCount(0);
+        reservationMessage.setStatus(ReservationMessageStatus.WAITING.getCode());
+        boolean success = reservationMessageService.saveReservationMessage(reservationMessage);
+        if (!success) {
+            log.error("userId:{} sendReservationOrderMq: {} saveReservationMessage fail.", user.getReservationUserId(), reservationNum);
+            throw new ServiceException("预约失败，请稍后重试");
+        }
+
+        // 发送消息并更新发送状态
         amyMqProducer.asyncSend(MQ_DESTINATE, bo,
-                (sendResult) -> {
-                    log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
-                });
+            (sendResult) -> {
+                log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
+                SendStatus sendStatus = sendResult.getSendStatus();
+                if(SEND_OK.equals(sendStatus)) {
+                    log.info("userId:{} sendReservationOrderMq: {} send success.", user.getReservationUserId(), reservationNum);
+                    reservationMessageService.updateStatus(reservationMessage.getReservationMessageId(), ReservationMessageStatus.SENT);
+                } else {
+                    log.error("userId:{} sendReservationOrderMq: {} send fail, status: {}", user.getReservationUserId(), reservationNum, sendStatus);
+                    reservationMessageService.updateStatus(reservationMessage.getReservationMessageId(), ReservationMessageStatus.FAIL);
+                }
+            });
     }
 
     public void reservateOrder(ReservationOrderMqSendBO bo) {
@@ -286,6 +307,8 @@ public class MinaAppService {
         // 落单（与 Redis 扣减解耦：若落单失败则回滚 Redis，避免永久占名额/永久锁用户）
         boolean saved;
         try {
+            ReservationOrderReq req = new ReservationOrderReq();
+            BeanUtils.copyProperties(bo, req);
             saved = reservationOrderService.saveReservationOrder(req);
         } catch (Exception e) {
             rollbackReservation(stockKey, userKey);
@@ -298,7 +321,7 @@ public class MinaAppService {
 
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
-        reservationStockService.incrementReservedCount(req.getProjectId(), reservationTimeStr);
+        reservationStockService.incrementReservedCount(bo.getProjectId(), reservationTimeStr);
     }
 
     private void reservationPreCheck(SubmitReservationReq req, ReservationUser user) {
@@ -379,41 +402,6 @@ public class MinaAppService {
         if (result == 2) {
             log.error("projectId: {} reservationTime: {} 用户: {} 已预约.", projectId, reservationTimeStr, userId);
             throw new ServiceException("您已预约，不可重复预约");
-        }
-
-        // 抢到资格：记录消息任务并发送 RocketMQ（消费者当前为桩，仅日志）
-        try {
-            ReservationMessage reservationMessage = new ReservationMessage();
-            reservationMessage.setReservationId(reservationNum);
-            reservationMessage.setReservationTime(reservationNum);
-            reservationMessage.setUserId(userId);
-            reservationMessage.setRetryCount(0);
-            reservationMessage.setStatus(ReservationMessageStatus.WAITING.getCode());
-            boolean success = reservationMessageService.saveReservationMessage(reservationMessage);
-            if (success) {
-                log.info("创建预约消息 userId:{} reservationNum: {}", userId, reservationNum);
-                // 发送RocketMQ
-                SendResult sendResult = amyMqProducer.syncSend(MQ_DESTINATE,
-                        ReservationOrderMqSendBO.builder()
-                                .reservationMessageId(reservationMessage.getReservationMessageId())
-                                .userId(userId)
-                                .projectId(projectId)
-                                .reservationNum(reservationNum)
-                                .reservationTime(reservationTimeStr)
-                                .build()
-                );
-                if(SendStatus.SEND_OK.equals(sendResult.getSendStatus())) {
-                    boolean update = reservationMessageService.updateStatus(reservationMessage.getReservationMessageId(), ReservationMessageStatus.SENT);
-                    log.info("更新预约消息userId:{} reservationNum: {}", userId, reservationNum);
-                }
-            }
-        } catch (Exception e) {
-            /*
-             * 注意：这里不能简单认为MQ一定没有收到。
-             * 所以不要立即Redis +1。
-             * 保留WAITING状态，后面的补偿任务继续发送。
-             */
-            log.error("reservationId: {} MQ send fail.", reservationNum, e);
         }
     }
 

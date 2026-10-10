@@ -42,10 +42,7 @@ public class ReservationMessageServiceImpl extends ServiceImpl<ReservationMessag
     public IPage<ReservationMessage> selectReservationMessagePage(Page<ReservationMessage> page,
             Long userId, Long projectId, String reservationId, Integer status) {
         LambdaQueryWrapper<ReservationMessage> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(userId != null, ReservationMessage::getUserId, userId)
-                .eq(projectId != null, ReservationMessage::getProjectId, projectId)
-                .eq(reservationId != null, ReservationMessage::getReservationId, reservationId)
-                .eq(status != null, ReservationMessage::getStatus, status)
+        wrapper.eq(status != null, ReservationMessage::getStatus, status)
                 .orderByDesc(ReservationMessage::getCreateTime);
         return page(page, wrapper);
     }

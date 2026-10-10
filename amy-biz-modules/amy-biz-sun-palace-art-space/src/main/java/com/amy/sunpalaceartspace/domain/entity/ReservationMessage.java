@@ -26,17 +26,10 @@ public class ReservationMessage extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long reservationMessageId;
 
-    /** 预约ID（关联预约单号或预约业务ID） */
-    private String reservationId;
-
-    /** 项目ID */
-    private Long projectId;
-
-    /** 用户ID */
-    private Long userId;
-
-    /** 预约时间 eg: 202609281030 */
-    private String reservationTime;
+    /**
+     * 消息
+     */
+    private String msgContent;
 
     /** 预约消息状态 {@link com.amy.sunpalaceartspace.enums.ReservationMessageStatus} */
     private Integer status;
