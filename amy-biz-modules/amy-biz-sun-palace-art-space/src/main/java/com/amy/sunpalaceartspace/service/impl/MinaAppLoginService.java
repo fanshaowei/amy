@@ -48,14 +48,14 @@ public class MinaAppLoginService {
      * @return
      */
     public String generalApiAuthToken(WechatApiAuthLoginReq req) {
-//        WxMaJscode2SessionResult wxMaJscode2SessionResult = null;
-//        try {
-//            wxMaJscode2SessionResult = wxMaService.jsCode2SessionInfo(req.getJsCode());
-//        } catch (WxErrorException e) {
-//            throw new ServiceException("fail to get session info by jsCode");
-//        }
-        String openId = "oScH60GBC5dKuq3VVucYI9RtBeao";//wxMaJscode2SessionResult.getOpenid();
-        String sessionKey = "06u3cSgprrlDpi4kkI3khA==";//wxMaJscode2SessionResult.getSessionKey();
+        WxMaJscode2SessionResult wxMaJscode2SessionResult = null;
+        try {
+            wxMaJscode2SessionResult = wxMaService.jsCode2SessionInfo(req.getJsCode());
+        } catch (WxErrorException e) {
+            throw new ServiceException("fail to get session info by jsCode");
+        }
+        String openId = wxMaJscode2SessionResult.getOpenid();
+        String sessionKey = wxMaJscode2SessionResult.getSessionKey();
         log.info("login openid: {}, sessionKey: {}", openId, sessionKey);
 
         // 创建预约会员记录
@@ -82,18 +82,22 @@ public class MinaAppLoginService {
         reservationUserService.saveReservationUser(reservationUserReq);
     }
 
+    /**
+     * exp 设为【7 天绝对上限】仅作安全兜底（防 token 永不过期）；
+     * 真正会话有效期由 Redis 滑动 TTL 决定（见 MinaApiAuthAspect：每次请求续 2h，闲置超 2h 即失效）。
+     * @return
+     */
     private String generalJwt() {
         // JWT 标准：exp/iat/nbf 必须为秒（NumericDate），不能用毫秒，否则 jjwt 解析会因 nbf/exp 被误读为公元数万年而拒绝。
-        // exp 设为【7 天绝对上限】仅作安全兜底（防 token 永不过期）；真正会话有效期由 Redis 滑动 TTL 决定（见 MinaApiAuthAspect：每次请求续 2h，闲置超 2h 即失效）。
         long nowSeconds = System.currentTimeMillis() / 1000;
-        nowSeconds = DateUtils.addDays(new Date(), -1).getTime() / 1000;
+        //nowSeconds = DateUtils.addDays(new Date(), -1).getTime() / 1000;
         WechatApiTokenClaimBO wechatApiTokenClaimBO = WechatApiTokenClaimBO.builder()
                 .jti(IdUtils.fastUUID())
                 .iss(ISSUER)
                 .aud(AUDIENCE)
                 .iat(nowSeconds)
                 .nbf(nowSeconds)
-                .exp(nowSeconds)
+                .exp(nowSeconds + API_TOKEN_ABSOLUTE_TTL_SECONDS)
                 .build();
         return jwtUtils.createToken(objectMapper.convertValue(wechatApiTokenClaimBO, Map.class));
     }
