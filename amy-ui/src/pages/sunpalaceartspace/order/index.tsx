@@ -66,7 +66,7 @@ export default function OrderPage() {
             pageSize: 1,
             reservationStatus: tab.key === '' ? undefined : tab.key
         }).then(res => {
-            setCounts(prev => ({...prev, [tab.key]: res.total ?? 0}));
+            setCounts(prev => ({...prev, [tab.key]: res.data?.total ?? 0}));
         }));
         void Promise.all(queries);
     }, []);
