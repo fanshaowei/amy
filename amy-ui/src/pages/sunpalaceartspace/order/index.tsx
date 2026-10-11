@@ -202,7 +202,7 @@ export default function OrderPage() {
                 <PermissionButton key="export" icon={<ExportOutlined/>}
                                   permission="sunpalaceartspace:reservationOrder:export"
                                   onClick={() => void downloadFile(
-                                      '/amyBizSunPalaceArtSpace/reservation/order/export',
+                                      '/spas/reservation/order/export',
                                       {},
                                       `预约订单_${Date.now()}.xlsx`
                                   ).then(() => message.success('导出成功'))}>导出数据</PermissionButton>

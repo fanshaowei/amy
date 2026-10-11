@@ -31,4 +31,4 @@ export interface DashboardStatistics {
 
 /** 获取控制台统计信息 */
 export const getDashboardStatistics = () =>
-    request<RuoYiResponse<DashboardStatistics>>('/amyBizSunPalaceArtSpace/dashboard/statistics');
+    request<RuoYiResponse<DashboardStatistics>>('/spas/dashboard/statistics');

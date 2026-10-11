@@ -38,11 +38,11 @@ export interface UploadResult {
     url: string
 }
 
-export const listProjects = (params: Record<string, unknown>) => request<RuoYiTableResponse<ProjectRecord>>('/amyBizSunPalaceArtSpace/project/list', {params});
-export const getProject = (projectId: number) => request<RuoYiResponse<ProjectRecord>>(`/amyBizSunPalaceArtSpace/project/${projectId}`);
-export const addProject = (data: ProjectRecord) => request('/amyBizSunPalaceArtSpace/project', {method: 'POST', data});
-export const updateProject = (data: ProjectRecord) => request('/amyBizSunPalaceArtSpace/project', {method: 'PUT', data});
-export const deleteProjects = (projectIds: React.Key[]) => request(`/amyBizSunPalaceArtSpace/project/${projectIds.join(',')}`, {method: 'DELETE'});
+export const listProjects = (params: Record<string, unknown>) => request<RuoYiTableResponse<ProjectRecord>>('/spas/project/list', {params});
+export const getProject = (projectId: number) => request<RuoYiResponse<ProjectRecord>>(`/spas/project/${projectId}`);
+export const addProject = (data: ProjectRecord) => request('/spas/project', {method: 'POST', data});
+export const updateProject = (data: ProjectRecord) => request('/spas/project', {method: 'PUT', data});
+export const deleteProjects = (projectIds: React.Key[]) => request(`/spas/project/${projectIds.join(',')}`, {method: 'DELETE'});
 
 /** 上传图片，走网关文件服务 /file/upload */
 export const uploadImage = (file: File) => {

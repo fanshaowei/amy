@@ -46,8 +46,8 @@ export interface CompUser {
 }
 
 export const listOrders = (params: Record<string, unknown>) =>
-    request<RuoYiTableResponse<ReservationOrderRecord>>('/amyBizSunPalaceArtSpace/reservation/order/list', {params});
+    request<RuoYiTableResponse<ReservationOrderRecord>>('/spas/reservation/order/list', {params});
 export const getOrder = (reservationOrderId: number) =>
-    request<RuoYiResponse<ReservationOrderRecord>>(`/amyBizSunPalaceArtSpace/reservation/order/${reservationOrderId}`);
+    request<RuoYiResponse<ReservationOrderRecord>>(`/spas/reservation/order/${reservationOrderId}`);
 export const deleteOrders = (orderIds: React.Key[]) =>
-    request(`/amyBizSunPalaceArtSpace/reservation/order/${orderIds.join(',')}`, {method: 'DELETE'});
+    request(`/spas/reservation/order/${orderIds.join(',')}`, {method: 'DELETE'});

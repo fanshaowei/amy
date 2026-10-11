@@ -140,7 +140,7 @@ export default function ReservationUserPage() {
                 <PermissionButton key="export" icon={<ExportOutlined/>}
                                   permission="sunpalaceartspace:reservationUser:export"
                                   onClick={() => void downloadFile(
-                                      '/amyBizSunPalaceArtSpace/reservation/user/export',
+                                      '/spas/reservation/user/export',
                                       {},
                                       `会员列表_${Date.now()}.xlsx`
                                   ).then(() => message.success('导出成功'))}>导出数据</PermissionButton>

@@ -29,11 +29,11 @@ export interface ReservationUserRecord {
 }
 
 export const listUsers = (params: Record<string, unknown>) =>
-    request<RuoYiTableResponse<ReservationUserRecord>>('/amyBizSunPalaceArtSpace/reservation/user/list', {params});
+    request<RuoYiTableResponse<ReservationUserRecord>>('/spas/reservation/user/list', {params});
 export const getUser = (reservationUserId: number) =>
-    request<RuoYiResponse<ReservationUserRecord>>(`/amyBizSunPalaceArtSpace/reservation/user/${reservationUserId}`);
+    request<RuoYiResponse<ReservationUserRecord>>(`/spas/reservation/user/${reservationUserId}`);
 /** 切换身份（1用户 2核销员） */
 export const changeUserType = (reservationUserId: number, type: number) =>
-    request(`/amyBizSunPalaceArtSpace/reservation/user/changeType/${reservationUserId}/${type}`, {method: 'PUT'});
+    request(`/spas/reservation/user/changeType/${reservationUserId}/${type}`, {method: 'PUT'});
 export const deleteUsers = (userIds: React.Key[]) =>
-    request(`/amyBizSunPalaceArtSpace/reservation/user/${userIds.join(',')}`, {method: 'DELETE'});
+    request(`/spas/reservation/user/${userIds.join(',')}`, {method: 'DELETE'});
