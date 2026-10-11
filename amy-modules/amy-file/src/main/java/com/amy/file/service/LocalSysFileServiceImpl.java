@@ -1,6 +1,7 @@
 package com.amy.file.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +15,7 @@ import com.amy.file.utils.FileUploadUtils;
  * @author amy
  */
 @Primary
+@RefreshScope
 @Service
 public class LocalSysFileServiceImpl implements ISysFileService
 {
