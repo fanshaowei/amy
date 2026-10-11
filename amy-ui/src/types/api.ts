@@ -11,6 +11,20 @@ export interface RuoYiTableResponse<T> extends Omit<RuoYiResponse<T[]>, 'data'> 
     total: number;
 }
 
+/**
+ * spas（太阳宫艺术空间）模块的列表响应。
+ * 该模块 Controller 返回 R<TableDataInfo>，比系统模块直接返回 TableDataInfo
+ * 多一层 data 包装，故不能复用 RuoYiTableResponse（后者 rows/total 是平铺的）。
+ */
+export interface SpasTableResponse<T> {
+    code: number;
+    msg: string;
+    data: {
+        rows: T[];
+        total: number;
+    };
+}
+
 export interface LoginParams {
     username: string;
     password: string;

@@ -1,11 +1,9 @@
 import {request} from '@umijs/max';
-import type {RuoYiResponse, RuoYiTableResponse} from '@/types/api';
+import type {RuoYiResponse, SpasTableResponse} from '@/types/api';
 
 /** 预约会员（biz_spas_reservation_user） */
 export interface ReservationUserRecord {
     reservationUserId?: number;
-    /** 用户编号 */
-    number?: string;
     /** 微信昵称 */
     nickname?: string;
     /** 姓名 */
@@ -29,7 +27,7 @@ export interface ReservationUserRecord {
 }
 
 export const listUsers = (params: Record<string, unknown>) =>
-    request<RuoYiTableResponse<ReservationUserRecord>>('/spas/reservation/user/list', {params});
+    request<SpasTableResponse<ReservationUserRecord>>('/spas/reservation/user/list', {params});
 export const getUser = (reservationUserId: number) =>
     request<RuoYiResponse<ReservationUserRecord>>(`/spas/reservation/user/${reservationUserId}`);
 /** 切换身份（1用户 2核销员） */

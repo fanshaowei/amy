@@ -1,5 +1,5 @@
 import {request} from '@umijs/max';
-import type {RuoYiResponse, RuoYiTableResponse} from '@/types/api';
+import type {RuoYiResponse, SpasTableResponse} from '@/types/api';
 
 /** 预约订单（biz_spas_reservation_order） */
 export interface ReservationOrderRecord {
@@ -46,7 +46,7 @@ export interface CompUser {
 }
 
 export const listOrders = (params: Record<string, unknown>) =>
-    request<RuoYiTableResponse<ReservationOrderRecord>>('/spas/reservation/order/list', {params});
+    request<SpasTableResponse<ReservationOrderRecord>>('/spas/reservation/order/list', {params});
 export const getOrder = (reservationOrderId: number) =>
     request<RuoYiResponse<ReservationOrderRecord>>(`/spas/reservation/order/${reservationOrderId}`);
 export const deleteOrders = (orderIds: React.Key[]) =>

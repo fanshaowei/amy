@@ -47,7 +47,7 @@ export default function ReservationUserPage() {
 
     const confirmDelete = (row: ReservationUserRecord) => {
         modal.confirm({
-            title: `确认删除用户「${row.nickname || row.number}」？`,
+            title: `确认删除用户「${row.nickname || row.reservationUserId}」？`,
             content: '删除后不可恢复。',
             onOk: async () => {
                 await deleteUsers([row.reservationUserId!]);
@@ -59,8 +59,8 @@ export default function ReservationUserPage() {
 
     const columns: ProColumns<ReservationUserRecord>[] = [{
         title: '用户编号',
-        dataIndex: 'number',
-        // 后端 ReservationUser 实体与 biz_spas_reservation_user 表均无 number 列，搜索无效，故关闭搜索项
+        dataIndex: 'reservationUserId',
+        // 用户编号即主键；后端列表/导出 SQL 未提供按主键筛选的条件，故暂不开搜索
         search: false,
         ellipsis: true,
         width: 110
@@ -109,8 +109,11 @@ export default function ReservationUserPage() {
     }, {
         title: '注册时间',
         dataIndex: 'createTime',
-        search: false,
-        width: 160
+        valueType: 'dateRange',
+        width: 160,
+        // 提交时把 [begin, end] 转成 RuoYi 约定的 params.beginTime / params.endTime
+        search: {transform: (value) => ({params: {beginTime: value?.[0], endTime: value?.[1]}})},
+        render: (_, row) => row.createTime || '-'
     }, {
         title: '操作',
         valueType: 'option',
@@ -160,6 +163,13 @@ export default function ReservationUserPage() {
                                               params[key] = value;
                                           }
                                       });
+                                      // 注册时间：表单值是 [begin, end] 数组，而后端实体的 createTime 是 Date，
+                                      // 直接传数组会反序列化失败，故转成 params.beginTime / params.endTime 并剔除原字段
+                                      const timeRange = params.createTime as string[] | undefined;
+                                      delete params.createTime;
+                                      if (Array.isArray(timeRange) && timeRange[0]) {
+                                          params.params = {beginTime: timeRange[0], endTime: timeRange[1]};
+                                      }
                                       void downloadFile(
                                           '/spas/reservation/user/export',
                                           params,

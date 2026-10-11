@@ -1,5 +1,5 @@
 import {request} from '@umijs/max';
-import type {RuoYiResponse, RuoYiTableResponse} from '@/types/api';
+import type {RuoYiResponse, SpasTableResponse} from '@/types/api';
 
 /** 项目管理（biz_spas_projects） */
 export interface ProjectRecord {
@@ -38,7 +38,7 @@ export interface UploadResult {
     url: string
 }
 
-export const listProjects = (params: Record<string, unknown>) => request<RuoYiTableResponse<ProjectRecord>>('/spas/project/list', {params});
+export const listProjects = (params: Record<string, unknown>) => request<SpasTableResponse<ProjectRecord>>('/spas/project/list', {params});
 export const getProject = (projectId: number) => request<RuoYiResponse<ProjectRecord>>(`/spas/project/${projectId}`);
 export const addProject = (data: ProjectRecord) => request('/spas/project', {method: 'POST', data});
 export const updateProject = (data: ProjectRecord) => request('/spas/project', {method: 'PUT', data});

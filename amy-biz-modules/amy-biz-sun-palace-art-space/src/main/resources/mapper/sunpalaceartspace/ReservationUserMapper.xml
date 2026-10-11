@@ -63,6 +63,13 @@
             <if test="entity.isVerified != null">
                 and is_verified = #{entity.isVerified}
             </if>
+            <!-- 注册时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd -->
+            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
+                and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
+            </if>
+            <if test="entity.params.endTime != null and entity.params.endTime != ''">
+                and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
+            </if>
             <!-- 数据权限 -->
             <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
                 ${entity.params.dataScope}
@@ -96,6 +103,13 @@
             </if>
             <if test="entity.isVerified != null">
                 and is_verified = #{entity.isVerified}
+            </if>
+            <!-- 注册时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd -->
+            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
+                and create_time &gt;= #{entity.params.beginTime}
+            </if>
+            <if test="entity.params.endTime != null and entity.params.endTime != ''">
+                and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
             </if>
             <!-- 数据权限 -->
             <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
