@@ -2,7 +2,8 @@ package com.amy.file.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Objects;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +19,7 @@ import com.amy.common.core.utils.uuid.Seq;
 
 /**
  * 文件上传工具类
- * 
+ *
  * @author amy
  */
 public class FileUploadUtils
@@ -43,16 +44,11 @@ public class FileUploadUtils
      */
     public static final String upload(String baseDir, MultipartFile file) throws IOException
     {
-        try
-        {
+        try {
             return upload(baseDir, file, MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION);
-        }
-        catch (FileException fe)
-        {
+        } catch (FileException fe) {
             throw new IOException(fe.getDefaultMessage(), fe);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new IOException(e.getMessage(), e);
         }
     }
@@ -83,8 +79,14 @@ public class FileUploadUtils
 
         String fileName = extractFilename(file);
 
-        String absPath = getAbsoluteFile(baseDir, fileName).getAbsolutePath();
-        file.transferTo(Paths.get(absPath));
+        File desc = getAbsoluteFile(baseDir, fileName);
+        // 使用输入流拷贝，规避 transferTo(Path) 在部分 Servlet 容器下（临时源文件缺失/父目录未就绪）
+        // 抛出目标路径 NoSuchFileException 的坑
+        try (InputStream in = file.getInputStream()) {
+            Files.copy(in, desc.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IOException("文件写入失败：" + desc.getAbsolutePath(), e);
+        }
         return getPathFileName(fileName);
     }
 
@@ -100,15 +102,13 @@ public class FileUploadUtils
     private static final File getAbsoluteFile(String uploadDir, String fileName) throws IOException
     {
         File desc = new File(uploadDir + File.separator + fileName);
-
-        if (!desc.exists())
+        File parent = desc.getParentFile();
+        // 始终确保父目录存在；建不了时直接抛出明确错误，而不是留给后续写入报含糊的 NoSuchFileException
+        if (parent != null && !parent.exists() && !parent.mkdirs())
         {
-            if (!desc.getParentFile().exists())
-            {
-                desc.getParentFile().mkdirs();
-            }
+            throw new IOException("创建上传目录失败：" + parent.getAbsolutePath());
         }
-        return desc.isAbsolute() ? desc : desc.getAbsoluteFile();
+        return desc;
     }
 
     private static final String getPathFileName(String fileName) throws IOException
