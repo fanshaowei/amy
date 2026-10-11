@@ -146,7 +146,7 @@ export default function MenuPage() {
         }
     ];
 
-    return <PageContainer>
+    return <PageContainer header={{title: false}}>
         <ProTable<MenuRecord>
             rowKey="menuId" actionRef={actionRef} columns={columns} pagination={false} defaultExpandAllRows
             request={async (params) => {

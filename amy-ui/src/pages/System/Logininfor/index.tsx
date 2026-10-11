@@ -43,7 +43,7 @@ export default function LoginInfoPage() {
         },
         render: (_, r) => r.accessTime || '-'
     }];
-    return <PageContainer><ProTable<LoginInfoRecord> rowKey="infoId" actionRef={ref} columns={columns} rowSelection={{
+    return <PageContainer header={{title: false}}><ProTable<LoginInfoRecord> rowKey="infoId" actionRef={ref} columns={columns} rowSelection={{
         selectedRowKeys: selected,
         onChange: (keys, rows) => {
             setSelected(keys);

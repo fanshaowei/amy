@@ -156,7 +156,7 @@ export default function ProjectPage() {
         ]
     }];
 
-    return <PageContainer>
+    return <PageContainer header={{title: false}}>
         <ProTable<ProjectRecord>
             rowKey="projectId"
             actionRef={tableRef}

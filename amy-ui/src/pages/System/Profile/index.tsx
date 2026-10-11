@@ -24,8 +24,8 @@ export default function ProfilePage() {
     useEffect(() => {
         void load();
     }, []);
-    if (!user) return <PageContainer><Spin/></PageContainer>;
-    return <PageContainer><ProCard split="vertical"><ProCard title="个人信息" colSpan="30%"><Descriptions column={1}
+    if (!user) return <PageContainer header={{title: false, breadcrumb: {items: [{title: '个人中心'}]}}}><Spin/></PageContainer>;
+    return <PageContainer header={{title: false, breadcrumb: {items: [{title: '个人中心'}]}}}><ProCard split="vertical"><ProCard title="个人信息" colSpan="30%"><Descriptions column={1}
                                                                                                           items={[{
                                                                                                               key: 'name',
                                                                                                               label: '用户名称',

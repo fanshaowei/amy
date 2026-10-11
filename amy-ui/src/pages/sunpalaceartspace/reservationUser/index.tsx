@@ -132,7 +132,7 @@ export default function ReservationUserPage() {
         ]
     }];
 
-    return <PageContainer>
+    return <PageContainer header={{title: false}}>
         <ProTable<ReservationUserRecord>
             rowKey="reservationUserId"
             actionRef={tableRef}

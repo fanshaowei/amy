@@ -74,7 +74,7 @@ export default function ConfigPage() {
                                   }
                               })}>删除</PermissionButton>]
     }];
-    return <PageContainer><ProTable<ConfigRecord> rowKey="configId" actionRef={ref} columns={columns}
+    return <PageContainer header={{title: false}}><ProTable<ConfigRecord> rowKey="configId" actionRef={ref} columns={columns}
                                                   rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                   request={async ({current, pageSize, ...p}) => {
                                                       const r = await listConfigs({...p, pageNum: current, pageSize});

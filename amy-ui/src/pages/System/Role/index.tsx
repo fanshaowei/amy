@@ -139,7 +139,7 @@ export default function RolePage() {
         }
     ];
 
-    return <PageContainer>
+    return <PageContainer header={{title: false}}>
         <ProTable<RoleRecord>
             rowKey="roleId" actionRef={actionRef} columns={columns}
             rowSelection={{selectedRowKeys: selectedKeys, onChange: setSelectedKeys}}

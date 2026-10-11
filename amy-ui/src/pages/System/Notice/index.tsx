@@ -86,7 +86,7 @@ export default function NoticePage() {
                                   }
                               })}>删除</PermissionButton>]
     }];
-    return <PageContainer><ProTable<NoticeRecord> rowKey="noticeId" actionRef={ref} columns={columns}
+    return <PageContainer header={{title: false}}><ProTable<NoticeRecord> rowKey="noticeId" actionRef={ref} columns={columns}
                                                   rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                   request={async ({current, pageSize, ...p}) => {
                                                       const r = await listNotices({...p, pageNum: current, pageSize});

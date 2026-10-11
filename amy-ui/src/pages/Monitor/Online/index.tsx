@@ -69,7 +69,7 @@ export default function OnlinePage() {
     ];
 
     return (
-        <PageContainer>
+        <PageContainer header={{title: false}}>
             <ProTable<UserOnlineRecord>
                 rowKey="tokenId"
                 actionRef={ref}

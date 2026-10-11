@@ -81,7 +81,7 @@ export default function DeptPage() {
                                   })}>删除</PermissionButton>]
         }
     ];
-    return <PageContainer><ProTable<DeptRecord> rowKey="deptId" actionRef={actionRef} columns={columns}
+    return <PageContainer header={{title: false}}><ProTable<DeptRecord> rowKey="deptId" actionRef={actionRef} columns={columns}
                                                 pagination={false} defaultExpandAllRows request={async (p) => {
         const r = await listDepts(p);
         return {data: buildTree(r.data || [], 'deptId', 'parentId'), success: r.code === 200};

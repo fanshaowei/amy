@@ -173,7 +173,7 @@ export default function OrderPage() {
         ]
     }];
 
-    return <PageContainer>
+    return <PageContainer header={{title: false}}>
         <Tabs activeKey={activeTab} onChange={key => {
             setActiveTab(key);
             tableRef.current?.reloadAndRest?.();

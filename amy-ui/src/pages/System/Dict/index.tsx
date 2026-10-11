@@ -138,7 +138,7 @@ export default function DictPage() {
                                   })}>删除</PermissionButton>]
         }
     ];
-    return <PageContainer><ProTable<DictTypeRecord> rowKey="dictId" actionRef={typeRef} columns={typeColumns}
+    return <PageContainer header={{title: false}}><ProTable<DictTypeRecord> rowKey="dictId" actionRef={typeRef} columns={typeColumns}
                                                     rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                     request={async ({current, pageSize, ...p}) => {
                                                         const r = await listDictTypes({

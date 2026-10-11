@@ -171,7 +171,7 @@ export default function UserPage() {
     ];
 
     return (
-        <PageContainer>
+        <PageContainer header={{title: false}}>
             <Row gutter={16} wrap={false}>
                 <Col flex="260px">
                     <Card title="组织机构" extra={<a onClick={() => void refreshTree()}>刷新</a>}

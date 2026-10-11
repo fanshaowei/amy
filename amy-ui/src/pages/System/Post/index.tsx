@@ -62,7 +62,7 @@ export default function PostPage() {
                                   })}>删除</PermissionButton>]
         }
     ];
-    return <PageContainer><ProTable<PostRecord> rowKey="postId" actionRef={actionRef} columns={columns}
+    return <PageContainer header={{title: false}}><ProTable<PostRecord> rowKey="postId" actionRef={actionRef} columns={columns}
                                                 rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                 request={async ({current, pageSize, ...p}) => {
                                                     const r = await listPosts({...p, pageNum: current, pageSize});

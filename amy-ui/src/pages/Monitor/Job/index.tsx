@@ -154,7 +154,7 @@ export default function JobPage() {
     ];
 
     return (
-        <PageContainer>
+        <PageContainer header={{title: false}}>
             <ProTable<JobRecord>
                 rowKey="jobId"
                 actionRef={ref}

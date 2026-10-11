@@ -70,7 +70,7 @@ export default function OperlogPage() {
         render: (_, r) => [<PermissionButton key="q" type="link" permission="system:operlog:query"
                                              onClick={() => setDetail(r)}>详细</PermissionButton>]
     }];
-    return <PageContainer><ProTable<OperlogRecord> rowKey="operId" actionRef={ref} columns={columns}
+    return <PageContainer header={{title: false}}><ProTable<OperlogRecord> rowKey="operId" actionRef={ref} columns={columns}
                                                    rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                    request={async ({current, pageSize, ...p}, sort) => {
                                                        const sortEntry = Object.entries(sort || {})[0];
