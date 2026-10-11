@@ -1,8 +1,18 @@
-import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from '@ant-design/icons';
+import {
+    AppstoreOutlined,
+    ClockCircleOutlined,
+    CopyOutlined,
+    DeleteOutlined,
+    EditOutlined,
+    FileTextOutlined,
+    InfoCircleOutlined,
+    PlusOutlined
+} from '@ant-design/icons';
 import {
     ModalForm,
     PageContainer,
     ProCard,
+    ProFormDependency,
     ProFormDigit,
     ProFormItem,
     ProFormRadio,
@@ -11,7 +21,7 @@ import {
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Col, Image, Row, Tag, Typography} from 'antd';
+import {App, Col, Image, Row, Space, Tag, Typography} from 'antd';
 import dayjs, {Dayjs} from 'dayjs';
 import {useRef, useState} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
@@ -52,6 +62,52 @@ const toFormValues = (record?: ProjectRecord): ProjectFormValues | undefined => 
     reservationStartTime: toDayjs(record.reservationStartTime),
     reservationEndTime: toDayjs(record.reservationEndTime)
 } : {projectName: '', coverArtUrl: '', status: '0', sort: 0, reservationNotes: ''};
+
+/** 卡片标题前的彩色图标徽标，用于区分各个分区 */
+const SectionBadge = ({icon, color, bg}: { icon: React.ReactNode; color: string; bg: string }) => <span style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    background: bg,
+    color,
+    fontSize: 13
+}}>{icon}</span>;
+
+/** 卡片标题：图标徽标 + 加粗文字 */
+const sectionTitle = (icon: React.ReactNode, text: string, color: string, bg: string) => <Space size={8}>
+    <SectionBadge icon={icon} color={color} bg={bg}/>
+    <span style={{fontWeight: 600}}>{text}</span>
+</Space>;
+
+/** 卡片右侧的灰色说明文字 */
+const sectionHint = (text: string) => <Typography.Text type="secondary" style={{fontSize: 12}}>{text}</Typography.Text>;
+
+/** 卡片底部的浅色提示条 */
+const TipBox = ({
+    icon,
+    text,
+    bg = '#f5f8ff',
+    border = '#e6ebf5',
+    color = '#5a6b8c'
+}: { icon: React.ReactNode; text: React.ReactNode; bg?: string; border?: string; color?: string }) => <div style={{
+    marginTop: 8,
+    padding: '8px 12px',
+    borderRadius: 6,
+    background: bg,
+    border: `1px solid ${border}`,
+    color,
+    fontSize: 12,
+    lineHeight: 1.8,
+    display: 'flex',
+    gap: 6,
+    alignItems: 'flex-start'
+}}>
+    <span style={{marginTop: 4}}>{icon}</span>
+    <span>{text}</span>
+</div>;
 
 export default function ProjectPage() {
     const {message, modal} = App.useApp();
@@ -212,7 +268,14 @@ export default function ProjectPage() {
                 return true;
             }}
         >
-            <ProCard title="基本信息" bordered size="small" style={{marginBottom: 16}}>
+            <ProCard
+                bordered
+                size="small"
+                headerBordered
+                style={{marginBottom: 16}}
+                title={sectionTitle(<AppstoreOutlined/>, '基本信息', '#1677ff', '#e6f4ff')}
+                extra={sectionHint('用于小程序端项目列表展示')}
+            >
                 <Row gutter={16}>
                     <Col span={8}>
                         <ProFormItem name="coverArtUrl" label="封面图"
@@ -239,9 +302,18 @@ export default function ProjectPage() {
                         </Row>
                     </Col>
                 </Row>
+                <TipBox icon={<InfoCircleOutlined/>} bg="#fafafa" border="#f0f0f0" color="#8c8c8c"
+                        text="封面建议 200*200；排序值越小越靠前；设为「隐藏」后项目不会出现在小程序列表中。"/>
             </ProCard>
 
-            <ProCard title="预约规则" bordered size="small" style={{marginBottom: 16}}>
+            <ProCard
+                bordered
+                size="small"
+                headerBordered
+                style={{marginBottom: 16}}
+                title={sectionTitle(<ClockCircleOutlined/>, '预约规则', '#fa8c16', '#fff7e6')}
+                extra={sectionHint('决定用户可预约的时间与人数')}
+            >
                 <Row gutter={16}>
                     <Col span={8}>
                         <ProFormTimePicker name="reservationStartTime" label="开始时间" placeholder="请选择开始时间"
@@ -282,9 +354,42 @@ export default function ProjectPage() {
                                       tooltip="单个预约最多可携带的随行人数"/>
                     </Col>
                 </Row>
+                <ProFormDependency name={[
+                    'reservationStartTime',
+                    'reservationEndTime',
+                    'cutOffTime',
+                    'reservationIntervalSecond',
+                    'reservationStaySecond',
+                    'reservationCount',
+                    'travelerCount',
+                    'advanceReservationDays'
+                ]}>
+                    {(values) => {
+                        const start = toStr(values.reservationStartTime);
+                        const end = toStr(values.reservationEndTime);
+                        const cutOff = toStr(values.cutOffTime);
+                        const parts: string[] = [];
+                        if (start || end) parts.push(`可预约时段 ${start || '未设置'} - ${end || '未设置'}`);
+                        if (values.reservationIntervalSecond != null) parts.push(`每场间隔 ${values.reservationIntervalSecond} 分钟`);
+                        if (values.reservationStaySecond != null) parts.push(`可停留 ${values.reservationStaySecond} 秒`);
+                        if (values.reservationCount != null) parts.push(`每场 ${values.reservationCount} 人`);
+                        if (values.travelerCount != null) parts.push(`最多随行 ${values.travelerCount} 人`);
+                        if (values.advanceReservationDays != null) parts.push(`最多提前 ${values.advanceReservationDays} 天预约`);
+                        if (cutOff) parts.push(`每日 ${cutOff} 后停止预约`);
+                        return <TipBox icon={<InfoCircleOutlined/>} text={parts.length
+                            ? `规则预览：${parts.join('；')}`
+                            : '规则预览：填写上方规则后，这里会实时显示预约规则摘要'}/>;
+                    }}
+                </ProFormDependency>
             </ProCard>
 
-            <ProCard title="预约须知" bordered size="small">
+            <ProCard
+                bordered
+                size="small"
+                headerBordered
+                title={sectionTitle(<FileTextOutlined/>, '预约须知', '#52c41a', '#f6ffed')}
+                extra={sectionHint('展示在小程序预约须知页面')}
+            >
                 <ProFormRichText name="reservationNotes" label="须知内容" placeholder="请输入预约须知"
                                  rules={[{required: true, message: '预约须知不能为空'}]}/>
             </ProCard>
