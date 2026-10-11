@@ -105,7 +105,13 @@ export const request: RequestConfig = {
             }
         },
         errorHandler: (error) => {
-            if (error.name !== 'RuoYiBusinessError') {
+            // 业务异常：后端以 HttpStatus.BUSINESS_ERROR(500) 返回 {code,msg} 结构，
+            // 会被 umi 默认 validateStatus 当作 HTTP 错误、绕过响应拦截器，故在此补提示。
+            const data = (error as { data?: { code?: number; msg?: string } })?.data
+                ?? (error as { response?: { data?: { code?: number; msg?: string } } })?.response?.data;
+            if (data && typeof data.msg === 'string' && data.msg) {
+                antdMessage.error(data.msg);
+            } else if (error.name !== 'RuoYiBusinessError') {
                 console.error(error);
             }
             throw error;
