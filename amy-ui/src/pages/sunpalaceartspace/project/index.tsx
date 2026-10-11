@@ -2,6 +2,7 @@ import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from '@ant-des
 import {
     ModalForm,
     PageContainer,
+    ProCard,
     ProFormDigit,
     ProFormItem,
     ProFormRadio,
@@ -10,7 +11,7 @@ import {
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Image, Tag, Typography} from 'antd';
+import {App, Col, Image, Row, Tag, Typography} from 'antd';
 import dayjs, {Dayjs} from 'dayjs';
 import {useRef, useState} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
@@ -189,7 +190,9 @@ export default function ProjectPage() {
             title={editing?.projectId ? '编辑项目' : '添加项目'}
             open={open}
             initialValues={toFormValues(editing)}
-            modalProps={{destroyOnHidden: true, width: 860, onCancel: () => setOpen(false)}}
+            layout="vertical"
+            labelAlign="left"
+            modalProps={{destroyOnHidden: true, width: 900, onCancel: () => setOpen(false)}}
             onFinish={async (values) => {
                 const data: ProjectRecord = {
                     ...editing,
@@ -209,30 +212,82 @@ export default function ProjectPage() {
                 return true;
             }}
         >
-            <ProFormText name="projectName" label="项目名称" placeholder="请输入项目名称" rules={[{required: true, message: '项目名称不能为空'}]}/>
-            <ProFormItem name="coverArtUrl" label="封面图" rules={[{required: true, message: '封面图不能为空'}]}>
-                <CoverUpload/>
-            </ProFormItem>
-            <ProFormTimePicker name="cutOffTime" label="截止时间" placeholder="请选择截止时间" fieldProps={{format: 'HH:mm:ss', allowClear: true}}
-                               extra="每日可预约的截止时间，过了时间就只能预约第二天的"/>
-            <ProFormDigit name="reservationStaySecond" label="预约停留秒数" placeholder="请输入停留秒数" min={0} precision={0}
-                          fieldProps={{addonAfter: '秒'}} extra="用户在预约界面可停留的时长"/>
-            <ProFormTimePicker name="reservationStartTime" label="预约时间" placeholder="请选择开始时间"
-                               fieldProps={{format: 'HH:mm:ss', allowClear: true}} colProps={{span: 12}}/>
-            <ProFormTimePicker name="reservationEndTime" label=" " placeholder="请选择结束时间" colon={false}
-                               fieldProps={{format: 'HH:mm:ss', allowClear: true}} colProps={{span: 12}}/>
-            <ProFormDigit name="reservationIntervalSecond" label="间隔时间" placeholder="预约间隔" min={0} precision={0}
-                          fieldProps={{addonAfter: '分钟'}} extra="预约间隔，单位：分钟" colProps={{span: 12}}/>
-            <ProFormDigit name="reservationCount" label="预约人数" placeholder="每个时间段可预约的人数" min={0} precision={0}
-                          extra="每个时间段可预约的人数" colProps={{span: 12}}/>
-            <ProFormDigit name="advanceReservationDays" label="预约天数" placeholder="可提前预约的天数" min={0} precision={0}
-                          extra="可提前预约几天" colProps={{span: 12}}/>
-            <ProFormDigit name="travelerCount" label="随行人数" placeholder="可随行的人数" min={0} precision={0}
-                          colProps={{span: 12}}/>
-            <ProFormRadio.Group name="status" label="展示状态" options={[{label: '展示', value: '0'}, {label: '隐藏', value: '1'}]}/>
-            <ProFormDigit name="sort" label="排序" placeholder="数值越小越靠前" min={0} precision={0}/>
-            <ProFormRichText name="reservationNotes" label="预约须知" placeholder="请输入预约须知"
-                             rules={[{required: true, message: '预约须知不能为空'}]}/>
+            <ProCard title="基本信息" bordered size="small" style={{marginBottom: 16}}>
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <ProFormItem name="coverArtUrl" label="封面图"
+                                     rules={[{required: true, message: '封面图不能为空'}]}>
+                            <CoverUpload/>
+                        </ProFormItem>
+                    </Col>
+                    <Col span={16}>
+                        <Row gutter={16}>
+                            <Col span={14}>
+                                <ProFormText name="projectName" label="项目名称" placeholder="请输入项目名称"
+                                             fieldProps={{style: {width: '100%'}}}
+                                             rules={[{required: true, message: '项目名称不能为空'}]}/>
+                            </Col>
+                            <Col span={10}>
+                                <ProFormDigit name="sort" label="排序" placeholder="数值越小越靠前" min={0} precision={0}
+                                              fieldProps={{style: {width: '100%'}}}
+                                              tooltip="列表展示顺序，数值越小越靠前"/>
+                            </Col>
+                            <Col span={24}>
+                                <ProFormRadio.Group name="status" label="展示状态"
+                                                    options={[{label: '展示', value: '0'}, {label: '隐藏', value: '1'}]}/>
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+            </ProCard>
+
+            <ProCard title="预约规则" bordered size="small" style={{marginBottom: 16}}>
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <ProFormTimePicker name="reservationStartTime" label="开始时间" placeholder="请选择开始时间"
+                                           fieldProps={{format: 'HH:mm:ss', allowClear: true, style: {width: '100%'}}}/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormTimePicker name="reservationEndTime" label="结束时间" placeholder="请选择结束时间"
+                                           fieldProps={{format: 'HH:mm:ss', allowClear: true, style: {width: '100%'}}}/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormTimePicker name="cutOffTime" label="预约截止" placeholder="请选择截止时间"
+                                           fieldProps={{format: 'HH:mm:ss', allowClear: true, style: {width: '100%'}}}
+                                           tooltip="每日可预约的截止时间，过了时间只能预约第二天"/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormDigit name="reservationIntervalSecond" label="预约间隔" placeholder="请输入间隔时间"
+                                      min={0} precision={0} fieldProps={{suffix: '分钟', style: {width: '100%'}}}
+                                      tooltip="相邻两个预约时段之间的间隔"/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormDigit name="reservationStaySecond" label="停留时长" placeholder="可停留的时长"
+                                      min={0} precision={0} fieldProps={{suffix: '秒', style: {width: '100%'}}}
+                                      tooltip="用户在预约界面可停留的时长"/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormDigit name="advanceReservationDays" label="提前天数" placeholder="可提前预约的天数"
+                                      min={0} precision={0} fieldProps={{suffix: '天', style: {width: '100%'}}}
+                                      tooltip="最多可提前几天预约"/>
+                    </Col>
+                    <Col span={12}>
+                        <ProFormDigit name="reservationCount" label="时段人数" placeholder="每个时段可预约人数"
+                                      min={0} precision={0} fieldProps={{suffix: '人', style: {width: '100%'}}}
+                                      tooltip="每个时间段可预约的人数"/>
+                    </Col>
+                    <Col span={12}>
+                        <ProFormDigit name="travelerCount" label="随行人数" placeholder="可随行的人数"
+                                      min={0} precision={0} fieldProps={{suffix: '人', style: {width: '100%'}}}
+                                      tooltip="单个预约最多可携带的随行人数"/>
+                    </Col>
+                </Row>
+            </ProCard>
+
+            <ProCard title="预约须知" bordered size="small">
+                <ProFormRichText name="reservationNotes" label="须知内容" placeholder="请输入预约须知"
+                                 rules={[{required: true, message: '预约须知不能为空'}]}/>
+            </ProCard>
         </ModalForm>
     </PageContainer>;
 }
