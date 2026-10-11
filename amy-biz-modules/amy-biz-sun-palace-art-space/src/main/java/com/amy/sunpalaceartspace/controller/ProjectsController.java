@@ -54,7 +54,7 @@ public class ProjectsController extends BaseController
     @RequiresPermissions("sunpalaceartspace:project:export")
     @Log(title = "项目管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, Projects projects)
+    public void export(HttpServletResponse response, @RequestBody Projects projects)
     {
         List<Projects> list = projectsService.selectProjectsExportList(projects);
         ExcelUtil<Projects> util = new ExcelUtil<Projects>(Projects.class);
