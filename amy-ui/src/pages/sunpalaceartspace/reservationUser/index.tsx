@@ -1,6 +1,6 @@
 import {ExportOutlined} from '@ant-design/icons';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
-import type {ActionType, ProColumns} from '@ant-design/pro-components';
+import type {ActionType, ProColumns, ProFormInstance} from '@ant-design/pro-components';
 import {App, Avatar, Modal, Tag} from 'antd';
 import {useRef} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
@@ -28,6 +28,10 @@ const TYPE_CONFIRM_TEXT: Record<number, string> = {
 export default function ReservationUserPage() {
     const {message, modal} = App.useApp();
     const tableRef = useRef<ActionType>();
+    /** 搜索表单实例：导出时取当前查询条件 */
+    const formRef = useRef<ProFormInstance>();
+    /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
+    const totalRef = useRef(0);
 
     /** 切换核销员/普通用户身份 */
     const confirmChangeType = (row: ReservationUserRecord, nextType: number) => {
@@ -56,6 +60,8 @@ export default function ReservationUserPage() {
     const columns: ProColumns<ReservationUserRecord>[] = [{
         title: '用户编号',
         dataIndex: 'number',
+        // 后端 ReservationUser 实体与 biz_spas_reservation_user 表均无 number 列，搜索无效，故关闭搜索项
+        search: false,
         ellipsis: true,
         width: 110
     }, {
@@ -72,7 +78,6 @@ export default function ReservationUserPage() {
     }, {
         title: '姓名',
         dataIndex: 'name',
-        search: false,
         render: (_, row) => row.name || '-'
     }, {
         title: '电话',
@@ -128,22 +133,39 @@ export default function ReservationUserPage() {
         <ProTable<ReservationUserRecord>
             rowKey="reservationUserId"
             actionRef={tableRef}
+            formRef={formRef}
             columns={columns}
             scroll={{x: 1400}}
             search={{labelWidth: 'auto', defaultCollapsed: false}}
             options={{reload: true, density: false, setting: false}}
             request={async ({current, pageSize, ...params}) => {
                 const result = await listUsers({pageNum: current, pageSize, ...params});
+                totalRef.current = result.data.total ?? 0;
                 return {data: result.data.rows, total: result.data.total, success: result.code === 200 || result.code == 0};
             }}
             toolBarRender={() => [
                 <PermissionButton key="export" icon={<ExportOutlined/>}
                                   permission="sunpalaceartspace:reservationUser:export"
-                                  onClick={() => void downloadFile(
-                                      '/spas/reservation/user/export',
-                                      {},
-                                      `会员列表_${Date.now()}.xlsx`
-                                  ).then(() => message.success('导出成功'))}>导出数据</PermissionButton>
+                                  onClick={() => {
+                                      // 查询结果为 0 条时直接提示，不发起导出请求（否则会下载一个只有表头的空文件）
+                                      if (!totalRef.current) {
+                                          message.warning('当前查询条件下没有数据，无需导出');
+                                          return;
+                                      }
+                                      const values = formRef.current?.getFieldsValue() ?? {};
+                                      // 过滤空值：「用户类型=全部」的 value 是空字符串，传下去会导致查不到数据
+                                      const params: Record<string, unknown> = {};
+                                      Object.entries(values).forEach(([key, value]) => {
+                                          if (value !== undefined && value !== null && value !== '') {
+                                              params[key] = value;
+                                          }
+                                      });
+                                      void downloadFile(
+                                          '/spas/reservation/user/export',
+                                          params,
+                                          `会员列表_${Date.now()}.xlsx`
+                                      ).then(() => message.success('导出成功'));
+                                  }}>导出数据</PermissionButton>
             ]}
         />
     </PageContainer>;

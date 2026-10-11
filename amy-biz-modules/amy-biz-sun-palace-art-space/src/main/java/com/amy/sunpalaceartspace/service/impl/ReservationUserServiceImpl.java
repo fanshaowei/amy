@@ -37,12 +37,12 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
 
     @Override
     public IPage<ReservationUserVO> selectReservationUserList(Page<ReservationUserVO> page, ReservationUser entity) {
-        return page.setRecords(baseMapper.selectReservationUserList(entity));
+        return baseMapper.selectReservationUserList(page, entity);
     }
 
     @Override
     public List<ReservationUserVO> selectReservationUserExportList(ReservationUser entity) {
-        return baseMapper.selectReservationUserList(entity);
+        return baseMapper.selectReservationUserExportList(entity);
     }
 
     @Override

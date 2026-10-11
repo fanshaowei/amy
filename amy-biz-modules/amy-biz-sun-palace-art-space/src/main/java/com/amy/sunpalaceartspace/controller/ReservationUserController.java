@@ -64,9 +64,12 @@ public class ReservationUserController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationUser:export")
     @Log(title = "预约会员管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, ReservationUser reservationUser)
+    public void export(HttpServletResponse response,
+                       @RequestBody(required = false) ReservationUser reservationUser)
     {
-        List<ReservationUserVO> list = reservationUserService.selectReservationUserExportList(reservationUser);
+        // 无请求体时为 null，XML 中的 OGNL（entity.xxx）会因 null 报错，故兜底为空条件对象
+        ReservationUser query = reservationUser == null ? new ReservationUser() : reservationUser;
+        List<ReservationUserVO> list = reservationUserService.selectReservationUserExportList(query);
         ExcelUtil<ReservationUserVO> util = new ExcelUtil<>(ReservationUserVO.class);
         util.exportExcel(response, list, "预约会员数据");
     }
