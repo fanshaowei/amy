@@ -30,6 +30,11 @@ public class UserIdentity extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long userIdentityId;
 
+    /** 所属会员ID（关联 biz_spas_reservation_user.reservation_user_id；可空表示未绑定会员/随行人员） */
+    @Excel(name = "会员ID", cellType = ColumnType.NUMERIC)
+    @TableField("reservation_user_id")
+    private Long reservationUserId;
+
     /** 用户姓名 */
     @Excel(name = "姓名")
     @NotBlank(message = "用户姓名不能为空")
@@ -56,5 +61,6 @@ public class UserIdentity extends BaseEntity {
     @Excel(name = "手机号码")
     @NotBlank(message = "手机号码不能为空")
     @Size(min = 0, max = 11, message = "手机号码长度不能超过11个字符")
+    @TableField("phone")
     private String phone;
 }

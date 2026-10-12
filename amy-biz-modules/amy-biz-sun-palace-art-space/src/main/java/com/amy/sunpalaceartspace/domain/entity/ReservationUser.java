@@ -57,7 +57,7 @@ public class ReservationUser extends BaseEntity {
     @TableField("open_id")
     private String openId;
 
-    /** 身份证号码 */
+    /** 微信记录中的身份证号码 */
     @Excel(name = "身份证号")
     @Size(min = 0, max = 18, message = "身份证号长度不能超过18个字符")
     @TableField("id_num")

@@ -29,4 +29,10 @@ public class MinaReservationUserInfoResp {
 
     /** 类型（1用户 2核销员） */
     private Integer type;
+
+    /** 是否已验证 */
+    private Boolean isVerified;
+
+    /** 身份证号 */
+    private String idNum;
 }

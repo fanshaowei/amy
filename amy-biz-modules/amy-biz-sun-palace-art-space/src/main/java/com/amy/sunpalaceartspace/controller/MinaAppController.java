@@ -11,6 +11,7 @@ import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
+import com.amy.sunpalaceartspace.domain.req.VerifyUserReq;
 import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
@@ -20,6 +21,7 @@ import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppLoginService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppService;
+import com.amy.sunpalaceartspace.service.impl.SubmitReservationOrderService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
@@ -44,6 +46,7 @@ public class MinaAppController extends BaseController {
     private final IReservationOrderService reservationOrderService;
     private final IReservationUserService reservationUserService;
     private final MinaAppLoginService minaAppLoginService;
+    private final SubmitReservationOrderService submitReservationOrderService;
 
     /**
      * 小程序调用后端接口前，获取鉴权token,后续调用业务接口，都要在请求头携带该token
@@ -62,7 +65,7 @@ public class MinaAppController extends BaseController {
      * 小程序首页项目列表信息
      * @return
      */
-    @MinaApiAuth
+    //@MinaApiAuth
     @GetMapping("/homepage/project")
     public R<TableDataInfo> getHomePage() {
         PageDomain pageDomain = TableSupport.buildPageRequest();
@@ -76,7 +79,7 @@ public class MinaAppController extends BaseController {
      * @param projectId
      * @return
      */
-    @MinaApiAuth
+    //@MinaApiAuth
     @GetMapping("/project/reservation/info/{projectId}")
     public R<MinaProjectReservationInfoResp> getProjectReservationInfo(
             @PathVariable("projectId") @NotNull @Min(1) Long projectId
@@ -94,7 +97,7 @@ public class MinaAppController extends BaseController {
     @PostMapping("/reservation/submit")
     public R<String> submitReservation(@RequestHeader("Authorization") String token,
             @RequestBody @Validated SubmitReservationReq request) {
-        return R.ok(minaAppService.submitReservationOrder(token, request));
+        return R.ok(submitReservationOrderService.submitReservationOrder(token, request));
     }
 
     /**
@@ -102,10 +105,10 @@ public class MinaAppController extends BaseController {
      * @param token
      * @return
      */
-    @MinaApiAuth
+    //@MinaApiAuth
     @GetMapping("/user/reservation/records")
     public R<TableDataInfo> userReservationRecords(@RequestHeader("Authorization") String token) {
-        ReservationUser user = minaAppService.getUserByToken(token);
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
         ReservationOrderReq request = new ReservationOrderReq();
         request.setReservationUserId(user.getReservationUserId());
 
@@ -115,13 +118,35 @@ public class MinaAppController extends BaseController {
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
     }
 
-    @MinaApiAuth
+    /**
+     * 获取用户信息
+     * @param token
+     * @return
+     */
+    //@MinaApiAuth
     @GetMapping("/user/info")
     public R<MinaReservationUserInfoResp> getUserInfo(@RequestHeader("Authorization") String token) {
         return R.ok(minaAppService.extractUserInfo(token));
     }
 
-    @MinaApiAuth
+    /**
+     * 用户实名验证
+     * @param token
+     * @param verifyUserReq
+     * @return
+     */
+    @PostMapping("/user/verify")
+    public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated VerifyUserReq verifyUserReq) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        return R.ok(minaAppService.verifyUser(user, verifyUserReq));
+    }
+
+    /**
+     * 获取预约订单信息
+     * @param orderNum
+     * @return
+     */
+    //@MinaApiAuth
     @GetMapping("/reservation/{orderNum}")
     public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
@@ -130,7 +155,13 @@ public class MinaAppController extends BaseController {
         return R.ok(vo);
     }
 
-    @MinaApiAuth
+    /**
+     * 核销预约订单
+     * @param token
+     * @param orderNum
+     * @return
+     */
+    //@MinaApiAuth
     @PostMapping("/reservation/verify/{orderNum}")
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
             @PathVariable("orderNum") String orderNum) {

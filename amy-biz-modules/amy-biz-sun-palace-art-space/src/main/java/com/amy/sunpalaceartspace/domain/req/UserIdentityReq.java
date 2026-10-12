@@ -17,6 +17,9 @@ public class UserIdentityReq {
     /** 记录ID（新增时为空，修改时必填） */
     private Long userIdentityId;
 
+    /** 所属会员ID（关联 biz_spas_reservation_user.reservation_user_id；可空表示未绑定会员/随行人员） */
+    private Long reservationUserId;
+
     /** 用户姓名 */
     @NotBlank(message = "用户姓名不能为空")
     @Size(min = 0, max = 50, message = "用户姓名长度不能超过50个字符")

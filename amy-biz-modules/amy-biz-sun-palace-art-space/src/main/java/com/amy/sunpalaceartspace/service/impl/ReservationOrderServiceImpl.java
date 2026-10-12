@@ -44,16 +44,16 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
-        List<ReservationOrderVO> rows = baseMapper.selectReservationOrderList(order);
-        rows.forEach(ReservationOrderVO::fillReservationStatusName);
-        return page.setRecords(rows);
+        IPage<ReservationOrderVO> result = baseMapper.selectReservationOrderList(page, order);
+        result.getRecords().forEach(ReservationOrderVO::fillReservationStatusName);
+        return result;
     }
 
     @Override
     public List<ReservationOrderVO> selectReservationOrderExportList(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
-        List<ReservationOrderVO> list = baseMapper.selectReservationOrderList(order);
+        List<ReservationOrderVO> list = baseMapper.selectReservationOrderExportList(order);
         list.forEach(ReservationOrderVO::fillReservationStatusName);
         return list;
     }

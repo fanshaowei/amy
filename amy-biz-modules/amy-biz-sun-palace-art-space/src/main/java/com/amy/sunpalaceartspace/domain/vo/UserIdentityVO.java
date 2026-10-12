@@ -20,6 +20,10 @@ public class UserIdentityVO {
     @Excel(name = "记录ID", cellType = ColumnType.NUMERIC)
     private Long userIdentityId;
 
+    /** 所属会员ID（关联 biz_spas_reservation_user.reservation_user_id；可空表示未绑定会员/随行人员） */
+    @Excel(name = "会员ID", cellType = ColumnType.NUMERIC)
+    private Long reservationUserId;
+
     /** 用户姓名 */
     @Excel(name = "姓名")
     private String name;

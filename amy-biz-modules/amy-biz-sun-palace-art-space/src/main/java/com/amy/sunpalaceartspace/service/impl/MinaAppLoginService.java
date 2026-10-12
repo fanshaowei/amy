@@ -3,12 +3,14 @@ package com.amy.sunpalaceartspace.service.impl;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
+import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.JwtUtils;
 import com.amy.common.core.utils.uuid.IdUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.constant.SpasConstant;
 import com.amy.sunpalaceartspace.domain.bo.WechatApiTokenClaimBO;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
@@ -121,5 +123,14 @@ public class MinaAppLoginService {
             log.info("end to update phone by openId");
         }
         return phoneNumberInfo.getPurePhoneNumber();
+    }
+
+    public ReservationUser getUserByToken(String token) {
+        Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
+        if (null == openId) {
+            throw new InnerAuthException("用户未登录或登录已过期，请重新登录");
+        }
+
+        return reservationUserService.selectUserInfoByOpenId((String) openId);
     }
 }

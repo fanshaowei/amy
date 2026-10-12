@@ -29,13 +29,12 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
 
     @Override
     public IPage<UserIdentityVO> selectUserIdentityList(Page<UserIdentityVO> page, UserIdentity userIdentity) {
-        List<UserIdentityVO> rows = baseMapper.selectUserIdentityList(userIdentity);
-        return page.setRecords(rows);
+        return baseMapper.selectUserIdentityList(page, userIdentity);
     }
 
     @Override
     public List<UserIdentityVO> selectUserIdentityExportList(UserIdentity userIdentity) {
-        return baseMapper.selectUserIdentityList(userIdentity);
+        return baseMapper.selectUserIdentityExportList(userIdentity);
     }
 
     @Override
@@ -73,6 +72,7 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
     private UserIdentity convertToEntity(UserIdentityReq req) {
         UserIdentity entity = new UserIdentity();
         entity.setUserIdentityId(req.getUserIdentityId());
+        entity.setReservationUserId(req.getReservationUserId());
         entity.setName(req.getName());
         entity.setIdType(req.getIdType());
         entity.setIdNum(req.getIdNum());

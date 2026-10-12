@@ -9,6 +9,9 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 预约订单Mapper接口
@@ -19,12 +22,26 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 public interface ReservationOrderMapper extends BaseMapper<ReservationOrder> {
 
     /**
-     * 查询预约订单列表（含项目名称）
+     * 分页查询预约订单列表（含项目名称、会员姓名）。
+     * <p>
+     * 第一个参数必须是 MP 的 Page 对象：PaginationInnerInterceptor 只有在方法入参里发现 IPage
+     * 才会改写 SQL 完成 count + limit。若改回「全量查 + page.setRecords(...)」，插件不生效：
+     * 既没有 limit（大表全表扫描），total 也恒为 0（前端永远显示 0 条）。
+     *
+     * @param page             分页对象（返回时会被填充 total/records）
+     * @param reservationOrder 查询条件
+     * @return 分页结果
+     */
+    IPage<ReservationOrderVO> selectReservationOrderList(@Param("page") Page<ReservationOrderVO> page,
+                                                         @Param("entity") ReservationOrder reservationOrder);
+
+    /**
+     * 不分页查询预约订单列表（导出用，与分页方法分开，避免复用导致拿不到 limit）。
      *
      * @param reservationOrder 查询条件
      * @return 预约订单视图列表
      */
-    List<ReservationOrderVO> selectReservationOrderList(ReservationOrder reservationOrder);
+    List<ReservationOrderVO> selectReservationOrderExportList(@Param("entity") ReservationOrder reservationOrder);
 
     /**
      * 根据ID查询预约订单（含项目名称）

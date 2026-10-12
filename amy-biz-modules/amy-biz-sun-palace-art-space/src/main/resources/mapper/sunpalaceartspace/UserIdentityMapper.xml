@@ -6,6 +6,7 @@
 
     <resultMap type="com.amy.sunpalaceartspace.domain.vo.UserIdentityVO" id="UserIdentityResult">
         <id property="userIdentityId" column="user_identity_id"/>
+        <result property="reservationUserId" column="reservation_user_id"/>
         <result property="name" column="name"/>
         <result property="idType" column="id_type"/>
         <result property="idNum" column="id_num"/>
@@ -16,6 +17,7 @@
 
     <sql id="selectUserIdentityVo">
         select user_identity_id,
+               reservation_user_id,
                name,
                id_type,
                id_num,
@@ -25,27 +27,47 @@
         from biz_spas_user_identity
     </sql>
 
-    <select id="selectUserIdentityList" parameterType="com.amy.sunpalaceartspace.domain.entity.UserIdentity"
-            resultMap="UserIdentityResult">
-        <include refid="selectUserIdentityVo"/>
+    <!-- 列表查询条件：统一通过 @Param("entity") 传入，供分页 / 导出两个 select 复用 -->
+    <sql id="selectUserIdentityWhere">
         where del_flag = '0'
-        <if test="name != null and name != ''">
-            and name like concat('%', #{name}, '%')
+        <if test="entity.reservationUserId != null">
+            and reservation_user_id = #{entity.reservationUserId}
         </if>
-        <if test="idType != null">
-            and id_type = #{idType}
+        <if test="entity.name != null and entity.name != ''">
+            and name like concat('%', #{entity.name}, '%')
         </if>
-        <if test="idNum != null and idNum != ''">
-            and id_num like concat('%', #{idNum}, '%')
+        <if test="entity.idType != null">
+            and id_type = #{entity.idType}
         </if>
-        <if test="gender != null">
-            and gender = #{gender}
+        <if test="entity.idNum != null and entity.idNum != ''">
+            and id_num like concat('%', #{entity.idNum}, '%')
         </if>
-        <if test="phone != null and phone != ''">
-            and phone like concat('%', #{phone}, '%')
+        <if test="entity.gender != null">
+            and gender = #{entity.gender}
         </if>
-        <!-- 数据权限 -->
-        ${params.dataScope}
+        <if test="entity.phone != null and entity.phone != ''">
+            and phone like concat('%', #{entity.phone}, '%')
+        </if>
+        <!-- 数据权限（由 @DataScope 切面写入 entity.params.dataScope） -->
+        <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
+            ${entity.params.dataScope}
+        </if>
+    </sql>
+
+    <!--
+        分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
+        完成 count + limit，本处【不要】写 limit。
+    -->
+    <select id="selectUserIdentityList" resultMap="UserIdentityResult">
+        <include refid="selectUserIdentityVo"/>
+        <include refid="selectUserIdentityWhere"/>
+        order by create_time desc
+    </select>
+
+    <!-- 导出列表：不分页，独立 select，不与分页方法复用 -->
+    <select id="selectUserIdentityExportList" resultMap="UserIdentityResult">
+        <include refid="selectUserIdentityVo"/>
+        <include refid="selectUserIdentityWhere"/>
         order by create_time desc
     </select>
 

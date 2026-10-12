@@ -55,30 +55,47 @@
         left join biz_spas_reservation_user u on u.reservation_user_id = r.reservation_user_id and u.del_flag = '0'
     </sql>
 
-    <select id="selectReservationOrderList" parameterType="com.amy.sunpalaceartspace.domain.entity.ReservationOrder"
-            resultMap="ReservationOrderResult">
-        <include refid="selectReservationOrderVo"/>
+    <!-- 列表查询条件：统一通过 @Param("entity") 传入，供分页 / 导出两个 select 复用 -->
+    <sql id="selectReservationOrderWhere">
         where r.del_flag = '0'
-        <if test="reservationNum != null and reservationNum != ''">
-            and r.reservation_num like concat('%', #{reservationNum}, '%')
+        <if test="entity.reservationNum != null and entity.reservationNum != ''">
+            and r.reservation_num like concat('%', #{entity.reservationNum}, '%')
         </if>
-        <if test="projectId != null">
-            and r.project_id = #{projectId}
+        <if test="entity.projectId != null">
+            and r.project_id = #{entity.projectId}
         </if>
-        <if test="name != null and name != ''">
-            and r.name like concat('%', #{name}, '%')
+        <if test="entity.name != null and entity.name != ''">
+            and r.name like concat('%', #{entity.name}, '%')
         </if>
-        <if test="phone != null and phone != ''">
-            and r.phone like concat('%', #{phone}, '%')
+        <if test="entity.phone != null and entity.phone != ''">
+            and r.phone like concat('%', #{entity.phone}, '%')
         </if>
-        <if test="reservationStatus != null">
-            and r.reservation_status = #{reservationStatus}
+        <if test="entity.reservationStatus != null">
+            and r.reservation_status = #{entity.reservationStatus}
         </if>
-        <if test="reservationTime != null">
-            and date(r.reservation_time) = date(#{reservationTime})
+        <if test="entity.reservationTime != null">
+            and date(r.reservation_time) = date(#{entity.reservationTime})
         </if>
-        <!-- 数据权限 -->
-        ${params.dataScope}
+        <!-- 数据权限（由 @DataScope 切面写入 entity.params.dataScope） -->
+        <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
+            ${entity.params.dataScope}
+        </if>
+    </sql>
+
+    <!--
+        分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
+        完成 count + limit，本处【不要】写 limit。
+    -->
+    <select id="selectReservationOrderList" resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        <include refid="selectReservationOrderWhere"/>
+        order by r.create_time desc
+    </select>
+
+    <!-- 导出列表：不分页，独立 select，不与分页方法复用 -->
+    <select id="selectReservationOrderExportList" resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        <include refid="selectReservationOrderWhere"/>
         order by r.create_time desc
     </select>
 
