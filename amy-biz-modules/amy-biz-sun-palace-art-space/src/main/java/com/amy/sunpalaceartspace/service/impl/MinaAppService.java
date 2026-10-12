@@ -109,11 +109,13 @@ public class MinaAppService {
     private Integer calculateDateReservationCount(Long projectId, Integer dateInterval) {
         ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
                 .projectId(projectId)
-                .reservationTimeStart(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + "00:00:00"), 1))
-                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + "23:59:59"), dateInterval))
+                .reservationTimeStart(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 00:00:00"), 1))
+                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 23:59:59"), dateInterval))
                 .build();
         List<ReservationOrderStatisticByProjectVO> vos = reservationOrderService.selectReservationOrderStatisticByProject(criteria);
-        return vos.getFirst().getCount();
+        if(vos.isEmpty()) return 0;
+        else
+            return Optional.ofNullable(vos.getFirst()).map(ReservationOrderStatisticByProjectVO::getCount).orElse(0);
     }
 
     private Integer calculateTotalReservationCount(String startTime, String endTime, Integer interval, Integer count){
