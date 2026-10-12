@@ -1,0 +1,25 @@
+/* uni-app 全局 SCSS 变量（自动注入到每个组件） */
+
+/* 主色板 */
+$uni-color-primary: #3b7dff;
+$uni-color-primary-light: #5b95ff;
+$uni-color-success: #00b96b;
+$uni-color-warning: #ff9500;
+$uni-color-error: #f53f3f;
+
+/* 文字 */
+$uni-text-color: #1f2329;
+$uni-text-color-secondary: #4e5969;
+$uni-text-color-grey: #86909c;
+$uni-text-color-placeholder: #c9cdd4;
+
+/* 边框与背景 */
+$uni-border-color: #f2f3f5;
+$uni-bg-color: #f4f6fa;
+$uni-bg-color-white: #ffffff;
+
+/* 圆角 */
+$uni-border-radius-sm: 8px;
+$uni-border-radius-base: 12px;
+$uni-border-radius-lg: 16px;
+$uni-border-radius-circle: 50%;

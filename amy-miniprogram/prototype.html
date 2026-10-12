@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>预约门票小程序 - 高保真原型</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; background: #f4f6fa; color: #1f2329; }
+  body { display: flex; align-items: center; justify-content: center; padding: 24px; min-height: 100vh; }
+
+  /* 手机外框 */
+  .device { width: 390px; height: 844px; background: #1f2329; border-radius: 56px; padding: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.35); position: relative; }
+  .device::before { content: ''; position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 124px; height: 32px; background: #1f2329; border-radius: 20px; z-index: 50; }
+  .screen { width: 100%; height: 100%; background: #f4f6fa; border-radius: 44px; overflow: hidden; position: relative; }
+
+  /* 状态栏 */
+  .status-bar { height: 44px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 600; color: #fff; position: absolute; top: 0; left: 0; right: 0; z-index: 100; pointer-events: none; }
+  .status-bar.dark { color: #1f2329; }
+  .status-bar .right { display: flex; align-items: center; gap: 6px; }
+  .battery { width: 24px; height: 12px; border: 1.2px solid currentColor; border-radius: 3px; position: relative; padding: 1px; }
+  .battery::after { content: ''; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px; background: currentColor; border-radius: 0 1px 1px 0; }
+  .battery i { display: block; height: 100%; background: currentColor; border-radius: 1px; }
+
+  /* 顶部导航 */
+  .navbar { height: 44px; display: flex; align-items: center; justify-content: center; position: relative; background: linear-gradient(180deg, #3B7DFF 0%, #3B7DFF 100%); color: #fff; font-size: 17px; font-weight: 600; }
+  .navbar.white { background: #fff; color: #1f2329; }
+  .navbar .back { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
+  .navbar .actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; }
+  .navbar .action { width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; }
+
+  /* 内容区 */
+  .page-stack { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  .page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow-y: auto; background: #f4f6fa; display: none; }
+  .page.show { display: block; }
+  .page.has-tabbar { padding-bottom: 70px; }
+  .page::-webkit-scrollbar { display: none; }
+
+  /* 底部Tab */
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: #fff; border-top: 1px solid #ecedf0; display: flex; z-index: 80; padding-bottom: 14px; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #999; cursor: pointer; font-size: 11px; padding-top: 8px; }
+  .tab .icon { font-size: 22px; line-height: 1; }
+  .tab.active { color: #3B7DFF; }
+
+  /* ========== 首页 ========== */
+  .home-banner { background: linear-gradient(180deg, #3B7DFF 0%, #5B95FF 60%, #f4f6fa 100%); padding: 0 0 24px; }
+  .home-banner .navbar { background: transparent; box-shadow: none; }
+  .home-search { padding: 8px 16px 20px; display: flex; gap: 8px; }
+  .home-search .item { background: rgba(255,255,255,.95); flex: 1; height: 36px; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; gap: 8px; color: #666; font-size: 13px; }
+  .home-search .item .dot { width: 6px; height: 6px; border-radius: 50%; background: #3B7DFF; }
+  .activity-list { padding: 0 12px 12px; }
+  .activity-card { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 14px; box-shadow: 0 2px 12px rgba(31,35,41,.04); }
+  .activity-card .pic { width: 100%; height: 180px; background-size: cover; background-position: center; position: relative; }
+  .activity-card .pic::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.3)); }
+  .activity-card .tag { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.92); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #3B7DFF; font-weight: 600; }
+  .activity-card .body { padding: 14px 16px 16px; }
+  .activity-card .title { font-size: 16px; font-weight: 600; color: #1f2329; margin-bottom: 10px; }
+  .activity-card .info { font-size: 13px; color: #4e5969; line-height: 1.9; }
+  .activity-card .info b { color: #1f2329; font-weight: 500; margin-right: 4px; }
+  .activity-card .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px dashed #ecedf0; margin-top: 12px; }
+  .activity-card .price { font-size: 18px; font-weight: 600; color: #f53f3f; }
+  .activity-card .price.free { color: #07C160; font-size: 16px; }
+  .activity-card .btn-book { background: linear-gradient(90deg, #3B7DFF, #5B95FF); color: #fff; padding: 9px 22px; border-radius: 24px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(59,125,255,.35); }
+  .activity-card .btn-booked { background: #e8eaf0; color: #86909c; padding: 9px 22px; border-radius: 24px; font-size: 13px; }
+  .progress-bar { height: 4px; background: #f2f3f5; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #3B7DFF, #00B8A9); border-radius: 2px; }
+
+  /* ========== 预约详情（带弹窗） ========== */
+  .detail-hero { background: linear-gradient(180deg, #3B7DFF 0%, #5B95FF 100%); padding: 16px 16px 28px; color: #fff; }
+  .detail-hero .title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .detail-hero .desc { font-size: 13px; opacity: .9; line-height: 1.7; }
+  .countdown-bar { background: linear-gradient(90deg, #FFB800, #FF9500); color: #fff; padding: 10px 16px; text-align: center; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .countdown-bar .time { font-size: 17px; font-weight: 700; letter-spacing: 1px; font-family: "DIN Alternate", monospace; }
+  .form-section { background: #fff; margin: 12px; border-radius: 12px; overflow: hidden; }
+  .form-section .hd { padding: 14px 16px 10px; font-size: 15px; font-weight: 600; color: #1f2329; }
+  .form-item { padding: 14px 16px; border-top: 1px solid #f2f3f5; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; }
+  .form-item .lbl { font-size: 14px; color: #1f2329; flex-shrink: 0; }
+  .form-item .lbl .req { color: #f53f3f; margin-right: 2px; }
+  .form-item .val { flex: 1; text-align: right; font-size: 14px; color: #1f2329; outline: none; }
+  .form-item .val::placeholder { color: #c9cdd4; }
+  .form-item .placeholder { color: #c9cdd4; }
+  .form-item .arrow { color: #c9cdd4; font-size: 14px; margin-left: 6px; }
+  .form-item.compact { padding: 12px 16px; min-height: 44px; }
+  .form-item.compact .lbl { font-size: 13px; color: #4e5969; }
+  .companion-hd { padding: 14px 16px 6px; display: flex; align-items: center; justify-content: space-between; }
+  .companion-hd .num { background: #f2f3f5; color: #4e5969; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 6px; }
+  .companion-hd .del { color: #86909c; font-size: 18px; cursor: pointer; }
+  .btn-add-companion { margin: 12px 16px; padding: 10px; border: 1px dashed #c9cdd4; border-radius: 24px; text-align: center; color: #3B7DFF; font-size: 13px; }
+  .btn-submit { margin: 16px 16px 24px; background: linear-gradient(90deg, #3B7DFF, #5B95FF); color: #fff; padding: 14px; border-radius: 28px; text-align: center; font-size: 16px; font-weight: 500; box-shadow: 0 4px 16px rgba(59,125,255,.35); cursor: pointer; }
+
+  /* ========== 弹窗 ========== */
+  .modal { position: absolute; inset: 0; background: rgba(0,0,0,.55); z-index: 200; display: none; }
+  .modal.show { display: flex; flex-direction: column; justify-content: flex-end; }
+  .modal .sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px 28px; max-height: 80%; overflow-y: auto; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal .sheet-title { text-align: center; font-size: 16px; font-weight: 600; padding: 4px 0 14px; position: relative; }
+  .modal .sheet-close { position: absolute; right: 0; top: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #86909c; font-size: 16px; cursor: pointer; }
+  .modal .sheet-actions { display: flex; gap: 10px; padding: 16px 0 0; }
+  .modal .sheet-actions .btn { flex: 1; padding: 13px; border-radius: 28px; text-align: center; font-size: 15px; }
+  .modal .sheet-actions .btn.cancel { background: #fff; border: 1px solid #e5e6eb; color: #1f2329; }
+  .modal .sheet-actions .btn.primary { background: #00B96B; color: #fff; }
+
+  /* 预约须知 */
+  .notice-content { padding: 4px 4px 16px; font-size: 13px; color: #1f2329; line-height: 1.85; max-height: 60vh; overflow-y: auto; }
+  .notice-content h3 { font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: #1f2329; }
+  .notice-content p { margin-bottom: 6px; }
+  .notice-content .scroll-hint { color: #86909c; font-size: 11px; text-align: center; margin: 8px 0 0; }
+  .btn-read { margin-top: 16px; padding: 13px; border-radius: 28px; text-align: center; font-size: 15px; background: #3B7DFF; color: #fff; cursor: pointer; }
+
+  /* 日期时段选择 */
+  .date-block { margin-bottom: 18px; }
+  .date-block .hd { font-size: 13px; color: #1f2329; font-weight: 600; margin-bottom: 10px; padding: 0 4px; }
+  .date-pills { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 4px; }
+  .date-pill { padding: 8px 14px; background: #fff; border: 1px solid #e5e6eb; border-radius: 8px; font-size: 13px; color: #1f2329; }
+  .date-pill.selected { background: #3B7DFF; color: #fff; border-color: #3B7DFF; }
+  .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 4px; }
+  .time-cell { padding: 12px 6px; border-radius: 12px; background: #e8f3ff; text-align: center; position: relative; }
+  .time-cell .t { font-size: 16px; font-weight: 600; color: #3B7DFF; }
+  .time-cell .sub { font-size: 11px; color: #3B7DFF; opacity: .7; margin-top: 2px; }
+  .time-cell .state { font-size: 11px; color: #86909c; margin-top: 2px; }
+  .time-cell.full { background: #f7f8fa; }
+  .time-cell.full .t, .time-cell.full .sub { color: #c9cdd4; }
+  .time-cell.selected { background: #3B7DFF; }
+  .time-cell.selected .t, .time-cell.selected .sub, .time-cell.selected .state { color: #fff; opacity: 1; }
+  .time-cell.selected::after { content: '✓'; position: absolute; top: 6px; right: 8px; color: #fff; font-size: 14px; }
+
+  /* 证件类型 */
+  .picker-list { padding: 0 4px; }
+  .picker-item { padding: 14px 12px; border-bottom: 1px solid #f2f3f5; display: flex; align-items: center; justify-content: space-between; font-size: 14px; cursor: pointer; }
+  .picker-item:last-child { border-bottom: 0; }
+  .picker-item.selected { color: #3B7DFF; font-weight: 600; }
+  .picker-item.disabled { color: #c9cdd4; cursor: not-allowed; }
+  .picker-item .check { color: #3B7DFF; font-size: 16px; }
+
+  /* ========== 预约记录 ========== */
+  .record-card { background: #fff; margin: 12px; border-radius: 16px; padding: 16px; box-shadow: 0 2px 12px rgba(31,35,41,.04); }
+  .record-card .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .record-card .top .name { font-size: 16px; font-weight: 600; color: #1f2329; flex: 1; line-height: 1.4; }
+  .record-card .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; flex-shrink: 0; }
+  .badge-pending { background: #fff7e8; color: #FF9500; }
+  .badge-done { background: #e8f8f0; color: #00B96B; }
+  .badge-expired { background: #f2f3f5; color: #86909c; }
+  .badge-cancel { background: #fff1f0; color: #f53f3f; }
+  .record-card .time { font-size: 13px; color: #1f2329; margin-top: 10px; font-weight: 500; }
+  .record-card .info { font-size: 12px; color: #86909c; line-height: 1.9; margin-top: 6px; }
+  .record-card .info b { color: #4e5969; font-weight: 500; }
+  .record-card .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; margin-top: 12px; border-top: 1px solid #f2f3f5; color: #3B7DFF; font-size: 13px; }
+  .empty-state { padding: 80px 32px; text-align: center; color: #86909c; }
+  .empty-state .icon { font-size: 64px; opacity: .4; margin-bottom: 12px; }
+  .empty-state .t { font-size: 13px; }
+
+  /* ========== 预约详情（结果） ========== */
+  .result-card { background: #fff; margin: 16px 12px 0; border-radius: 20px; overflow: hidden; position: relative; box-shadow: 0 4px 20px rgba(31,35,41,.06); }
+  .result-card::before, .result-card::after { content: ''; position: absolute; width: 24px; height: 24px; background: #f4f6fa; border-radius: 50%; top: 110px; }
+  .result-card::before { left: -12px; }
+  .result-card::after { right: -12px; }
+  .result-status { padding: 24px 16px 16px; text-align: center; }
+  .result-status .big { font-size: 22px; font-weight: 700; }
+  .result-status .big.expired { color: #86909c; }
+  .result-status .big.done { color: #00B96B; }
+  .result-status .big.pending { color: #FF9500; }
+  .result-status .meta { font-size: 12px; color: #86909c; margin-top: 6px; }
+  .qr-block { padding: 8px 16px 24px; text-align: center; position: relative; }
+  .qr-block::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; border-top: 2px dashed #e5e6eb; }
+  .qr-block canvas, .qr-block img { width: 200px; height: 200px; margin: 16px auto 6px; display: block; }
+  .qr-block .label { font-size: 13px; color: #86909c; }
+  .result-detail { padding: 8px 16px 20px; }
+  .result-detail .row { display: flex; justify-content: space-between; padding: 10px 0; font-size: 14px; border-bottom: 1px solid #f2f3f5; }
+  .result-detail .row:last-child { border-bottom: 0; }
+  .result-detail .row .k { color: #4e5969; }
+  .result-detail .row .v { color: #1f2329; font-weight: 500; }
+
+  /* ========== 我的 ========== */
+  .mine-header { background: linear-gradient(180deg, #3B7DFF 0%, #5B95FF 70%, #f4f6fa 100%); padding: 8px 16px 56px; color: #fff; }
+  .mine-header .navbar { background: transparent; }
+  .mine-card { background: #fff; margin: -40px 12px 0; border-radius: 16px; padding: 20px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 16px rgba(31,35,41,.06); position: relative; }
+  .mine-card .avatar { width: 60px; height: 60px; border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0; }
+  .mine-card .info { flex: 1; min-width: 0; }
+  .mine-card .nick { font-size: 17px; font-weight: 600; color: #1f2329; }
+  .mine-card .meta { font-size: 12px; color: #86909c; margin-top: 4px; }
+  .mine-card .edit { color: #3B7DFF; font-size: 13px; padding: 6px 0; }
+  .mine-menu { background: #fff; margin: 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(31,35,41,.04); }
+  .mine-menu .item { padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f2f3f5; font-size: 15px; color: #1f2329; cursor: pointer; }
+  .mine-menu .item:last-child { border-bottom: 0; }
+  .mine-menu .icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #3B7DFF; }
+  .mine-menu .arrow { color: #c9cdd4; margin-left: auto; font-size: 14px; }
+
+  /* ========== 核销扫码 ========== */
+  .scan-frame { padding: 32px 24px; }
+  .scan-box { width: 100%; aspect-ratio: 1; max-width: 280px; margin: 0 auto; position: relative; border: 2px solid #3B7DFF; border-radius: 16px; background: #1f2329; overflow: hidden; }
+  .scan-box::before, .scan-box::after { content: ''; position: absolute; width: 32px; height: 32px; border: 4px solid #fff; }
+  .scan-box::before { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
+  .scan-box::after { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
+  .scan-line { position: absolute; left: 12px; right: 12px; top: 12px; height: 2px; background: linear-gradient(90deg, transparent, #3B7DFF, transparent); box-shadow: 0 0 8px #3B7DFF; animation: scan 1.6s linear infinite; }
+  @keyframes scan { 0% { transform: translateY(0); } 50% { transform: translateY(240px); } 100% { transform: translateY(0); } }
+  .scan-tip { text-align: center; color: #86909c; font-size: 13px; margin-top: 16px; }
+
+  /* ========== 登录 ========== */
+  .login-page { padding: 40px 32px; background: #fff; min-height: 100%; }
+  .login-logo { width: 80px; height: 80px; margin: 24px auto 16px; background: linear-gradient(135deg, #3B7DFF, #5B95FF); border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 36px; box-shadow: 0 8px 24px rgba(59,125,255,.3); }
+  .login-title { text-align: center; font-size: 22px; font-weight: 600; color: #1f2329; margin-bottom: 8px; }
+  .login-sub { text-align: center; font-size: 13px; color: #86909c; margin-bottom: 32px; }
+  .login-avatar { width: 64px; height: 64px; border-radius: 50%; background-size: cover; background-position: center; margin: 0 auto 16px; border: 2px solid #f2f3f5; }
+  .login-form { background: #f7f8fa; border-radius: 12px; padding: 0 16px; margin-bottom: 16px; }
+  .login-form .item { padding: 14px 0; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ecedf0; }
+  .login-form .item:last-child { border-bottom: 0; }
+  .login-form .item .lbl { width: 60px; font-size: 13px; color: #4e5969; }
+  .login-form .item .val { flex: 1; border: 0; background: transparent; outline: none; font-size: 14px; }
+  .login-form .item .val::placeholder { color: #c9cdd4; }
+  .login-btn { background: linear-gradient(90deg, #3B7DFF, #5B95FF); color: #fff; padding: 13px; border-radius: 28px; text-align: center; font-size: 15px; font-weight: 500; box-shadow: 0 4px 16px rgba(59,125,255,.35); cursor: pointer; }
+  .login-tip { text-align: center; font-size: 11px; color: #86909c; margin-top: 16px; line-height: 1.7; padding: 0 16px; }
+
+  /* 关于我们 */
+  .about-card { background: #fff; margin: 16px 12px; border-radius: 16px; padding: 24px 20px; line-height: 1.9; font-size: 14px; color: #4e5969; }
+  .about-card h3 { color: #1f2329; font-size: 15px; margin: 14px 0 8px; }
+  .about-card h3:first-child { margin-top: 0; }
+
+  /* 通用 */
+  .btn-block { display: block; width: calc(100% - 24px); margin: 0 12px; padding: 13px; border-radius: 28px; text-align: center; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .btn-primary { background: linear-gradient(90deg, #3B7DFF, #5B95FF); color: #fff; box-shadow: 0 4px 16px rgba(59,125,255,.35); }
+  .btn-disabled { background: #f2f3f5; color: #c9cdd4; cursor: not-allowed; box-shadow: none; }
+
+  /* 设计辅助 */
+  .caption { position: absolute; right: -220px; top: 12px; background: #fff; padding: 8px 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); font-size: 12px; color: #4e5969; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="screen" id="screen">
+
+    <!-- 状态栏 -->
+    <div class="status-bar dark" id="statusBar">
+      <span>22:06</span>
+      <div class="right">
+        <span>5G</span>
+        <span style="font-size:12px;">●●●</span>
+        <div class="battery"><i style="width:67%;"></i></div>
+      </div>
+    </div>
+
+    <div class="page-stack" id="pageStack">
+      <!-- ============ 首页 ============ -->
+      <div class="page page-home show has-tabbar" data-page="home">
+        <div class="home-banner">
+          <div class="navbar">
+            <span>首页</span>
+            <div class="actions">
+              <div class="action">⋯</div>
+              <div class="action">⊙</div>
+            </div>
+          </div>
+          <div class="home-search">
+            <div class="item"><span class="dot"></span><span>搜索活动名称</span></div>
+          </div>
+        </div>
+        <div class="activity-list" id="activityList">
+          <!-- 动态渲染 -->
+        </div>
+      </div>
+
+      <!-- ============ 预约详情 ============ -->
+      <div class="page page-detail" data-page="detail">
+        <div class="navbar white">
+          <div class="back" data-go="home">‹</div>
+          <span>填写预约信息</span>
+          <div class="actions"><div class="action">⋯</div><div class="action">⊙</div></div>
+        </div>
+        <div class="countdown-bar" id="countdownBar">预约剩余时间：<span class="time" id="countdownTime">3:00</span></div>
+        <div class="detail-hero">
+          <div class="title" id="detailTitle">杨丽萍太阳宫房</div>
+          <div class="desc" id="detailDesc">开放时间：09:00-12:00, 共6个时段，每时段20人</div>
+        </div>
+        <div class="form-section">
+          <div class="hd">时间选择</div>
+          <div class="form-item" data-action="openDatepicker">
+            <div class="lbl"><span class="req">*</span>预约日期</div>
+            <div class="val placeholder" id="dateLabel">点击选择预约日期</div>
+            <span class="arrow">›</span>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="hd">基本信息</div>
+          <div class="form-item compact">
+            <div class="lbl"><span class="req">*</span>预约人姓名</div>
+            <input class="val" placeholder="请输入预约人姓名" id="bookerName" />
+          </div>
+          <div class="form-item compact">
+            <div class="lbl"><span class="req">*</span>预约人手机</div>
+            <input class="val" placeholder="请输入预约人手机号" id="bookerTel" maxlength="11" />
+          </div>
+          <div class="form-item" data-action="openCardpicker" data-target="booker">
+            <div class="lbl"><span class="req">*</span>证件类型</div>
+            <div class="val" id="bookerCardType">第二代居民身份证</div>
+            <span class="arrow">›</span>
+          </div>
+          <div class="form-item compact">
+            <div class="lbl"><span class="req">*</span>预约人证件号</div>
+            <input class="val" placeholder="请输入预约人证件号" id="bookerIdCard" />
+          </div>
+        </div>
+        <div id="companionArea"></div>
+        <div class="btn-add-companion" id="btnAddCompanion">⊕ 添加随行人</div>
+        <div class="btn-submit" id="btnSubmit">提交</div>
+      </div>
+
+      <!-- ============ 预约记录 ============ -->
+      <div class="page page-records show has-tabbar" data-page="records" style="display:none;">
+        <div class="navbar"><span>预约记录</span></div>
+        <div id="recordList">
+          <!-- 动态渲染 -->
+        </div>
+      </div>
+
+      <!-- ============ 预约结果详情 ============ -->
+      <div class="page page-result" data-page="result">
+        <div class="navbar">
+          <div class="back" data-go="records">‹</div>
+          <span>预约结果</span>
+        </div>
+        <div id="resultContent"></div>
+      </div>
+
+      <!-- ============ 我的 ============ -->
+      <div class="page page-mine show has-tabbar" data-page="mine" style="display:none;">
+        <div class="mine-header">
+          <div class="navbar"><span>我的</span></div>
+        </div>
+        <div class="mine-card" data-action="goEdit">
+          <div class="avatar" id="mineAvatar" style="background-image:url('https://i.pravatar.cc/120?img=12')"></div>
+          <div class="info">
+            <div class="nick" id="mineNick">杰克斯派洛</div>
+            <div class="meta" id="mineMeta">已实名 · 手机 185****5064</div>
+          </div>
+          <div class="edit">编辑 ›</div>
+        </div>
+        <div class="mine-menu">
+          <div class="item" data-action="goRecords">
+            <div class="icon">▤</div>
+            <span>预约记录</span>
+            <span class="arrow">›</span>
+          </div>
+          <div class="item" data-action="goScan" id="scanMenuItem" style="display:none;">
+            <div class="icon">⌖</div>
+            <span>核销</span>
+            <span class="arrow">›</span>
+          </div>
+          <div class="item" data-action="goAbout">
+            <div class="icon">ⓘ</div>
+            <span>关于我们</span>
+            <span class="arrow">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 关于我们 ============ -->
+      <div class="page page-about" data-page="about">
+        <div class="navbar white">
+          <div class="back" data-go="mine">‹</div>
+          <span>关于我们</span>
+        </div>
+        <div class="about-card">
+          <h3>服务说明</h3>
+          <p>本平台提供活动预约服务，用户可通过小程序浏览可预约活动、提交预约申请、查看预约记录。</p>
+          <h3>预约规则</h3>
+          <p>1. 用户需通过微信登录获取身份信息后方可预约；<br>2. 同一身份证每月最多预约2次，超出将无法提交；<br>3. 预约成功后请按时到店核销，逾期将自动过期；<br>4. 详见各活动页面的预约须知。</p>
+          <h3>客服联系</h3>
+          <p>电话：400-888-8888<br>邮箱：service@example.com<br>工作时间：9:00-18:00</p>
+          <h3>版本</h3>
+          <p>v1.0.0</p>
+        </div>
+      </div>
+
+      <!-- ============ 扫码核销 ============ -->
+      <div class="page page-scan" data-page="scan">
+        <div class="navbar white">
+          <div class="back" data-go="mine">‹</div>
+          <span>扫码核销</span>
+        </div>
+        <div class="scan-frame">
+          <div class="scan-box"><div class="scan-line"></div></div>
+          <div class="scan-tip">将二维码放入框内，自动扫描核销</div>
+          <div style="text-align:center;margin-top:32px;">
+            <div class="btn-block btn-primary" data-action="simulateScan" style="display:inline-block;width:auto;padding:12px 32px;">模拟扫描</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 核销详情 ============ -->
+      <div class="page page-scan-result" data-page="scan-result">
+        <div class="navbar white">
+          <div class="back" data-go="scan">‹</div>
+          <span>核销详情</span>
+        </div>
+        <div id="scanResultContent"></div>
+      </div>
+
+      <!-- ============ 登录 ============ -->
+      <div class="page page-login" data-page="login">
+        <div class="navbar white">
+          <div class="back" data-go="home">‹</div>
+          <span>登录</span>
+        </div>
+        <div class="login-page">
+          <div class="login-logo">🎫</div>
+          <div class="login-title">预约门票</div>
+          <div class="login-sub">请完成微信授权登录</div>
+          <div class="login-avatar" style="background-image:url('https://i.pravatar.cc/120?img=12')"></div>
+          <div class="login-form">
+            <div class="item">
+              <div class="lbl">昵称</div>
+              <input class="val" id="loginNick" placeholder="请输入昵称" value="杰克斯派洛"/>
+            </div>
+            <div class="item">
+              <div class="lbl">姓名</div>
+              <input class="val" id="loginName" placeholder="请填写真实姓名"/>
+            </div>
+            <div class="item">
+              <div class="lbl">手机</div>
+              <input class="val" id="loginTel" placeholder="请输入手机号" maxlength="11"/>
+            </div>
+          </div>
+          <div class="login-btn" id="btnLogin">授权登录</div>
+          <div class="login-tip">登录即表示同意《用户协议》和《隐私政策》</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============ 底部Tab ============ -->
+    <div class="tabbar" id="tabbar">
+      <div class="tab active" data-tab="home"><div class="icon">🏠</div><div>首页</div></div>
+      <div class="tab" data-tab="records"><div class="icon">▦</div><div>预约记录</div></div>
+      <div class="tab" data-tab="mine"><div class="icon">👤</div><div>我的</div></div>
+    </div>
+
+    <!-- ============ 弹窗层 ============ -->
+    <!-- 预约须知 -->
+    <div class="modal" id="modalNotice">
+      <div class="sheet">
+        <div class="sheet-title">预约须知<span class="sheet-close" data-action="closeModal">×</span></div>
+        <div class="notice-content" id="noticeContent"></div>
+        <div class="btn-read" id="btnRead">我已阅读</div>
+      </div>
+    </div>
+
+    <!-- 日期时段选择 -->
+    <div class="modal" id="modalDatepicker">
+      <div class="sheet">
+        <div class="sheet-title">选择预约日期<span class="sheet-close" data-action="closeModal">×</span></div>
+        <div class="date-block">
+          <div class="hd">选择日期</div>
+          <div class="date-pills" id="datePills"></div>
+        </div>
+        <div class="date-block">
+          <div class="hd">选择时段</div>
+          <div class="time-grid" id="timeGrid"></div>
+        </div>
+        <div class="sheet-actions">
+          <div class="btn cancel" data-action="closeModal">取消</div>
+          <div class="btn primary" id="btnDateConfirm">确定</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 证件类型 -->
+    <div class="modal" id="modalCardpicker">
+      <div class="sheet">
+        <div class="sheet-title">选择证件类型<span class="sheet-close" data-action="closeModal">×</span></div>
+        <div class="picker-list" id="cardPickerList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ========== 全局状态 ========== */
+const state = {
+  currentTab: 'home',
+  currentPage: 'home',
+  user: {
+    loggedIn: false,
+    type: 1,  // 1用户 2核销员
+    nickname: '杰克斯派洛',
+    name: '',
+    tel: '',
+    headimgurl: 'https://i.pravatar.cc/120?img=12'
+  },
+  activities: [
+    { id: 1, title: '杨丽萍太阳宫艺术空间', pic: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&h=400&fit=crop', sort: 1, min_hour: '09:00:00', start_hour: '09:00:00', end_hour: '12:00:00', interval: 30, num: 20, desc: '开放时间09:00-12:00，每时段20人，全天120人', day: 2, is_show: 1, staff_num: 3, dwell_time: 30 },
+    { id: 2, title: '云南民族村非遗体验', pic: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=600&h=400&fit=crop', sort: 2, min_hour: '10:00:00', start_hour: '10:00:00', end_hour: '16:00:00', interval: 60, num: 30, desc: '深度体验少数民族文化，含手工体验', day: 3, is_show: 1, staff_num: 5, dwell_time: 60 },
+    { id: 3, title: '翠湖公园观鸟活动', pic: 'https://images.unsplash.com/photo-1444930694458-01babe71870e?w=600&h=400&fit=crop', sort: 3, min_hour: '07:00:00', start_hour: '07:00:00', end_hour: '10:00:00', interval: 30, num: 15, desc: '专业导师带队，配备望远镜', day: 1, is_show: 1, staff_num: 2, dwell_time: 90 }
+  ],
+  records: [
+    { id: 1, uid: 100, pro_id: 1, ordercode: '2026000091111', title: '这是一个测试', name: '太阳宫', tel: '18520345064', card_type: 1, id_card: '610423198005060026', num: 1, status: 3, date: '2025-09-01 22:42:00', end_date: '2025-09-01 23:12:00', reserve_data: [{ name: '太阳宫', tel: '18520345064', id_card: '610423198005060026', card_type: 1, card_type_title: '第二代居民身份证' }], off_uid: 0, off_time: null },
+    { id: 2, uid: 100, pro_id: 2, ordercode: '2026000092222', title: '云南民族村非遗体验', name: '张三', tel: '13800138000', card_type: 1, id_card: '530102199001011234', num: 2, status: 1, date: '2026-09-05 10:00:00', end_date: '2026-09-05 11:00:00', reserve_data: [{ name: '张三', tel: '13800138000', id_card: '530102199001011234', card_type: 1, card_type_title: '第二代居民身份证' }, { name: '李四', tel: '13900139000', id_card: '530102199201021234', card_type: 1, card_type_title: '第二代居民身份证' }], off_uid: 0, off_time: null }
+  ],
+  cardTypes: [
+    { id: 1, title: '第二代居民身份证', enabled: true },
+    { id: 2, title: '护照', enabled: true },
+    { id: 3, title: '港澳通行证', enabled: true },
+    { id: 4, title: '台湾通行证', enabled: true },
+    { id: 5, title: '军官证', enabled: true }
+  ],
+  currentActivity: null,
+  selectedDate: null,
+  selectedTime: null,
+  selectedCardType: 1,
+  cardPickerTarget: 'booker',  // 'booker' or 'companion-{idx}'
+  companions: [],
+  countdownTimer: null,
+  countdownSeconds: 180,
+  cardPickerCallback: null
+};
+
+/* ========== 工具函数 ========== */
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatDate(d) {
+  return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+}
+
+function getDatesByDay(startDay) {
+  // 生成未来N天的可选日期
+  const dates = [];
+  const today = new Date();
+  for (let i = 1; i <= startDay; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function genTimeSlots(startHour, endHour, interval) {
+  const slots = [];
+  const [sh, sm] = startHour.split(':').map(Number);
+  const [eh, em] = endHour.split(':').map(Number);
+  let startMin = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+  while (startMin + interval <= endMin) {
+    const h = Math.floor(startMin / 60);
+    const m = startMin % 60;
+    slots.push({ time: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`, full: Math.random() < 0.4 });
+    startMin += interval;
+  }
+  return slots;
+}
+
+function statusBadge(status) {
+  const map = { 1: { t: '待核销', c: 'badge-pending' }, 2: { t: '已核销', c: 'badge-done' }, 3: { t: '已过期', c: 'badge-expired' }, 4: { t: '已取消', c: 'badge-cancel' } };
+  return map[status] || { t: '未知', c: 'badge-expired' };
+}
+
+function statusBigText(status) {
+  const map = { 1: '待核销', 2: '已核销', 3: '已过期', 4: '已取消' };
+  return map[status] || '已过期';
+}
+
+function statusClass(status) {
+  return ['expired','done','pending','cancel'][status-1] || 'expired';
+}
+
+/* ========== 页面切换 ========== */
+function switchTab(tab) {
+  state.currentTab = tab;
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  if (tab === 'home') showPage('home');
+  else if (tab === 'records') showPage('records');
+  else if (tab === 'mine') showPage('mine');
+}
+
+function showPage(page) {
+  state.currentPage = page;
+  $$('.page').forEach(p => {
+    const match = p.dataset.page === page;
+    p.classList.toggle('show', match);
+    p.style.display = match ? 'block' : 'none';
+  });
+  // 状态栏颜色
+  const darkBars = ['home', 'records', 'mine', 'result', 'detail'];
+  $('#statusBar').classList.toggle('dark', !darkBars.includes(page));
+  // Tab显隐
+  const showTabbar = ['home', 'records', 'mine'].includes(page);
+  $('#tabbar').style.display = showTabbar ? 'flex' : 'none';
+  // 初始化页面
+  if (page === 'home') renderActivities();
+  if (page === 'records') renderRecords();
+  if (page === 'mine') renderMine();
+}
+
+/* ========== 首页渲染 ========== */
+function renderActivities() {
+  const list = $('#activityList');
+  list.innerHTML = state.activities.map(a => {
+    const dates = getDatesByDay(a.day);
+    const dateStr = dates.length ? `${formatDate(dates[0])} ~ ${formatDate(dates[dates.length-1])}` : '';
+    const slots = genTimeSlots(a.start_hour, a.end_hour, a.interval);
+    const timeStr = slots.length ? `${slots[0].time} ~ ${slots[slots.length-1].time}` : '';
+    const total = a.num * slots.length;
+    const remaining = Math.floor(total * 0.5);  // 模拟
+    return `
+      <div class="activity-card">
+        <div class="pic" style="background-image:url('${a.pic}')">
+          <div class="tag">📍 艺术空间</div>
+        </div>
+        <div class="body">
+          <div class="title">${a.title}</div>
+          <div class="info">
+            <div><b>可预约日期：</b>${dateStr}</div>
+            <div><b>预约时间段：</b>${timeStr}</div>
+            <div><b>截止时间：</b>${a.min_hour}</div>
+            <div><b>总号数：</b>${total}　<b>剩余号数：</b>${remaining}</div>
+          </div>
+          <div class="footer">
+            <div class="price free">免费</div>
+            <div class="btn-book" data-action="goDetail" data-id="${a.id}">立即预约</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ========== 预约详情 ========== */
+function openDetail(activityId) {
+  const a = state.activities.find(x => x.id === activityId);
+  if (!a) return;
+  state.currentActivity = a;
+  state.selectedDate = null;
+  state.selectedTime = null;
+  state.companions = [];
+  $('#detailTitle').textContent = a.title;
+  $('#detailDesc').textContent = a.desc;
+  $('#dateLabel').textContent = '点击选择预约日期';
+  $('#dateLabel').classList.add('placeholder');
+  $('#bookerName').value = '';
+  $('#bookerTel').value = '';
+  $('#bookerIdCard').value = '';
+  state.selectedCardType = 1;
+  $('#bookerCardType').textContent = state.cardTypes[0].title;
+  renderCompanions();
+  startCountdown();
+  showPage('detail');
+  // 立即弹须知
+  setTimeout(() => openNotice(), 300);
+}
+
+function startCountdown() {
+  clearInterval(state.countdownTimer);
+  state.countdownSeconds = 180;
+  $('#countdownTime').textContent = formatTime(state.countdownSeconds);
+  state.countdownTimer = setInterval(() => {
+    state.countdownSeconds--;
+    $('#countdownTime').textContent = formatTime(state.countdownSeconds);
+    if (state.countdownSeconds <= 0) {
+      clearInterval(state.countdownTimer);
+      alert('预约时间已到，已自动返回首页');
+      showPage('home');
+    }
+  }, 1000);
+}
+
+function renderCompanions() {
+  const area = $('#companionArea');
+  if (state.companions.length === 0) {
+    area.innerHTML = '';
+    return;
+  }
+  let html = '<div class="form-section"><div class="hd">随行人信息</div>';
+  state.companions.forEach((c, idx) => {
+    html += `
+      <div class="companion-hd">
+        <span>随行人${idx+1}<span class="num">${c.card_type_title ? '已填' : '待填'}</span></span>
+        <span class="del" data-action="delCompanion" data-idx="${idx}">×</span>
+      </div>
+      <div class="form-item compact">
+        <div class="lbl"><span class="req">*</span>姓名</div>
+        <input class="val companion-name" data-idx="${idx}" placeholder="请输入真实姓名" value="${c.name||''}" />
+      </div>
+      <div class="form-item" data-action="openCardpicker" data-target="companion-${idx}">
+        <div class="lbl"><span class="req">*</span>证件类型</div>
+        <div class="val">${c.card_type_title || '请选择'}</div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="form-item compact">
+        <div class="lbl"><span class="req">*</span>证件号</div>
+        <input class="val companion-idcard" data-idx="${idx}" placeholder="请输入真实证件号" value="${c.id_card||''}" />
+      </div>
+    `;
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function updateAddBtn() {
+  const max = state.currentActivity.staff_num;
+  const btn = $('#btnAddCompanion');
+  if (state.companions.length >= max) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = 'block';
+    btn.textContent = `⊕ 添加随行人 (${state.companions.length}/${max})`;
+  }
+}
+
+/* ========== 弹窗 ========== */
+function openModal(id) {
+  $('#' + id).classList.add('show');
+}
+function closeModal() {
+  $$('.modal').forEach(m => m.classList.remove('show'));
+}
+
+function openNotice() {
+  const a = state.currentActivity;
+  const content = `
+    <h3>开放时间：</h3>
+    <p>免费开放时间为AM 9:00-12:00，30分钟为一个时间段，全天共6个时段，因空间接纳有限及安全考虑，每个时段参观名额为20名，全天共计120名。</p>
+    <h3>入馆方式：</h3>
+    <p>1. 分时段实名预约参观。游客须通过"太阳宫艺术空间"公众号进入主页面"预约服务—预约参观"，提前一天或当天预约。</p>
+    <p>2. 游客可对两日内时段免费进行预约，每天中午12:00系统将自动释放第二天预约名额60名，晚上20:00将释放剩余预约名额60名，请提前做好预约安排并及时预约。</p>
+    <p>3. 为了抵制黄牛代抢售卖不去占用大众预约名额，每个微信帐号/身份证每月可预约两次，并且三天之内不能重复预约。同时若一个月内预约了两次，都没核销或两次都选择取消的，从即日起一个月内都不能再进行预约，敬请预约参观的游客合理做好规划安排。</p>
+    <p>4. 游客请按照预约时间，实名制预约入内，因个人原因错过预约时间，将无法入内参观。</p>
+    <h3>温馨提示：</h3>
+    <p>本次预约活动为<b>${a.title}</b>，请您仔细阅读以上须知。</p>
+  `;
+  $('#noticeContent').innerHTML = content;
+  openModal('modalNotice');
+}
+
+function openDatepicker() {
+  const a = state.currentActivity;
+  const dates = getDatesByDay(a.day);
+  $('#datePills').innerHTML = dates.map((d, i) => `
+    <div class="date-pill ${state.selectedDate === formatDate(d) ? 'selected' : ''}" data-action="pickDate" data-date="${formatDate(d)}">
+      ${formatDate(d)}${i===0 ? '<br><small>明天</small>' : ''}
+    </div>
+  `).join('');
+  renderTimeSlots();
+  openModal('modalDatepicker');
+}
+
+function renderTimeSlots() {
+  const a = state.currentActivity;
+  const slots = genTimeSlots(a.start_hour, a.end_hour, a.interval);
+  $('#timeGrid').innerHTML = slots.map(s => `
+    <div class="time-cell ${s.full ? 'full' : ''} ${state.selectedTime === s.time ? 'selected' : ''}"
+         data-action="pickTime" data-time="${s.time}" ${s.full ? '' : ''}>
+      <div class="t">${s.time}</div>
+      <div class="sub">(参观时间${a.dwell_time}分钟)</div>
+      <div class="state">${s.full ? '约满' : '可预约'}</div>
+    </div>
+  `).join('');
+}
+
+function openCardpicker(target) {
+  state.cardPickerTarget = target;
+  $('#cardPickerList').innerHTML = state.cardTypes.map(c => `
+    <div class="picker-item ${c.id === state.selectedCardType ? 'selected' : ''}" data-action="pickCard" data-id="${c.id}">
+      <span>${c.title}</span>
+      ${c.id === state.selectedCardType ? '<span class="check">✓</span>' : ''}
+    </div>
+  `).join('');
+  openModal('modalCardpicker');
+}
+
+/* ========== 预约记录 ========== */
+function renderRecords() {
+  const list = $('#recordList');
+  if (state.records.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="t">暂无预约记录</div></div>';
+    return;
+  }
+  list.innerHTML = state.records.map(r => {
+    const b = statusBadge(r.status);
+    return `
+      <div class="record-card" data-action="goResult" data-id="${r.id}">
+        <div class="top">
+          <div class="name">${r.title}</div>
+          <div class="badge ${b.c}">${b.t}</div>
+        </div>
+        <div class="time">入场时间：${r.date.split(0,16).join(' ')}</div>
+        <div class="info">
+          <div><b>单号：</b>${r.ordercode}</div>
+          <div><b>预约人：</b>${r.name}</div>
+          <div><b>预约人数：</b>${r.num}</div>
+        </div>
+        <div class="footer">
+          <span>查看预约详情</span>
+          <span>›</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ========== 预约结果详情 ========== */
+function openResult(recordId) {
+  const r = state.records.find(x => x.id === recordId);
+  if (!r) return;
+  const b = statusBigText(r.status);
+  const cls = statusClass(r.status);
+  const data = r.reserve_data[0];
+  const html = `
+    <div class="result-card">
+      <div class="result-status">
+        <div class="big ${cls}">${b}</div>
+        <div class="meta">单号：${r.ordercode}</div>
+      </div>
+      <div class="qr-block">
+        <canvas id="qrCanvas"></canvas>
+        <div class="label">入场核验码</div>
+      </div>
+      <div class="result-detail">
+        <div class="row"><span class="k">预约人数</span><span class="v">${r.num}人</span></div>
+        <div class="row"><span class="k">入场日期</span><span class="v">${r.date.split(0,10).join(' ')}</span></div>
+        <div class="row"><span class="k">参观时间</span><span class="v">${r.date.split(11,16).join('')}-${r.end_date.split(11,16).join('')}</span></div>
+        <div class="row"><span class="k">预约人姓名</span><span class="v">${data.name}</span></div>
+        <div class="row"><span class="k">预约人证件号</span><span class="v">${data.card_type_title}</span></div>
+        <div class="row"><span class="k">预约人手机号</span><span class="v">${data.tel}</span></div>
+      </div>
+    </div>
+  `;
+  $('#resultContent').innerHTML = html;
+  showPage('result');
+  // 生成二维码
+  setTimeout(() => {
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(r.ordercode);
+      qr.make();
+      $('#qrCanvas').width = 200;
+      $('#qrCanvas').height = 200;
+      $('#qrCanvas').getContext('2d').fillStyle = '#fff';
+      $('#qrCanvas').getContext('2d').fillRect(0, 0, 200, 200);
+      $('#qrCanvas').getContext('2d').fillStyle = '#000';
+      const moduleCount = qr.getModuleCount();
+      const cellSize = 200 / (moduleCount + 4);
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (qr.isDark(row, col)) {
+            $('#qrCanvas').getContext('2d').fillRect((col + 2) * cellSize, (row + 2) * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+    } catch(e) { console.error(e); }
+  }, 50);
+}
+
+/* ========== 我的 ========== */
+function renderMine() {
+  $('#mineAvatar').style.backgroundImage = `url(${state.user.headimgurl})`;
+  $('#mineNick').textContent = state.user.loggedIn ? state.user.nickname : '点击登录';
+  $('#mineMeta').textContent = state.user.loggedIn ? '已实名 · 手机 ' + (state.user.tel ? state.user.tel.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未填写') : '登录后享受完整服务';
+  $('#scanMenuItem').style.display = state.user.loggedIn && state.user.type === 2 ? 'flex' : 'none';
+}
+
+/* ========== 核销扫码 ========== */
+function openScan() {
+  showPage('scan');
+}
+function simulateScan() {
+  // 模拟扫到第一个待核销的预约
+  const target = state.records.find(r => r.status === 1) || state.records[0];
+  openScanResult(target);
+}
+function openScanResult(r) {
+  const data = r.reserve_data[0];
+  const html = `
+    <div class="result-card" style="margin-top:16px;">
+      <div class="result-status">
+        <div class="big ${statusClass(r.status)}">${statusBigText(r.status)}</div>
+        <div class="meta">单号：${r.ordercode}</div>
+      </div>
+      <div class="result-detail">
+        <div class="row"><span class="k">活动名称</span><span class="v">${r.title}</span></div>
+        <div class="row"><span class="k">预约人数</span><span class="v">${r.num}人</span></div>
+        <div class="row"><span class="k">入场日期</span><span class="v">${r.date.split(0,10).join(' ')}</span></div>
+        <div class="row"><span class="k">入场时间</span><span class="v">${r.date.split(11,16).join('')}-${r.end_date.split(11,16).join('')}</span></div>
+        <div class="row"><span class="k">预约人姓名</span><span class="v">${data.name}</span></div>
+        <div class="row"><span class="k">预约人证件号</span><span class="v">${data.card_type_title}</span></div>
+        <div class="row"><span class="k">预约人手机号</span><span class="v">${data.tel}</span></div>
+      </div>
+    </div>
+    <div class="btn-block ${r.status === 2 ? 'btn-disabled' : 'btn-primary'}" data-action="confirmOff" data-id="${r.id}" style="margin-top:24px;">
+      ${r.status === 2 ? '已核销' : '确认核销'}
+    </div>
+  `;
+  $('#scanResultContent').innerHTML = html;
+  showPage('scan-result');
+}
+
+/* ========== 事件绑定 ========== */
+document.addEventListener('click', function(e) {
+  const t = e.target.closest('[data-action]');
+  if (!t) return;
+  const action = t.dataset.action;
+  if (action === 'goDetail') openDetail(parseInt(t.dataset.id));
+  else if (action === 'goResult') openResult(parseInt(t.dataset.id));
+  else if (action === 'goRecords') showPage('records');
+  else if (action === 'goMine') showPage('mine');
+  else if (action === 'goAbout') showPage('about');
+  else if (action === 'goEdit') {
+    if (!state.user.loggedIn) showPage('login');
+    else { /* 跳编辑或保持 */ }
+  }
+  else if (action === 'goScan') openScan();
+  else if (action === 'simulateScan') simulateScan();
+  else if (action === 'goLogin') showPage('login');
+  else if (action === 'openDatepicker') openDatepicker();
+  else if (action === 'openCardpicker') openCardpicker(t.dataset.target);
+  else if (action === 'pickDate') {
+    state.selectedDate = t.dataset.date;
+    $$('#datePills .date-pill').forEach(p => p.classList.toggle('selected', p.dataset.date === t.dataset.date));
+    renderTimeSlots();
+  }
+  else if (action === 'pickTime') {
+    if (t.classList.contains('full')) return;
+    state.selectedTime = t.dataset.time;
+    renderTimeSlots();
+  }
+  else if (action === 'pickCard') {
+    const id = parseInt(t.dataset.id);
+    state.selectedCardType = id;
+    const ct = state.cardTypes.find(c => c.id === id);
+    if (state.cardPickerTarget === 'booker') {
+      $('#bookerCardType').textContent = ct.title;
+    } else {
+      const idx = parseInt(state.cardPickerTarget.split('-')[1]);
+      state.companions[idx].card_type = id;
+      state.companions[idx].card_type_title = ct.title;
+      renderCompanions();
+      updateAddBtn();
+    }
+    closeModal();
+  }
+  else if (action === 'closeModal') closeModal();
+  else if (action === 'confirmOff') {
+    const id = parseInt(t.dataset.id);
+    const r = state.records.find(x => x.id === id);
+    if (r) {
+      r.status = 2;
+      r.off_uid = 999;
+      r.off_time = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      alert('核销成功');
+      openScanResult(r);
+    }
+  }
+  else if (action === 'delCompanion') {
+    const idx = parseInt(t.dataset.idx);
+    state.companions.splice(idx, 1);
+    renderCompanions();
+    updateAddBtn();
+  }
+});
+
+$$('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+$$('[data-go]').forEach(el => {
+  el.addEventListener('click', () => showPage(el.dataset.go));
+});
+
+$('#btnRead').addEventListener('click', () => {
+  closeModal();
+  setTimeout(() => openDatepicker(), 200);
+});
+
+$('#btnDateConfirm').addEventListener('click', () => {
+  if (!state.selectedDate) { alert('请选择日期'); return; }
+  if (!state.selectedTime) { alert('请选择时段'); return; }
+  $('#dateLabel').textContent = `${state.selectedDate} ${state.selectedTime}`;
+  $('#dateLabel').classList.remove('placeholder');
+  closeModal();
+});
+
+$('#btnAddCompanion').addEventListener('click', () => {
+  const max = state.currentActivity.staff_num;
+  if (state.companions.length >= max) { alert(`最多${max}位随行人`); return; }
+  state.companions.push({ name: '', tel: '', id_card: '', card_type: 1, card_type_title: '第二代居民身份证' });
+  renderCompanions();
+  updateAddBtn();
+});
+
+$('#btnSubmit').addEventListener('click', () => {
+  if (!state.selectedDate) { alert('请选择预约日期'); return; }
+  if (!$('#bookerName').value) { alert('请输入预约人姓名'); return; }
+  if (!$('#bookerTel').value || !/^1\d{10}$/.test($('#bookerTel').value)) { alert('请输入正确的手机号'); return; }
+  if (!$('#bookerIdCard').value) { alert('请输入证件号'); return; }
+  // 校验随行人
+  for (let i = 0; i < state.companions.length; i++) {
+    const c = state.companions[i];
+    if (!c.name) { alert(`请输入随行人${i+1}姓名`); return; }
+    if (!c.id_card) { alert(`请输入随行人${i+1}证件号`); return; }
+  }
+  // 模拟提交
+  const ordercode = '2026' + Date.now().toString().slice(-12);
+  state.records.unshift({
+    id: Date.now(),
+    uid: 100, pro_id: state.currentActivity.id, ordercode, title: state.currentActivity.title,
+    name: $('#bookerName').value, tel: $('#bookerTel').value,
+    card_type: state.selectedCardType, id_card: $('#bookerIdCard').value,
+    num: 1 + state.companions.length, status: 1,
+    date: `${state.selectedDate} ${state.selectedTime}:00`,
+    end_date: `${state.selectedDate} ${state.selectedTime}:00`, // 简化
+    reserve_data: [
+      { name: $('#bookerName').value, tel: $('#bookerTel').value, id_card: $('#bookerIdCard').value, card_type: state.selectedCardType, card_type_title: state.cardTypes.find(c=>c.id===state.selectedCardType).title },
+      ...state.companions
+    ],
+    off_uid: 0, off_time: null
+  });
+  clearInterval(state.countdownTimer);
+  alert('预约成功！');
+  showPage('records');
+});
+
+$('#btnLogin').addEventListener('click', () => {
+  state.user.loggedIn = true;
+  state.user.nickname = $('#loginNick').value || '微信用户';
+  state.user.name = $('#loginName').value || state.user.nickname;
+  state.user.tel = $('#loginTel').value || '';
+  // 模拟不同身份用户：手机号以66结尾的为核销员
+  if (state.user.tel.endsWith('66')) state.user.type = 2;
+  showPage('mine');
+});
+
+// 初始化
+renderActivities();
+renderRecords();
+renderMine();
+updateAddBtn();
+</script>
+
+</body>
+</html>
