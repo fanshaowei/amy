@@ -100,17 +100,17 @@ public class MinaAppService {
             BeanUtils.copyProperties(project, resp);
             return resp;
         }).toList();
-        pageResp.setRecords(list);
         BeanUtils.copyProperties(projectsIPage, pageResp);
+        pageResp.setRecords(list);
 
         return pageResp;
     }
 
-    private Integer calculateDateReservationCount(Long projectId, Integer dateInterval) {
+    private Integer calculateDateReservationCount(Long projectId, Integer dayInterval) {
         ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
                 .projectId(projectId)
                 .reservationTimeStart(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 00:00:00"), 1))
-                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 23:59:59"), dateInterval))
+                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 23:59:59"), dayInterval))
                 .build();
         List<ReservationOrderStatisticByProjectVO> vos = reservationOrderService.selectReservationOrderStatisticByProject(criteria);
         if(vos.isEmpty()) return 0;
@@ -125,12 +125,13 @@ public class MinaAppService {
 
     private Integer calculateReservationStatus(Integer totalReservationCount, Integer reservationCount) {
         Integer reservationPercent = 0;
-        if(reservationCount > totalReservationCount) return ReservationStatusEnum.FILLED.getValue();
+        if(reservationCount >= totalReservationCount) return ReservationStatusEnum.FILLED.getValue();
 
         reservationPercent = Math.divideExact(reservationCount, totalReservationCount) * 100;
 
-        return reservationPercent > 80 ? (reservationPercent >= 100 ? ReservationStatusEnum.FILLED.getValue() : ReservationStatusEnum.TIGHT.getValue() )
-                : ReservationStatusEnum.AMPLE.getValue();
+        return reservationPercent > 80 ?
+                (reservationPercent >= 100 ? ReservationStatusEnum.FILLED.getValue() : ReservationStatusEnum.TIGHT.getValue() ) :
+                ReservationStatusEnum.AMPLE.getValue();
     }
 
     public MinaProjectReservationInfoResp extractProjectReservationInfo(Long projectId) {
