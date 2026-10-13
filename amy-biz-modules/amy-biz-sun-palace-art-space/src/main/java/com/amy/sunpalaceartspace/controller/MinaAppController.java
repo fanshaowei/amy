@@ -9,10 +9,7 @@ import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
-import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
-import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
-import com.amy.sunpalaceartspace.domain.req.VerifyUserReq;
-import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
+import com.amy.sunpalaceartspace.domain.req.*;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
@@ -132,13 +129,14 @@ public class MinaAppController extends BaseController {
     /**
      * 用户实名验证
      * @param token
-     * @param verifyUserReq
+     * @param userIdentityReq
      * @return
      */
     @PostMapping("/user/verify")
-    public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated VerifyUserReq verifyUserReq) {
+    public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
-        return R.ok(minaAppService.verifyUser(user, verifyUserReq));
+        userIdentityReq.setReservationUserId(user.getReservationUserId());
+        return R.ok(minaAppService.verifyUser(userIdentityReq));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.domain.req;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -26,6 +27,7 @@ public class UserIdentityReq {
     private String name;
 
     /** 证件类型（0身份证 1护照 2港澳台证件 3军官证） */
+    @NotNull(message = "证件类型不能为空")
     private Integer idType;
 
     /** 证件号码 */

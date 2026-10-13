@@ -8,18 +8,18 @@ import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
-import com.amy.sunpalaceartspace.domain.entity.Projects;
-import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
-import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
-import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
+import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
+import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
+import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.req.VerifyUserReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.enums.GenderEnum;
 import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
@@ -58,6 +58,8 @@ public class MinaAppService {
     private final RedisService redisService;
     private final ReservationUtil reservationUtil;
     private final MinaAppLoginService minaAppLoginService;
+    private final IUserIdentityService userIdentityService;
+    private final AliIdCheckService aliIdCheckService;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -232,7 +234,15 @@ public class MinaAppService {
         return verifyFlag;
     }
 
-    public boolean verifyUser(ReservationUser user, VerifyUserReq req) {
-        return true;
+    public boolean verifyUser(UserIdentityReq req) {
+        // 调阿里接口验证身份信息
+        AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
+        if(aliIdCheckDto.getData().getResult() == 1) {
+            throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
+        }
+        int gender = GenderEnum.getCodeFromDesc(aliIdCheckDto.getData().getSex());
+        req.setGender(gender);
+
+        return userIdentityService.saveUserIdentity(req);
     }
 }
