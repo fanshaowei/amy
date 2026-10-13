@@ -237,10 +237,12 @@ public class MinaAppService {
     public boolean verifyUser(UserIdentityReq req) {
         // 调阿里接口验证身份信息
         AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
-        if(aliIdCheckDto.getData().getResult() == 1) {
+        AliIdCheckDto.DataDTO data = aliIdCheckDto.getData();
+        // result: 0=一致，1=不一致；用 Integer.valueOf().equals 避免 getResult() 为 null 时拆箱 NPE
+        if (Integer.valueOf(1).equals(data.getResult())) {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
-        int gender = GenderEnum.getCodeFromDesc(aliIdCheckDto.getData().getSex());
+        int gender = GenderEnum.getCodeFromDesc(data.getSex());
         req.setGender(gender);
 
         return userIdentityService.saveUserIdentity(req);
