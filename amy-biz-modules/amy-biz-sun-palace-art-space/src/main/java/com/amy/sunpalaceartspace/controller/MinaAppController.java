@@ -130,7 +130,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 用户实名验证
+     * 用户实名验证，同时会添加用户信息实名记录
      * @param token
      * @param userIdentityReq
      * @return
@@ -143,6 +143,12 @@ public class MinaAppController extends BaseController {
         return R.ok(minaAppService.verifyUser(user, userIdentityReq));
     }
 
+    /**
+     * 添加随从人
+     * @param token
+     * @param userIdentityReq
+     * @return
+     */
     @PostMapping("/user/follower/add")
     public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
