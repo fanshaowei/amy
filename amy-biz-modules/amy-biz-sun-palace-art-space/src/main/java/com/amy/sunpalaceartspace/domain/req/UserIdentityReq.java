@@ -35,11 +35,14 @@ public class UserIdentityReq {
     @Size(min = 0, max = 50, message = "证件号码长度不能超过50个字符")
     private String idNum;
 
-    /** 性别（0女 1男） */
+    /** 性别（0女 1男）实名认证后会自动更新 */
     private Integer gender;
 
     /** 手机号码 */
     @NotBlank(message = "手机号码不能为空")
     @Size(min = 0, max = 11, message = "手机号码长度不能超过11个字符")
     private String phone;
+
+    /** 是否跟随者（随行人）：false=否，true=是 */
+    private Boolean isFollower;
 }

@@ -12,8 +12,8 @@ import java.util.List;
  */
 @Getter
 public enum GenderEnum {
-    MALE(0, "男"),
-    FEMALE(1, "女");
+    MALE(1, "男"),
+    FEMALE(0, "女");
 
     private final int code;
     private final String desc;

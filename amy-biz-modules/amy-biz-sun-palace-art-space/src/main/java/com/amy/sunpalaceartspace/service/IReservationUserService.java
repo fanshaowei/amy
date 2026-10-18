@@ -104,4 +104,6 @@ public interface IReservationUserService extends IService<ReservationUser> {
      * @return
      */
     ReservationUser selectUserInfoByOpenId(String openId);
+
+    boolean updateVerifyStatus(Long reservationUserId, Boolean verifyStatus);
 }

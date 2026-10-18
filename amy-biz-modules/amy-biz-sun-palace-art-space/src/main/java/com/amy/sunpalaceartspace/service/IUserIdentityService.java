@@ -5,6 +5,7 @@ import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
  * @author fantasyfan
  * @date 2026-09-13
  */
-public interface IUserIdentityService {
+public interface IUserIdentityService extends IService<UserIdentity> {
 
     /**
      * 分页列表
@@ -45,4 +46,8 @@ public interface IUserIdentityService {
      * 删除（软删除）
      */
     boolean removeUserIdentityByIds(Long[] userIdentityIds);
+
+    void updateOrSaveUserIdentityAfterRealVerify(UserIdentityReq req);
+
+    boolean countByIdNum( String idNum);
 }

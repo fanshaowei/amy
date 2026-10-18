@@ -125,6 +125,16 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
         return this.getOne(queryWrapper);
     }
 
+    @Override
+    public boolean updateVerifyStatus(Long reservationUserId, Boolean verifyStatus) {
+        LambdaUpdateWrapper<ReservationUser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ReservationUser::getReservationUserId, reservationUserId)
+                .set(ReservationUser::getIsVerified, verifyStatus)
+                .set(ReservationUser::getUpdateTime, DateUtils.getNowDate())
+                .set(ReservationUser::getUpdateBy, SecurityUtils.getUsername());
+        return this.update(updateWrapper);
+    }
+
     /**
      * 请求对象转实体（Controller 只负责入参接收，业务转换放 Service）
      */

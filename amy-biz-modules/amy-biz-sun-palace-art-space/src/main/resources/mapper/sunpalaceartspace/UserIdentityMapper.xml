@@ -12,6 +12,7 @@
         <result property="idNum" column="id_num"/>
         <result property="gender" column="gender"/>
         <result property="phone" column="phone"/>
+        <result property="isFollower" column="is_follower"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
@@ -23,6 +24,7 @@
                id_num,
                gender,
                phone,
+               is_follower,
                create_time
         from biz_spas_user_identity
     </sql>

@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service.impl;
 import java.util.Arrays;
 import java.util.List;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +67,28 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
         return removeByIds(Arrays.asList(userIdentityIds));
     }
 
+    @Override
+    public void updateOrSaveUserIdentityAfterRealVerify(UserIdentityReq req) {
+        LambdaQueryWrapper<UserIdentity> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(UserIdentity::getReservationUserId, req.getReservationUserId())
+                .eq(UserIdentity::getIdNum, req.getIdNum())
+                .eq(UserIdentity::getIsFollower, req.getIsFollower());
+        UserIdentity userIdentity = this.baseMapper.selectOne(queryWrapper);
+        if(userIdentity == null) {
+            this.saveUserIdentity(req);
+        } else {
+            req.setUserIdentityId(userIdentity.getUserIdentityId());
+            this.updateUserIdentity(req);
+        }
+    }
+
+    @Override
+    public boolean countByIdNum(String idNum) {
+        LambdaQueryWrapper<UserIdentity> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(UserIdentity::getIdNum, idNum);
+        return this.baseMapper.exists(queryWrapper);
+    }
+
     /**
      * 请求对象转实体（Controller 只负责入参接收，业务转换放 Service）
      */
@@ -78,6 +101,7 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
         entity.setIdNum(req.getIdNum());
         entity.setGender(req.getGender());
         entity.setPhone(req.getPhone());
+        entity.setIsFollower(req.getIsFollower() != null ? req.getIsFollower() : Boolean.FALSE);
         return entity;
     }
 }

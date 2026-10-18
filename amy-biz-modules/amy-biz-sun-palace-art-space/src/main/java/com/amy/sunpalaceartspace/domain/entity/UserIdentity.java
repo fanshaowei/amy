@@ -63,4 +63,10 @@ public class UserIdentity extends BaseEntity {
     @Size(min = 0, max = 11, message = "手机号码长度不能超过11个字符")
     @TableField("phone")
     private String phone;
+
+    /**
+     * 是否跟随者（随行人）：false=否，true=是
+     */
+    @TableField("is_follower")
+    private Boolean isFollower;
 }

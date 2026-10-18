@@ -44,6 +44,10 @@ public class UserIdentityVO {
     @Excel(name = "手机号码")
     private String phone;
 
+    /** 是否跟随者（随行人）：0=否，1=是 */
+    @Excel(name = "是否跟随者")
+    private Boolean isFollower;
+
     /** 创建时间 */
     @Excel(name = "创建时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

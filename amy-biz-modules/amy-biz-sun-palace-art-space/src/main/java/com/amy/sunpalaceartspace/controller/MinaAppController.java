@@ -14,6 +14,7 @@ import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.service.impl.MinaAppLoginService;
@@ -28,6 +29,8 @@ import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @ClassName MinaAppController
@@ -136,7 +139,16 @@ public class MinaAppController extends BaseController {
     public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         userIdentityReq.setReservationUserId(user.getReservationUserId());
-        return R.ok(minaAppService.verifyUser(userIdentityReq));
+        userIdentityReq.setIsFollower(false);
+        return R.ok(minaAppService.verifyUser(user, userIdentityReq));
+    }
+
+    @PostMapping("/user/follower/add")
+    public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        userIdentityReq.setReservationUserId(user.getReservationUserId());
+        user.setIsVerified(true);
+        return R.ok(minaAppService.addFollower(user, userIdentityReq));
     }
 
     /**

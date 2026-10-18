@@ -1,46 +1,35 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
-import com.amy.common.mq.bo.AmyMqProducerBO;
-import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.common.redis.service.RedisService;
-import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
-import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
-import com.amy.sunpalaceartspace.domain.req.VerifyUserReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.GenderEnum;
-import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.*;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.producer.SendStatus;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
-import static org.apache.rocketmq.client.producer.SendStatus.SEND_OK;
 
 /**
  * @ClassName MinaAppService
@@ -234,7 +223,28 @@ public class MinaAppService {
         return verifyFlag;
     }
 
-    public boolean verifyUser(UserIdentityReq req) {
+    public boolean verifyUser(ReservationUser user, UserIdentityReq req) {
+        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        if(b) {
+            throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
+        }
+
+        AliIdCheckDto.DataDTO data = verify(req);
+        int gender = GenderEnum.getCodeFromDesc(data.getSex());
+        req.setGender(gender);
+        log.info("start to save/update user identity info, user:{}", req);
+        userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
+        log.info("save/update user identify completed");
+
+        log.info("update reservation user verify status, userId:{}", req.getUserIdentityId());
+        user.setIsVerified(true);
+        reservationUserService.saveOrUpdate(user);
+        log.info("update reservation user verify status completed");
+
+        return true;
+    }
+
+    private AliIdCheckDto.DataDTO verify(UserIdentityReq req) {
         // 调阿里接口验证身份信息
         AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
         AliIdCheckDto.DataDTO data = aliIdCheckDto.getData();
@@ -242,9 +252,29 @@ public class MinaAppService {
         if (Integer.valueOf(1).equals(data.getResult())) {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
+        return data;
+    }
+
+    public List<UserIdentityVO> addFollower(ReservationUser user, UserIdentityReq req) {
+        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        if(b) {
+            throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
+        }
+
+        AliIdCheckDto.DataDTO data = verify(req);
         int gender = GenderEnum.getCodeFromDesc(data.getSex());
         req.setGender(gender);
 
-        return userIdentityService.saveUserIdentity(req);
+        log.info("start to save/update follower info, user:{}", req);
+        userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
+        log.info("save/update follower completed");
+
+        UserIdentity userIdentity = new UserIdentity();
+        userIdentity.setReservationUserId(user.getReservationUserId());
+        IPage<UserIdentityVO> userIdentityVOIPage = userIdentityService.selectUserIdentityList(new Page<>(1,100), userIdentity);
+        if(null == userIdentityVOIPage) {
+            return Collections.emptyList();
+        }
+        return userIdentityVOIPage.getRecords();
     }
 }
