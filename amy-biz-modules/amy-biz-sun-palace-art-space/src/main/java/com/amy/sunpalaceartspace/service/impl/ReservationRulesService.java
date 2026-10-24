@@ -51,21 +51,23 @@ public class ReservationRulesService {
                     project.getReservationStartTime(), project.getReservationEndTime(), project.getReservationIntervalSecond());
             for (String time : times) {
                 String reservationTimeStr = time.split(":")[0] + time.split(":")[1];
-                String fullReservationTime = targetDateStr + reservationTimeStr;
-                String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationTime);
+                String fullReservationDateTime = targetDateStr + reservationTimeStr;
+                String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationDateTime);
 
                 // 1. 确保库存行存在（total = 项目配置的每时段名额）
-                ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationTime);
+                ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationDateTime);
                 if (stock == null) {
                     stock = new ReservationStock();
                     stock.setProjectId(project.getProjectId());
-                    stock.setReservationTime(fullReservationTime);
+                    stock.setReservationTime(fullReservationDateTime);
                     stock.setReservationCount(project.getReservationCount());
                     stock.setReleaseCount(0);
                     stock.setReservedCount(0);
                     stock.setBatch1Released(false);
                     stock.setBatch2Released(false);
                     stock.setStatus(true);
+                    stock.setCreateTime(new Date());
+                    stock.setCreateBy("system");
                     reservationStockService.saveReservationStock(stock);
                 }
 
@@ -79,12 +81,16 @@ public class ReservationRulesService {
                     }
                     delta = Math.min(RESERVATION_RELEASE_BATCH_STEP, total - released);
                     stock.setBatch1Released(true);
+                    stock.setUpdateTime(new Date());
+                    stock.setUpdateBy("system");
                 } else if (batch == 2) {
                     if (Boolean.TRUE.equals(stock.getBatch2Released())) {
                         continue;
                     }
                     delta = total - released; // 补足至满
                     stock.setBatch2Released(true);
+                    stock.setUpdateTime(new Date());
+                    stock.setUpdateBy("system");
                 } else {
                     continue;
                 }
@@ -99,7 +105,7 @@ public class ReservationRulesService {
 
                 // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
                 redisService.redisTemplate.opsForValue().increment(stockKey, delta);
-                log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationTime, batch, delta);
+                log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
             }
         }
     }

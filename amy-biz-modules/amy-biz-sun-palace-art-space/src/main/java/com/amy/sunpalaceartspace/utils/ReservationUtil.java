@@ -46,7 +46,7 @@ public class ReservationUtil {
      * 提取预约时间
      * <p>规则：从 startTime 开始，每隔 interval 秒，直到 endTime 结束。</p>
      */
-    public List<String> extractReservationTimes(String startTime, String endTime, Integer interval){
+    public List<String> extractReservationTimes(String startTime, String endTime, Integer intervalSecond){
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtils.HH_MM_SS);
         LocalTime start = LocalTime.parse(startTime, formatter);
         LocalTime end = LocalTime.parse(endTime, formatter);
@@ -54,7 +54,7 @@ public class ReservationUtil {
         List<String> result = new ArrayList<>();
         while (start.isBefore(end)) {
             result.add(start.format(formatter));
-            start = start.plusMinutes(interval / 60);
+            start = start.plusMinutes(intervalSecond / 60);
             loop++;
             if(loop > 6) break;
         }
