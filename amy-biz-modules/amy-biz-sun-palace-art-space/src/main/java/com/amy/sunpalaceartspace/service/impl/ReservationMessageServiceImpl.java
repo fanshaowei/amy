@@ -35,6 +35,7 @@ public class ReservationMessageServiceImpl extends ServiceImpl<ReservationMessag
         if (message.getRetryCount() == null) {
             message.setRetryCount(0);
         }
+        message.setCreateTime(DateUtils.getNowDate());
         return save(message);
     }
 

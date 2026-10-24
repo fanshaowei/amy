@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.domain.bo;
 
 import com.amy.common.mq.bo.AmyMqProducerBO;
+import com.amy.sunpalaceartspace.domain.req.FollowerReq;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +28,7 @@ public class ReservationOrderMqSendBO extends AmyMqProducerBO {
     private String idNum;
     private Integer guestsNum;
     private Date reservationTime;
-    private List<String> compUsers;
+    private List<FollowerReq> compUsers;
 
     private String reservationNum;
     private Long reservationUserId;

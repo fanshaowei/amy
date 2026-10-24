@@ -17,6 +17,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         implements IReservationOrderService {
 
     private final ReservationUtil reservationUtil;
+    private final ObjectMapper objectMapper;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -144,6 +147,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     {
         ReservationOrder order = new ReservationOrder();
         order.setReservationOrderId(req.getReservationOrderId());
+        order.setReservationNum(req.getReservationNum());
         order.setProjectId(req.getProjectId());
         order.setReservationUserId(req.getReservationUserId());
         order.setName(req.getName());
@@ -154,8 +158,16 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setReservationTime(req.getReservationTime());
         order.setReservationStatus(req.getReservationStatus());
 
-        // 随行人身份信息：List<String> 直接透传，由字段注解上的 StringListJsonTypeHandler 自动 JSON 化
-        order.setCompUsers(req.getCompUsers());
+        // 随行人身份信息：序列化为 JSON 字符串后直接存入 comp_users 列（实体字段类型为 String）
+        String compUsersJson = null;
+        if(req.getCompUsers() != null && !req.getCompUsers().isEmpty()) {
+            try {
+                compUsersJson = objectMapper.writeValueAsString(req.getCompUsers());
+                order.setCompUsers(compUsersJson);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
         return order;
     }
 }

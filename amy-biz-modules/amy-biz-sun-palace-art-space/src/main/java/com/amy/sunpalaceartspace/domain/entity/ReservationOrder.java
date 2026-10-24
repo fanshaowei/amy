@@ -103,18 +103,20 @@ public class ReservationOrder extends BaseEntity {
     private Date verifyTime;
 
     /**
-     * 预约随行人身份信息（数组列表字符串）。
+     * 预约随行人身份信息（JSON 字符串）。
      *
-     * <p>类型 {@code List<String>}，每个元素的内容为 {@code com.amy.sunpalaceartspace.domain.entity.UserIdentity}
-     * 字段序列化后的 JSON 字符串（如 {@code "{\"name\":\"张三\",\"idNum\":\"110101199001011234\"}"}）。</p>
+     * <p>类型 {@code String}，直接对应 {@code comp_users} VARCHAR(2000) 列存储的 JSON 字符串。
+     * 内容为由 {@code com.amy.sunpalaceartspace.domain.req.FollowerReq} 列表序列化而成的 JSON 数组
+     * （如 {@code [{"name":"张三","idNum":"110101199001011234"}]}）。</p>
      *
-     * <p>通过字段级 typeHandler {@link StringListJsonTypeHandler} 把 {@code List<String>}
-     * 以 JSON 数组字符串形式存入 {@code comp_users} VARCHAR(2000) 列；读取时自动反序列化。</p>
+     * <p>不再使用 {@link StringListJsonTypeHandler}：实体字段即为原始 JSON 字符串，由 MyBatis 默认
+     * StringTypeHandler 直接读写。如需在 VO 中反序列化为列表，由
+     * {@code ReservationOrderMapper.xml} 的 VO resultMap 单独指定 typeHandler 处理。</p>
      *
      * <p>仅保存随行人"快照信息"，不与 {@code biz_spas_user_identity} 表建立 FK，
      * 避免随行人后续修改/删除时影响历史预约单的可追溯性。</p>
      */
     @Excel(name = "随行人信息")
-    @TableField(value = "comp_users", typeHandler = StringListJsonTypeHandler.class)
-    private List<String> compUsers;
+    @TableField(value = "comp_users")
+    private String compUsers;
 }

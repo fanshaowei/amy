@@ -5,7 +5,10 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
-import com.amy.sunpalaceartspace.domain.entity.*;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
+import com.amy.sunpalaceartspace.domain.entity.UserIdentity;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
@@ -17,7 +20,10 @@ import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.GenderEnum;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
-import com.amy.sunpalaceartspace.service.*;
+import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.amy.sunpalaceartspace.service.IUserIdentityService;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
-import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
 
 /**
  * @ClassName MinaAppService

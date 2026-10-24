@@ -95,9 +95,11 @@ public class ReservationOrderVO {
     private Date createTime;
 
     /**
-     * 预约随行人身份信息（数组列表字符串）。
-     * <p>每个元素为 {@code UserIdentity} 字段序列化后的 JSON 字符串；与 {@code entity.compUsers}
-     * 字段保持一致（同样通过 {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler} 映射）。</p>
+     * 预约随行人身份信息（数组列表）。
+     * <p>数据库 {@code comp_users} 列存的是 JSON 字符串，本 VO 字段由
+     * {@code ReservationOrderMapper.xml} 的 resultMap 通过
+     * {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler} 反序列化为
+     * {@code List<String>}（每个元素为一条随行人信息的 JSON 对象字符串）。</p>
      */
     @Excel(name = "随行人信息")
     private List<String> compUsers;

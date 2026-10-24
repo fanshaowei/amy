@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.domain.req;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
@@ -13,6 +14,7 @@ public class WechatApiAuthLoginReq {
     /**
      * 微信jsCode
      */
+    @NotBlank(message = "jsCode不能为空")
     private String jsCode;
     /**
      * 微信头像

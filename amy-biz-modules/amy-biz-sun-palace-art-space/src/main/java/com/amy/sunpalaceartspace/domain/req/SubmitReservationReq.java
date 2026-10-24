@@ -1,6 +1,5 @@
 package com.amy.sunpalaceartspace.domain.req;
 
-import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -62,5 +61,5 @@ public class SubmitReservationReq {
      * {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler}
      * 自动序列化为 JSON 数组字符串存入 {@code comp_users} 列。</p>
      */
-    private List<String> compUsers;
+    private List<FollowerReq> compUsers;
 }

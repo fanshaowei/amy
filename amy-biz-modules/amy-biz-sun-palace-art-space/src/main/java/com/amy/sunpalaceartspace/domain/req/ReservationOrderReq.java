@@ -24,6 +24,7 @@ public class ReservationOrderReq {
     /** 预约订单ID（新增时为空，修改时必填） */
     private Long reservationOrderId;
 
+    /** 预约订单号 */
     private String reservationNum;
 
     /** 预约项目ID */
@@ -88,5 +89,5 @@ public class ReservationOrderReq {
      * {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler}
      * 自动序列化为 JSON 数组字符串存入 {@code comp_users} 列。</p>
      */
-    private List<String> compUsers;
+    private List<FollowerReq> compUsers;
 }

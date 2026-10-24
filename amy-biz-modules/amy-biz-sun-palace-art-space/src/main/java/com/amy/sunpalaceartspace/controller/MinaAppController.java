@@ -56,7 +56,7 @@ public class MinaAppController extends BaseController {
      * @throws WxErrorException
      */
     @PostMapping("/auth/login")
-    public R<String> login(@RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
+    public R<String> login(@Validated @RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
         String token = minaAppLoginService.generalApiAuthToken(req);
         return R.ok(token);
     }
@@ -93,7 +93,7 @@ public class MinaAppController extends BaseController {
      * @param request
      * @return
      */
-    @MinaApiAuth
+//    @MinaApiAuth
     @PostMapping("/reservation/submit")
     public R<String> submitReservation(@RequestHeader("Authorization") String token,
             @RequestBody @Validated SubmitReservationReq request) {
@@ -101,7 +101,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 获取预订记录
+     * 获取用户所有预订记录
      * @param token
      * @return
      */
@@ -135,6 +135,7 @@ public class MinaAppController extends BaseController {
      * @param userIdentityReq
      * @return
      */
+    //@MinaApiAuth
     @PostMapping("/user/verify")
     public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
@@ -149,6 +150,7 @@ public class MinaAppController extends BaseController {
      * @param userIdentityReq
      * @return
      */
+    //@MinaApiAuth
     @PostMapping("/user/follower/add")
     public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);

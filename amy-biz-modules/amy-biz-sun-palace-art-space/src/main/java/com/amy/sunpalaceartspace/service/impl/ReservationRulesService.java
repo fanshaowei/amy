@@ -1,7 +1,6 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.utils.DateUtils;
-import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
 import com.amy.sunpalaceartspace.service.IProjectsService;
@@ -9,6 +8,7 @@ import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
@@ -33,9 +33,9 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
 @Service
 public class ReservationRulesService {
     private final IProjectsService projectsService;
-    private final RedisService redisService;
     private final IReservationStockService reservationStockService;
     private final ReservationUtil reservationUtil;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 分批放号核心逻辑：在每个项目、目标日的每个时段上，按批次累加“已放号”并同步 Redis 可用库存。
@@ -104,7 +104,7 @@ public class ReservationRulesService {
                 reservationStockService.updateById(stock);
 
                 // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
-                redisService.redisTemplate.opsForValue().increment(stockKey, delta);
+                stringRedisTemplate.opsForValue().increment(stockKey, delta);
                 log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
             }
         }
@@ -120,7 +120,7 @@ public class ReservationRulesService {
             int reserved = stock.getReservedCount() == null ? 0 : stock.getReservedCount();
             int available = released - reserved;
             String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, stock.getProjectId(), stock.getReservationTime());
-            redisService.setCacheObject(stockKey, available);
+            stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(available));
         }
         log.info("reconcileStockToRedis done, size:{}", all.size());
     }
