@@ -21,4 +21,9 @@ public class ServiceNameConstants
      * 文件服务的serviceid
      */
     public static final String FILE_SERVICE = "amy-file";
+
+    /**
+     * 太阳宫艺术空间服务的serviceid
+     */
+    public static final String SPAS_SERVICE = "amy-biz-sun-palace-art-space";
 }

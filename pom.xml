@@ -245,6 +245,13 @@
                 <artifactId>amy-api-system</artifactId>
                 <version>${amy.version}</version>
             </dependency>
+
+            <!-- 太阳宫艺术空间接口 -->
+            <dependency>
+                <groupId>com.amy</groupId>
+                <artifactId>amy-api-spas</artifactId>
+                <version>${amy.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

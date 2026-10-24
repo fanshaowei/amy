@@ -10,6 +10,7 @@
 
     <modules>
         <module>amy-api-system</module>
+        <module>amy-api-spas</module>
     </modules>
 
     <artifactId>amy-api</artifactId>

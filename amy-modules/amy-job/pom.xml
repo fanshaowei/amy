@@ -65,6 +65,12 @@
             <artifactId>amy-common-swagger</artifactId>
         </dependency>
 
+        <!-- amy-api-spas 太阳宫艺术空间远程接口（Feign 内部调用放号） -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-api-spas</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
