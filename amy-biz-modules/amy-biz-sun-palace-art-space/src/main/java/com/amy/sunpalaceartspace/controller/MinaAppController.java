@@ -5,7 +5,6 @@ import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
-import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -126,7 +125,7 @@ public class MinaAppController extends BaseController {
     //@MinaApiAuth
     @GetMapping("/user/info")
     public R<MinaReservationUserInfoResp> getUserInfo(@RequestHeader("Authorization") String token) {
-        return R.ok(minaAppService.extractUserInfo(token));
+        return R.ok(minaAppService.extractReservationUserInfo(token));
     }
 
     /**
@@ -152,7 +151,8 @@ public class MinaAppController extends BaseController {
      */
     //@MinaApiAuth
     @PostMapping("/user/follower/add")
-    public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
+    public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token,
+                                               @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         userIdentityReq.setReservationUserId(user.getReservationUserId());
         user.setIsVerified(true);

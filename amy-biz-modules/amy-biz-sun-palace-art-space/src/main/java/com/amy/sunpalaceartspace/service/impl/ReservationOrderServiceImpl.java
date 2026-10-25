@@ -92,7 +92,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public boolean saveReservationOrder(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
@@ -106,7 +105,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public boolean updateReservationOrder(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
@@ -116,7 +114,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public boolean removeReservationOrderByIds(Long[] reservationOrderIds)
     {
         return removeByIds(Arrays.asList(reservationOrderIds));

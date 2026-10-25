@@ -97,7 +97,7 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
         entity.setUserIdentityId(req.getUserIdentityId());
         entity.setReservationUserId(req.getReservationUserId());
         entity.setName(req.getName());
-        entity.setIdType(req.getIdType());
+        entity.setIdType(req.getIdType().getType());
         entity.setIdNum(req.getIdNum());
         entity.setGender(req.getGender());
         entity.setPhone(req.getPhone());

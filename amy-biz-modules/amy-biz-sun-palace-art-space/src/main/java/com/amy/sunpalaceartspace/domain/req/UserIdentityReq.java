@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.domain.req;
 
+import com.amy.sunpalaceartspace.enums.IdType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,9 +27,9 @@ public class UserIdentityReq {
     @Size(min = 0, max = 50, message = "用户姓名长度不能超过50个字符")
     private String name;
 
-    /** 证件类型（0身份证 1护照 2港澳台证件 3军官证） */
+    /** 证件类型（1身份证 2护照 3港澳证件 4台湾通行证 5军官证） */
     @NotNull(message = "证件类型不能为空")
-    private Integer idType;
+    private IdType idType;
 
     /** 证件号码 */
     @NotBlank(message = "证件号码不能为空")

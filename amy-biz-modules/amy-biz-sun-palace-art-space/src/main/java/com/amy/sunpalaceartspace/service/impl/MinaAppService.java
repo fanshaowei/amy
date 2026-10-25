@@ -25,13 +25,12 @@ import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.service.IUserIdentityService;
+import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
-import org.apache.xmlbeans.impl.xb.xsdschema.Attribute;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,7 +197,7 @@ public class MinaAppService {
         return resp;
     }
 
-    public MinaReservationUserInfoResp extractUserInfo(String token) {
+    public MinaReservationUserInfoResp extractReservationUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
         ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
         List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityById(userInfo.getReservationUserId(), List.of( Boolean.FALSE));
@@ -237,19 +236,30 @@ public class MinaAppService {
         return verifyFlag;
     }
 
+    @Transactional
     public boolean verifyUser(ReservationUser user, UserIdentityReq req) {
+        boolean verify = IdVerifyUtil.verify(req.getIdType(), req.getIdNum());
+        if(!verify) {
+            throw new ServiceException("证件号码格式不正确，请检查后重新输入");
+        }
+        if(user.getIsVerified()) {
+            throw new ServiceException("用户已实名验证，无需重复验证");
+        }
         boolean b = userIdentityService.countByIdNum(req.getIdNum());
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
-
-        AliIdCheckDto.ResultDTO data = verify(req);
-        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
-        if (idCardInfor == null) {
-            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+        // 实名认证
+        if(!req.getIdType().equals(IdType.ID_CARD)) {
+            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+            if (idCardInfor == null) {
+                throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+            }
+            int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
+            req.setGender(gender);
         }
-        int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
-        req.setGender(gender);
+
         log.info("start to save/update user identity info, user:{}", req);
         userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
         log.info("save/update user identify completed");
@@ -265,6 +275,36 @@ public class MinaAppService {
         return true;
     }
 
+    public List<UserIdentityVO> addFollower(ReservationUser user, UserIdentityReq req) {
+        boolean verify = IdVerifyUtil.verify(req.getIdType(), req.getIdNum());
+        if(!verify) {
+            throw new ServiceException("证件号码格式不正确，请检查后重新输入");
+        }
+
+        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        if(b) {
+            throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
+        }
+
+        AliIdCheckDto.ResultDTO data = verify(req);
+        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+        if (idCardInfor == null) {
+            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+        }
+
+        log.info("start to save/update follower info, user:{}", req);
+        userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
+        log.info("save/update follower completed");
+
+        UserIdentity userIdentity = new UserIdentity();
+        userIdentity.setReservationUserId(user.getReservationUserId());
+        IPage<UserIdentityVO> userIdentityVOIPage = userIdentityService.selectUserIdentityList(new Page<>(1,100), userIdentity);
+        if(null == userIdentityVOIPage) {
+            return Collections.emptyList();
+        }
+        return userIdentityVOIPage.getRecords();
+    }
+
     private AliIdCheckDto.ResultDTO verify(UserIdentityReq req) {
         // 调阿里接口验证身份信息
         AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
@@ -278,32 +318,5 @@ public class MinaAppService {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
         return data;
-    }
-
-    public List<UserIdentityVO> addFollower(ReservationUser user, UserIdentityReq req) {
-        boolean b = userIdentityService.countByIdNum(req.getIdNum());
-        if(b) {
-            throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
-        }
-
-        AliIdCheckDto.ResultDTO data = verify(req);
-        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
-        if (idCardInfor == null) {
-            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
-        }
-        int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
-        req.setGender(gender);
-
-        log.info("start to save/update follower info, user:{}", req);
-        userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
-        log.info("save/update follower completed");
-
-        UserIdentity userIdentity = new UserIdentity();
-        userIdentity.setReservationUserId(user.getReservationUserId());
-        IPage<UserIdentityVO> userIdentityVOIPage = userIdentityService.selectUserIdentityList(new Page<>(1,100), userIdentity);
-        if(null == userIdentityVOIPage) {
-            return Collections.emptyList();
-        }
-        return userIdentityVOIPage.getRecords();
     }
 }
