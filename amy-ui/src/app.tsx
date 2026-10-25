@@ -1,11 +1,11 @@
-import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import type {RunTimeLayoutConfig, RequestConfig} from '@umijs/max';
 import {history} from '@umijs/max';
-import {App, Avatar, Dropdown, message as antdMessage} from 'antd';
+import {App, message as antdMessage} from 'antd';
 import React from 'react';
+import AvatarDropdown from '@/components/RightContent/AvatarDropdown';
 import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
-import {getRouters, getUserInfo, logout} from '@/services/auth';
+import {getRouters, getUserInfo} from '@/services/auth';
 import {clearSession, getToken} from '@/utils/auth';
 
 export interface AmyInitialState {
@@ -119,39 +119,6 @@ export const request: RequestConfig = {
     }
 };
 
-const UserMenu = ({currentUser}: { currentUser?: CurrentUser }) => {
-    const {message} = App.useApp();
-
-    return (
-        <Dropdown
-            menu={{
-                items: [
-                    {key: 'profile', icon: <UserOutlined/>, label: '个人中心'},
-                    {type: 'divider'},
-                    {key: 'logout', icon: <LogoutOutlined/>, label: '退出登录'}
-                ],
-                onClick: async ({key}) => {
-                    if (key === 'profile') history.push('/system/user/profile');
-                    if (key === 'logout') {
-                        try {
-                            await logout();
-                        } finally {
-                            clearSession();
-                            message.success('已退出登录');
-                            history.push('/login');
-                        }
-                    }
-                }
-            }}
-        >
-      <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer'}}>
-        <Avatar size="small" src={currentUser?.avatar} icon={<UserOutlined/>}/>
-          {currentUser?.nickName || currentUser?.userName}
-      </span>
-        </Dropdown>
-    );
-};
-
 export const layout: RunTimeLayoutConfig = ({initialState}) => ({
     title: '太阳宫艺术空间',
     logo: false,
@@ -159,7 +126,7 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
     fixSiderbar: true,
     layout: 'mix',
     contentWidth: 'Fluid',
-    rightContentRender: () => <UserMenu currentUser={initialState?.currentUser}/>,
+    rightContentRender: () => <AvatarDropdown currentUser={initialState?.currentUser}/>,
     menuDataRender: (menuData) => {
         const backend = initialState?.routes;
         const source = backend && backend.length ? backend : mapStaticRoutesToSidebar(menuData as unknown as BackendRoute[]);
