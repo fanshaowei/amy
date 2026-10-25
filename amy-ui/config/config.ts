@@ -19,11 +19,17 @@ export default defineConfig({
     { path: '/login', layout: false, component: '@/pages/Login' },
     { path: '/', redirect: '/welcome' },
     { path: '/welcome', name: '首页', icon: 'DashboardOutlined', component: '@/pages/Welcome' },
+    // 目录级菜单（只有子路由、本身没有页面组件）必须配重定向：
+    // 否则访问父路径时 umi 只渲染空的路由出口 → 白屏，且不会落到 '*' 占位页。
+    // 注意 umi 4 会**丢弃**「父路由 + routes」上的 redirect（生成的 route.tsx 里没有），
+    // 因此这里按 umi 支持的写法：把「父路径 + redirect」作为第一个子路由（索引路由），
+    // 并 hideInMenu 避免在菜单里多出一个同名空项。
     {
       path: '/system',
       name: '系统管理',
       icon: 'SettingOutlined',
       routes: [
+        { path: '/system', redirect: '/system/user', hideInMenu: true },
         { path: '/system/user', name: '用户管理', component: '@/pages/System/User' },
         { path: '/system/role', name: '角色管理', component: '@/pages/System/Role' },
         { path: '/system/menu', name: '菜单管理', component: '@/pages/System/Menu' },
@@ -37,6 +43,7 @@ export default defineConfig({
           path: '/system/log',
           name: '日志管理',
           routes: [
+            { path: '/system/log', redirect: '/system/log/operlog', hideInMenu: true },
             { path: '/system/log/operlog', name: '操作日志', component: '@/pages/System/Operlog' },
             { path: '/system/log/logininfor', name: '登录日志', component: '@/pages/System/Logininfor' }
           ]
@@ -48,6 +55,7 @@ export default defineConfig({
       name: '监控管理',
       icon: 'EyeOutlined',
       routes: [
+        { path: '/monitor', redirect: '/monitor/job', hideInMenu: true },
         { path: '/monitor/job', name: '定时任务', component: '@/pages/Monitor/Job' },
         { path: '/monitor/job-log', name: '任务日志', component: '@/pages/Monitor/Job/log', hideInMenu: true },
         { path: '/monitor/operlog', name: '操作日志', component: '@/pages/PagePlaceholder' },
@@ -63,6 +71,7 @@ export default defineConfig({
       name: '系统工具',
       icon: 'ToolOutlined',
       routes: [
+        { path: '/tool', redirect: '/tool/build', hideInMenu: true },
         { path: '/tool/build', name: '表单构建', component: '@/pages/PagePlaceholder' },
         { path: '/tool/gen', name: '代码生成', component: '@/pages/PagePlaceholder' },
         { path: '/tool/swagger', name: '系统接口', component: '@/pages/PagePlaceholder' }
@@ -73,6 +82,7 @@ export default defineConfig({
       name: '艺术空间',
       icon: 'ProjectOutlined',
       routes: [
+        { path: '/sunpalaceartspace', redirect: '/sunpalaceartspace/project', hideInMenu: true },
         { path: '/sunpalaceartspace/project', name: '项目管理', component: '@/pages/sunpalaceartspace/project' },
         { path: '/sunpalaceartspace/order', name: '预约订单', component: '@/pages/sunpalaceartspace/order' },
         { path: '/sunpalaceartspace/reservationUser', name: '会员列表', component: '@/pages/sunpalaceartspace/reservationUser' }
