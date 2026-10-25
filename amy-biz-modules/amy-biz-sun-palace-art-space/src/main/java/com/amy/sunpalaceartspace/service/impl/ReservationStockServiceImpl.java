@@ -110,4 +110,11 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     public boolean removeReservationStockByIds(Long[] reservationStockIds) {
         return removeByIds(Arrays.asList(reservationStockIds));
     }
+
+    @Override
+    public List<ReservationStock> selectAllByStatus(Boolean status) {
+        LambdaQueryWrapper<ReservationStock> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ReservationStock::getStatus, status);
+        return list(queryWrapper);
+    }
 }

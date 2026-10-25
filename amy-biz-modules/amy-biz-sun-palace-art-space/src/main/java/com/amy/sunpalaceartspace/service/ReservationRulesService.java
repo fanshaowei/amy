@@ -38,73 +38,88 @@ public class ReservationRulesService {
     /**
      * 分批放号核心逻辑：在每个项目、目标日的每个时段上，按批次累加“已放号”并同步 Redis 可用库存。
      *
-     * @param targetDate 要放号的目标日期
+     * @param date 定时器触发的日期
      * @param batch      1=12:00 第一批（每时段 +10）；2=00:00 第二批（补足至满）
      */
-    public void releaseStock(Date targetDate, int batch) {
-        String targetDateStr = DateUtils.parseDateToStr("yyyyMMdd", targetDate);
+    public void releaseStock(Date date, int batch) {
         List<Projects> projects = projectsService.getBaseMapper().selectList(null);
         for (Projects project : projects) {
-            List<String> times = reservationUtil.extractReservationTimes(
-                    project.getReservationStartTime(), project.getReservationEndTime(), project.getReservationIntervalSecond());
-            for (String time : times) {
-                String reservationTimeStr = time.split(":")[0] + time.split(":")[1];
-                String fullReservationDateTime = targetDateStr + reservationTimeStr;
-                String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationDateTime);
-
-                // 1. 确保库存行存在（total = 项目配置的每时段名额）
-                ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationDateTime);
-                if (stock == null) {
-                    stock = new ReservationStock();
-                    stock.setProjectId(project.getProjectId());
-                    stock.setReservationTime(fullReservationDateTime);
-                    stock.setReservationCount(project.getReservationCount());
-                    stock.setReleaseCount(0);
-                    stock.setReservedCount(0);
-                    stock.setBatch1Released(false);
-                    stock.setBatch2Released(false);
-                    stock.setStatus(true);
-                    stock.setCreateTime(new Date());
-                    stock.setCreateBy("system");
-                    reservationStockService.saveReservationStock(stock);
-                }
-
-                // 2. 按批次计算本次放号增量（已放过的批次直接跳过，保证幂等）
-                int total = stock.getReservationCount() == null ? 0 : stock.getReservationCount();
-                int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
-                int delta;
-                if (batch == 1) {
-                    if (Boolean.TRUE.equals(stock.getBatch1Released())) {
-                        continue;
-                    }
-                    delta = Math.min(RESERVATION_RELEASE_BATCH_STEP, total - released);
-                    stock.setBatch1Released(true);
-                    stock.setUpdateTime(new Date());
-                    stock.setUpdateBy("system");
-                } else if (batch == 2) {
-                    if (Boolean.TRUE.equals(stock.getBatch2Released())) {
-                        continue;
-                    }
-                    delta = total - released; // 补足至满
-                    stock.setBatch2Released(true);
-                    stock.setUpdateTime(new Date());
-                    stock.setUpdateBy("system");
+            /** 如果项目设置的提前几天可预约，那就得提前放几天的号 **/
+            Integer advanceReservationDays = project.getAdvanceReservationDays();
+            for(int i = 0; i < advanceReservationDays; i++) {
+                Date targetDate = date;
+                if(batch == 1) {
+                    targetDate = DateUtils.addDays(targetDate, i + 1);
                 } else {
-                    continue;
-                }
-                if (delta <= 0) {
-                    reservationStockService.updateById(stock);
-                    continue;
+                    targetDate = DateUtils.addDays(targetDate, i);
                 }
 
-                // 3. 持久化已放号数与批次标记
-                stock.setReleaseCount(released + delta);
-                reservationStockService.updateById(stock);
-
-                // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
-                stringRedisTemplate.opsForValue().increment(stockKey, delta);
-                log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
+                String targetDateStr = DateUtils.parseDateToStr("yyyyMMdd", targetDate);
+                release(batch, project, targetDateStr);
             }
+        }
+    }
+
+    private void release(Integer batch, Projects project, String targetDateStr) {
+        List<String> times = reservationUtil.extractReservationTimes(
+                project.getReservationStartTime(), project.getReservationEndTime(), project.getReservationIntervalSecond());
+        for (String time : times) {
+            String reservationTimeStr = time.split(":")[0] + time.split(":")[1];
+            String fullReservationDateTime = targetDateStr + reservationTimeStr;
+            String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationDateTime);
+
+            // 1. 确保库存行存在（total = 项目配置的每时段名额）
+            ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationDateTime);
+            if (stock == null) {
+                stock = new ReservationStock();
+                stock.setProjectId(project.getProjectId());
+                stock.setReservationTime(fullReservationDateTime);
+                stock.setReservationCount(project.getReservationCount());
+                stock.setReleaseCount(0);
+                stock.setReservedCount(0);
+                stock.setBatch1Released(false);
+                stock.setBatch2Released(false);
+                stock.setStatus(true);
+                stock.setCreateTime(new Date());
+                stock.setCreateBy("system");
+                reservationStockService.saveReservationStock(stock);
+            }
+
+            // 2. 按批次计算本次放号增量（已放过的批次直接跳过，保证幂等）
+            int total = stock.getReservationCount() == null ? 0 : stock.getReservationCount();
+            int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
+            int delta;
+            if (batch == 1) {
+                if (Boolean.TRUE.equals(stock.getBatch1Released())) {
+                    continue;
+                }
+                delta = Math.min(RESERVATION_RELEASE_BATCH_STEP, total - released);
+                stock.setBatch1Released(true);
+                stock.setUpdateTime(new Date());
+                stock.setUpdateBy("system");
+            } else if (batch == 2) {
+                if (Boolean.TRUE.equals(stock.getBatch2Released())) {
+                    continue;
+                }
+                delta = total - released; // 补足至满
+                stock.setBatch2Released(true);
+                stock.setUpdateTime(new Date());
+                stock.setUpdateBy("system");
+            } else {
+                continue;
+            }
+            if (delta <= 0) {
+                reservationStockService.updateById(stock);
+                continue;
+            }
+
+            // 3. 持久化已放号数与批次标记
+            stock.setReleaseCount(released + delta);
+            reservationStockService.updateById(stock);
+
+            // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
+            stringRedisTemplate.opsForValue().increment(stockKey, delta);
+            log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
         }
     }
 
@@ -112,7 +127,7 @@ public class ReservationRulesService {
      * 从 MySQL 重建 Redis 可用库存（可用 = 已放号 - 已预约），用于启动恢复与每日对账，修复崩溃/漂移。
      */
     public void reconcileStockToRedis() {
-        List<ReservationStock> all = reservationStockService.list();
+        List<ReservationStock> all = reservationStockService.selectAllByStatus(true);
         for (ReservationStock stock : all) {
             int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
             int reserved = stock.getReservedCount() == null ? 0 : stock.getReservedCount();
@@ -129,9 +144,9 @@ public class ReservationRulesService {
      */
     public void initStockOnStartup() {
         reconcileStockToRedis();
-        releaseStock(new Date(), 2);
+       /* releaseStock(new Date(), 2);
         if (LocalTime.now().getHour() >= 12) {
-            releaseStock(DateUtils.addDays(new Date(), 1), 1);
-        }
+            releaseStock(new Date(), 1);
+        }*/
     }
 }

@@ -95,4 +95,6 @@ public interface IReservationStockService extends IService<ReservationStock> {
      * @return 是否成功
      */
     boolean removeReservationStockByIds(Long[] reservationStockIds);
+
+    List<ReservationStock> selectAllByStatus(Boolean status);
 }

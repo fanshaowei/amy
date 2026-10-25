@@ -33,7 +33,7 @@ public class ReservationStockTask {
      * 每天 12:00 释放“第二天”第一批名额（每时段 +10，共 60）。
      */
     public void releaseBatch1() {
-        spasLock.run(() -> reservationRulesService.releaseStock(DateUtils.addDays(new Date(), 1), 1),
+        spasLock.run(() -> reservationRulesService.releaseStock(new Date(), 1),
                 SAPS_RELEASE_LOCK, "releaseBatch1");
     }
 
