@@ -9,12 +9,22 @@
         <result property="count" column="cnt"/>
     </resultMap>
 
+    <!--
+        索引友好约定：
+        1. where 条件中的时间列一律裸列 + 左闭右开区间（>= start 且 < end），
+           绝不对列套 date() / DATE_FORMAT() / date_add() —— 对列做运算会让 B+ 树索引失效，退化为全表扫描。
+        2. 时间边界由 Service 层计算后以参数传入，避免依赖数据库会话时区（curdate()）。
+        3. select / group by 中出现的 date(...) 只作用于查询结果，不影响索引使用（range scan 仍走索引）。
+           配套索引见 sql/amy_spas_statistic_index.sql。
+    -->
+
     <!-- 今日预约人数 -->
     <select id="selectTodayReservationCount" resultType="java.lang.Long">
         select count(*)
         from biz_spas_reservation_order
         where del_flag = '0'
-          and date(reservation_time) = curdate()
+          and reservation_time &gt;= #{start}
+          and reservation_time &lt; #{end}
     </select>
 
     <!-- 今日核销人数 -->
@@ -23,7 +33,8 @@
         from biz_spas_reservation_order
         where del_flag = '0'
           and reservation_status = '1'
-          and date(verify_time) = curdate()
+          and verify_time &gt;= #{start}
+          and verify_time &lt; #{end}
     </select>
 
     <!-- 明日预约人数 -->
@@ -31,10 +42,11 @@
         select count(*)
         from biz_spas_reservation_order
         where del_flag = '0'
-          and date(reservation_time) = date_add(curdate(), interval 1 day)
+          and reservation_time &gt;= #{start}
+          and reservation_time &lt; #{end}
     </select>
 
-    <!-- 预约总数 -->
+    <!-- 预约总数（无时间过滤，走最小二级索引全索引扫描） -->
     <select id="selectTotalReservationCount" resultType="java.lang.Long">
         select count(*)
         from biz_spas_reservation_order
@@ -46,10 +58,11 @@
         select count(*)
         from biz_spas_reservation_user
         where del_flag = '0'
-          and date(create_time) = curdate()
+          and create_time &gt;= #{start}
+          and create_time &lt; #{end}
     </select>
 
-    <!-- 会员总数 -->
+    <!-- 会员总数（无时间过滤，走最小二级索引全索引扫描） -->
     <select id="selectTotalUserCount" resultType="java.lang.Long">
         select count(*)
         from biz_spas_reservation_user
@@ -62,7 +75,8 @@
                count(*) as cnt
         from biz_spas_reservation_order
         where del_flag = '0'
-          and date(reservation_time) &gt;= date_sub(curdate(), interval 29 day)
+          and reservation_time &gt;= #{start}
+          and reservation_time &lt; #{end}
         group by date(reservation_time)
         order by stat_date asc
     </select>
@@ -73,7 +87,8 @@
                count(*) as cnt
         from biz_spas_reservation_user
         where del_flag = '0'
-          and date(create_time) &gt;= date_sub(curdate(), interval 29 day)
+          and create_time &gt;= #{start}
+          and create_time &lt; #{end}
         group by date(create_time)
         order by stat_date asc
     </select>

@@ -1,8 +1,10 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,20 +32,48 @@ public class StatisticServiceImpl implements IStatisticService {
     @Override
     public DashboardStatisticsResp getDashboardStatistics()
     {
+        // 时间边界统一在应用层按「自然日」切成左闭右开区间 [start, end)，
+        // SQL 里只做裸列比较，保证 reservation_time / verify_time / create_time 上的索引可用
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+        LocalDate dayAfterTomorrow = tomorrow.plusDays(1);
+        // 近 30 天 = [today-29, today]，与前端展示的 30 个点一一对应，不扫描未来数据
+        LocalDate trendStart = today.minusDays(29);
+
+        Date todayStart = startOfDay(today);
+        Date tomorrowStart = startOfDay(tomorrow);
+        Date dayAfterTomorrowStart = startOfDay(dayAfterTomorrow);
+        Date trendStartDay = startOfDay(trendStart);
+
         DashboardStatisticsResp resp = new DashboardStatisticsResp();
-        resp.setTodayReservationCount(statisticMapper.selectTodayReservationCount());
-        resp.setTodayVerifyCount(statisticMapper.selectTodayVerifyCount());
-        resp.setTomorrowReservationCount(statisticMapper.selectTomorrowReservationCount());
+        resp.setTodayReservationCount(
+                statisticMapper.selectTodayReservationCount(todayStart, tomorrowStart));
+        resp.setTodayVerifyCount(
+                statisticMapper.selectTodayVerifyCount(todayStart, tomorrowStart));
+        resp.setTomorrowReservationCount(
+                statisticMapper.selectTomorrowReservationCount(tomorrowStart, dayAfterTomorrowStart));
         resp.setTotalReservationCount(statisticMapper.selectTotalReservationCount());
-        resp.setTodayNewUserCount(statisticMapper.selectTodayNewUserCount());
+        resp.setTodayNewUserCount(
+                statisticMapper.selectTodayNewUserCount(todayStart, tomorrowStart));
         resp.setTotalUserCount(statisticMapper.selectTotalUserCount());
 
         resp.setLast30DaysReservationTrend(
-                fillTrend(statisticMapper.selectLast30DaysReservationTrend()));
+                fillTrend(statisticMapper.selectLast30DaysReservationTrend(trendStartDay, tomorrowStart)));
         resp.setLast30DaysUserTrend(
-                fillTrend(statisticMapper.selectLast30DaysUserTrend()));
+                fillTrend(statisticMapper.selectLast30DaysUserTrend(trendStartDay, tomorrowStart)));
 
         return resp;
+    }
+
+    /**
+     * 取某个自然日的零点时刻（左闭右开区间的边界）
+     *
+     * @param date 自然日
+     * @return 该日 00:00:00 对应的 {@link Date}
+     */
+    private Date startOfDay(LocalDate date)
+    {
+        return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     /**
