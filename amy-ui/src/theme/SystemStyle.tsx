@@ -1,13 +1,10 @@
 import {
     createContext,
-    useCallback,
     useContext,
-    useEffect,
     useMemo,
-    useState,
+    useSyncExternalStore,
     type ReactNode,
 } from 'react';
-import { useModel } from '@umijs/max';
 import { App, ConfigProvider } from 'antd';
 import { addConfig, listConfigs, updateConfig } from '@/services/system/config';
 
@@ -51,6 +48,36 @@ const SystemThemeContext = createContext<SystemThemeContextValue>({
     setStyle: () => {},
     saveStyle: async () => {},
 });
+
+/**
+ * 模块级外部 store。
+ *
+ * 为什么用外部 store 而不是 useModel('@@initialState')：
+ * app.tsx 的 rootContainer 用 SystemThemeProvider 包裹的是 umi 传进来的 `container`，
+ * 而 ModelProvider / InitialStateProvider 是在 `container` 内部（更内层）的。
+ * 因此在 rootContainer 这一层直接调用 useModel 会拿到 null 的 dispatcher 而崩溃。
+ * 外部 store + useSyncExternalStore 不依赖任何 React 上下文，可在该层安全订阅，
+ * 并由 getInitialState（含刷新页面）和登录成功 setInitialState 主动写入，实现响应式还原。
+ */
+let currentStyle: SystemStyle = DEFAULT_SYSTEM_STYLE;
+const listeners = new Set<() => void>();
+
+export function getSystemStyle(): SystemStyle {
+    return currentStyle;
+}
+
+export function subscribeSystemStyle(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+/** 写入外部 store 并通知所有订阅者（用于预览 / 登录态就绪 / 刷新还原） */
+export function setSystemStyleExternal(style: SystemStyle): void {
+    currentStyle = style;
+    listeners.forEach((l) => l());
+}
 
 function parseStyle(value: unknown): SystemStyle {
     if (typeof value !== 'string' || !value) return DEFAULT_SYSTEM_STYLE;
@@ -101,42 +128,24 @@ async function persistStyle(style: SystemStyle): Promise<void> {
 }
 
 /**
- * 把 initialState 里的系统样式同步到全局主题。
- *
- * 为什么要做成「挂在 children 之后的独立子组件」：
- * app.tsx 的 rootContainer 返回的内容整体被 umi 的 InitialStateProvider 包裹，
- * 因此这个子组件（位于 rootContainer 返回的 JSX 树内）必然能 useModel('@@initialState')，
- * 从而在「刷新页面（已登录）」「登录成功（setInitialState）」等场景下自动拿到最新样式。
- * 它把样式写回外层 SystemThemeProvider 暴露的 setStyle，驱动 ConfigProvider 重渲染。
- */
-function ThemeSyncFromInitialState() {
-    const initialState = useModel('@@initialState');
-    const { setStyle } = useSystemTheme();
-    const style = (initialState as { systemStyle?: SystemStyle } | undefined)?.systemStyle;
-
-    useEffect(() => {
-        if (style) setStyle(style);
-    }, [style, setStyle]);
-
-    return null;
-}
-
-/**
  * 全局主题提供者：包裹 antd 的 ConfigProvider + App，使整个 Amy 后台（含登录页、
  * 各业务页、ProTable 等所有 antd / Pro 组件）统一应用同一套主题 token。
  *
- * 样式来源统一由 initialState.systemStyle 驱动（见 ThemeSyncFromInitialState），
- * 而 initialState 在 getInitialState / 登录成功 setInitialState 时都会带上最新样式，
+ * 样式来源统一由模块级外部 store 驱动（useSyncExternalStore），
+ * 而 store 在 getInitialState / 登录成功 setInitialState 时都会写入最新样式，
  * 因此「保存后刷新或重新登录」都能正确还原，不会再回退默认绿色。
  */
 export function SystemThemeProvider({ children }: { children: ReactNode }) {
-    const [style, setStyleState] = useState<SystemStyle>(DEFAULT_SYSTEM_STYLE);
+    const style = useSyncExternalStore(subscribeSystemStyle, getSystemStyle);
 
-    const setStyle = useCallback((s: SystemStyle) => setStyleState(s), []);
-    const saveStyle = useCallback(async (s: SystemStyle) => {
-        setStyleState(s);
-        await persistStyle(s);
-    }, []);
+    const setStyle = useMemo(() => (s: SystemStyle) => setSystemStyleExternal(s), []);
+    const saveStyle = useMemo(
+        () => async (s: SystemStyle) => {
+            setSystemStyleExternal(s);
+            await persistStyle(s);
+        },
+        []
+    );
 
     const theme = useMemo(
         () => ({
@@ -152,10 +161,7 @@ export function SystemThemeProvider({ children }: { children: ReactNode }) {
     return (
         <SystemThemeContext.Provider value={{ style, setStyle, saveStyle }}>
             <ConfigProvider theme={theme} componentSize={style.componentSize}>
-                <App>
-                    {children}
-                    <ThemeSyncFromInitialState />
-                </App>
+                <App>{children}</App>
             </ConfigProvider>
         </SystemThemeContext.Provider>
     );

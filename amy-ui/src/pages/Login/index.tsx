@@ -8,7 +8,7 @@ import { getCaptcha, getRouters, getUserInfo, login } from '@/services/auth';
 import type { LoginParams, LoginResult } from '@/types/api';
 import { setExpiresIn, setToken } from '@/utils/auth';
 import { decrypt, encrypt } from '@/utils/encryption';
-import { fetchSystemStyle } from '@/theme/SystemStyle';
+import { fetchSystemStyle, setSystemStyleExternal } from '@/theme/SystemStyle';
 import styles from './index.less';
 
 interface LoginFormValues extends LoginParams {
@@ -83,6 +83,9 @@ export default function LoginPage() {
         fetchSystemStyle(),
       ]);
       const routes = routeResult.data as import('@/types/api').BackendRoute[];
+      // 登录成功：把样式写入外部 store（与 getInitialState 路径一致），
+      // 驱动全局主题按保存值还原，避免重新登录后回到默认绿色。
+      setSystemStyleExternal(styleResult);
       await setInitialState({
         currentUser: userInfoResult.user,
         roles: userInfoResult.roles || [],

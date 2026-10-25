@@ -3,7 +3,7 @@ import {history} from '@umijs/max';
 import {message as antdMessage} from 'antd';
 import React from 'react';
 import AvatarDropdown from '@/components/RightContent/AvatarDropdown';
-import {SystemThemeProvider, fetchSystemStyle} from '@/theme/SystemStyle';
+import {SystemThemeProvider, DEFAULT_SYSTEM_STYLE, fetchSystemStyle, setSystemStyleExternal} from '@/theme/SystemStyle';
 import type {SystemStyle} from '@/theme/SystemStyle';
 import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
@@ -21,7 +21,7 @@ export interface AmyInitialState {
 
 export async function getInitialState(): Promise<AmyInitialState> {
     if (!getToken()) {
-        return {roles: [], permissions: [], routes: []};
+        return {roles: [], permissions: [], routes: [], systemStyle: DEFAULT_SYSTEM_STYLE};
     }
 
     try {
@@ -31,6 +31,9 @@ export async function getInitialState(): Promise<AmyInitialState> {
             fetchSystemStyle(),
         ]);
         const routes = routeResult.data;
+        // 登录态就绪（含刷新页面）即把样式写入外部 store，驱动全局主题还原，
+        // 避免「保存后能看到、重新登录又回到默认」的问题。
+        setSystemStyleExternal(styleResult);
         return {
             currentUser: userInfoResult.user,
             roles: userInfoResult.roles || [],
@@ -40,7 +43,7 @@ export async function getInitialState(): Promise<AmyInitialState> {
         };
     } catch {
         clearSession();
-        return {roles: [], permissions: [], routes: []};
+        return {roles: [], permissions: [], routes: [], systemStyle: DEFAULT_SYSTEM_STYLE};
     }
 }
 
