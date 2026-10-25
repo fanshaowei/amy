@@ -3,7 +3,7 @@ import {history} from '@umijs/max';
 import {message as antdMessage} from 'antd';
 import React from 'react';
 import AvatarDropdown from '@/components/RightContent/AvatarDropdown';
-import {SystemThemeProvider, DEFAULT_SYSTEM_STYLE, fetchSystemStyle, setSystemStyleExternal} from '@/theme/SystemStyle';
+import {SystemThemeProvider, DEFAULT_SYSTEM_STYLE, fetchSystemStyle, getSystemStyle, setSystemStyleExternal} from '@/theme/SystemStyle';
 import type {SystemStyle} from '@/theme/SystemStyle';
 import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
@@ -131,12 +131,18 @@ export const request: RequestConfig = {
     }
 };
 
-export const layout: RunTimeLayoutConfig = ({initialState}) => ({
+export const layout: RunTimeLayoutConfig = ({initialState}) => {
+    // 从系统样式外部 store 读取导航模式与侧边菜单类型，实现可配置化。
+    // 外部 store 变更会触发 SystemThemeProvider 重渲染 → ProLayout 重渲染 → 此函数重新执行。
+    const theme = getSystemStyle();
+    return {
     title: '太阳宫艺术空间',
     logo: false,
     fixedHeader: true,
     fixSiderbar: true,
-    layout: 'mix',
+    layout: theme.layout,
+    // ProLayout 的 navTheme 类型是 'light' | 'realDark'；系统样式内部用更直观的 'dark'/'light' 存储，此处映射。
+    navTheme: theme.navTheme === 'dark' ? 'realDark' : 'light',
     contentWidth: 'Fluid',
     rightContentRender: () => <AvatarDropdown currentUser={initialState?.currentUser}/>,
     menuDataRender: (menuData) => {
@@ -165,7 +171,8 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
             history.push('/403');
         }
     }
-});
+    };
+};
 
 /** 把 config.ts 里的静态路由转成 pro-layout 的菜单数据格式 */
 function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {

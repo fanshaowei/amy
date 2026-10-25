@@ -62,8 +62,8 @@ export default function SysStylePage() {
 
     return (
         <PageContainer
-            title="系统样式设置"
-            content="配置系统整体主题色、链接色、圆角与组件尺寸。保存后立即全局生效，并持久化到参数表 sys_config（config_key = sys.style.settings）。"
+            header={{title: false}}
+            content="配置系统整体主题色、链接色、圆角、组件尺寸、导航模式与侧边菜单类型。保存后立即全局生效，并持久化到参数表 sys_config（config_key = sys.style.settings）。"
         >
             <ProCard split="vertical" wrap gutter={16}>
                 <ProCard colSpan={{ xs: 24, md: 9 }} title="效果预览" headerBordered>
@@ -86,7 +86,7 @@ export default function SysStylePage() {
                                 <span>主题色：{preview.colorPrimary}</span>
                             </div>
                             <div className={styles.metaRow}>
-                                圆角 {preview.borderRadius}px · 组件尺寸 {preview.componentSize}
+                                圆角 {preview.borderRadius}px · 组件尺寸 {preview.componentSize} · 导航 {preview.layout} · 侧栏 {preview.navTheme}
                             </div>
                         </Space>
                     </ConfigProvider>
@@ -107,16 +107,29 @@ export default function SysStylePage() {
                             ),
                         }}
                         onFinish={handleFinish}
-                        onValuesChange={(_, all) => setPreview(all as SystemStyle)}
+                        onValuesChange={(changed, all) => {
+                            // 改主题色时链接色自动跟随，省去重复设置；
+                            // 之后仍可在下方「链接色」里单独微调（手动改链接色不会触发这里）。
+                            if (changed.colorPrimary) {
+                                form.setFieldValue('colorLink', changed.colorPrimary);
+                                setPreview({ ...(all as SystemStyle), colorLink: changed.colorPrimary });
+                                return;
+                            }
+                            setPreview(all as SystemStyle);
+                        }}
                     >
                         <ProFormItem
                             label="主题色"
                             name="colorPrimary"
-                            tooltip="系统主色，作用于按钮、选中态、聚焦边框、进度条等"
+                            tooltip="系统主色，作用于按钮、选中态、聚焦边框、进度条等。修改后链接色会自动跟随它"
                         >
                             <ColorField />
                         </ProFormItem>
-                        <ProFormItem label="链接色" name="colorLink" tooltip="文字链接的颜色">
+                        <ProFormItem
+                            label="链接色"
+                            name="colorLink"
+                            tooltip="默认随主题色自动同步，也可在此单独微调"
+                        >
                             <ColorField />
                         </ProFormItem>
                         <ProFormSlider
@@ -136,6 +149,25 @@ export default function SysStylePage() {
                                 { label: '宽松', value: 'large' },
                             ]}
                         />
+                        <ProFormRadio.Group
+                            label="导航模式"
+                            name="layout"
+                            tooltip="侧边菜单 / 顶部菜单 / 混合菜单"
+                            options={[
+                                { label: '侧边菜单', value: 'side' },
+                                { label: '顶部菜单', value: 'top' },
+                                { label: '混合菜单', value: 'mix' },
+                            ]}
+                        />
+                        <ProFormRadio.Group
+                            label="侧边菜单类型"
+                            name="navTheme"
+                            tooltip="暗色侧栏 / 亮色侧栏"
+                            options={[
+                                { label: '暗色侧栏', value: 'dark' },
+                                { label: '亮色侧栏', value: 'light' },
+                            ]}
+                        />
                         <ProFormItem label="预设主题色" tooltip="点击快速套用，可在上方继续微调">
                             <Space wrap>
                                 {PRESET_COLORS.map((c) => (
@@ -146,8 +178,10 @@ export default function SysStylePage() {
                                         style={{ background: c }}
                                         aria-label={c}
                                         onClick={() => {
-                                            form.setFieldValue('colorPrimary', c);
-                                            setPreview((p) => ({ ...p, colorPrimary: c }));
+                                            // 预设色是程序化赋值，不会触发 onValuesChange，
+                                            // 因此这里手动把链接色一并同步为主色。
+                                            form.setFieldsValue({ colorPrimary: c, colorLink: c });
+                                            setPreview((p) => ({ ...p, colorPrimary: c, colorLink: c }));
                                         }}
                                     />
                                 ))}

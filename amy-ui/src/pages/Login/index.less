@@ -104,14 +104,18 @@
   margin-bottom: 24px;
 }
 
+/**
+ * 原生 <a> 不受 ConfigProvider token 控制，这里改用 SystemThemeProvider 注入的
+ * 全局 CSS 变量，使其跟随系统样式里配置的链接色（回退值保留水墨绿，兼容变量未注入时）。
+ */
 .forgotLink {
-  color: @ink-green;
+  color: var(--amy-color-link, @ink-green);
   font-size: 14px;
   cursor: pointer;
   transition: color 0.3s;
 
   &:hover {
-    color: @ink-green-hover;
+    color: var(--amy-color-link-hover, @ink-green-hover);
   }
 }
 
