@@ -67,9 +67,6 @@ public class MinaApiAuthAspect {
         } catch (ExpiredJwtException e) {
             log.error("token expired, {}", e.getMessage());
             throw new InnerAuthException("当前登录已过期，请重新登录");
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new ServiceException("系统异常，请稍后重试");
         }
 
         return point.proceed();

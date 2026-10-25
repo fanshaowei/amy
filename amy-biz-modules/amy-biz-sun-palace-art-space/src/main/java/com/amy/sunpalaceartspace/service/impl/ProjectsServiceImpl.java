@@ -53,10 +53,10 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     }
 
     @Override
-    public boolean checkProjectExistById(Long projectId) {
+    public Projects selectProjectById(Long projectId) {
         LambdaQueryWrapper<Projects> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(Projects::getProjectId, projectId);
-        return this.exists(lambdaQueryWrapper);
+        return this.baseMapper.selectOne(lambdaQueryWrapper);
     }
 
 }
