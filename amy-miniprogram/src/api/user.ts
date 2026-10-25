@@ -2,9 +2,9 @@
  * 用户接口
  *
  * 后端：
- *  - POST /mina/api/auth/login          微信登录换取 token（WechatController#apiAuth 登录）
- *  - GET  /mina/app/user/info           当前登录会员信息（MinaAppController#userInfo）
- *  - GET  /user/phone/get/{jsCode}      微信手机号换取并绑定（WechatController#getWechatPhone）
+ *  - POST /spas/mina/api/auth/login          微信登录换取 token（WechatController#apiAuth 登录）
+ *  - GET  /spas/mina/app/user/info           当前登录会员信息（MinaAppController#userInfo）
+ *  - GET  /spas/user/phone/get/{jsCode}      微信手机号换取并绑定（WechatController#getWechatPhone）
  *
  * 注意：后端 WechatController 使用 @RestController("/wechat")，在 Spring 中该值为 Bean 名称
  * 而非路径前缀，因此实际路径不含 /wechat 前缀。若后端修正为 @RequestMapping("/wechat")，
@@ -25,11 +25,11 @@ export interface LoginPayload {
 
 /**
  * 微信登录，返回后端鉴权 token
- * POST /mina/api/auth/login
+ * POST /spas/mina/api/auth/login
  */
 export async function login(payload: LoginPayload): Promise<string> {
   return request<string>({
-    url: '/mina/api/auth/login',
+    url: '/spas/mina/api/auth/login',
     method: 'POST',
     auth: false,
     data: {
@@ -42,10 +42,10 @@ export async function login(payload: LoginPayload): Promise<string> {
 
 /**
  * 获取当前登录会员信息
- * GET /mina/app/user/info
+ * GET /spas/mina/app/user/info
  */
 export async function getProfile(): Promise<User> {
-  return request<User>({ url: '/mina/app/user/info' })
+  return request<User>({ url: '/spas/mina/app/user/info' })
 }
 
 /**
