@@ -1,26 +1,73 @@
 @form-width: 400px;
 
+// 与登录背景图一致的水墨绿（青瓷绿），用于卡片内的强调色
+@ink-green: #4f7d6d;
+@ink-green-hover: #3f6a5b;
+@ink-green-soft: rgba(79, 125, 109, 0.2);
+
 .page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   padding: 24px;
-  background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%);
+  // 水墨孔雀背景 + 轻微白色薄雾，保证表单可读性
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%),
+    url('../../assets/images/login-bg/login-bg.jpg') no-repeat center / cover;
 }
 
 .container {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   width: 100%;
-  max-width: @form-width;
-  margin: 0 auto;
+  padding-right: 10%;
   animation: fadeInUp 0.5s ease-out;
 
   // 去掉副标题后，标题与表单之间补回间距
   :global(.ant-pro-form-login-top) {
     margin-bottom: 36px;
+  }
+
+  // 抵消 LoginForm 组件自带的 flex:1（会撑满整行导致内部 margin auto 居中），
+  // 让父容器的 flex-end 右对齐真正生效；并加白色卡片背景突出
+  :global(.ant-pro-form-login-container) {
+    flex: 0 0 auto;
+    width: @form-width;
+    height: auto;
+    padding-inline: 0;
+    padding: 36px 32px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+  }
+
+  // 卡片内强调色统一为水墨绿（覆盖 antd 默认蓝）
+  :global(.ant-btn-primary) {
+    background: @ink-green;
+    border-color: @ink-green;
+
+    &:hover,
+    &:focus {
+      background: @ink-green-hover;
+      border-color: @ink-green-hover;
+    }
+  }
+
+  // 输入框聚焦态描边与光晕
+  :global(.ant-input-affix-wrapper-focused),
+  :global(.ant-input-affix-wrapper:focus),
+  :global(.ant-input:focus),
+  :global(.ant-input-focused) {
+    border-color: @ink-green;
+    box-shadow: 0 0 0 2px @ink-green-soft;
+  }
+
+  // 记住密码复选框选中态
+  :global(.ant-checkbox-checked .ant-checkbox-inner) {
+    background-color: @ink-green;
+    border-color: @ink-green;
   }
 }
 
@@ -33,11 +80,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.logo {
-  font-size: 44px;
-  color: #1890ff;
 }
 
 .inputIcon {
@@ -62,7 +104,7 @@
   transition: border-color 0.3s;
 
   &:hover {
-    border-color: #40a9ff;
+    border-color: @ink-green;
   }
 }
 
@@ -75,12 +117,12 @@
 }
 
 .forgotLink {
-  color: #1890ff;
+  color: @ink-green;
   font-size: 14px;
   transition: color 0.3s;
 
   &:hover {
-    color: #40a9ff;
+    color: @ink-green-hover;
   }
 }
 
@@ -94,6 +136,12 @@
 @media (max-width: 576px) {
   .page {
     padding: 16px;
+  }
+
+  // 窄屏下登录卡片回到居中，避免贴边
+  .container {
+    justify-content: center;
+    padding-right: 0;
   }
 
   .captchaRow {

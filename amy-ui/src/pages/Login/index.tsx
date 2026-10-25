@@ -1,4 +1,4 @@
-import { AntDesignOutlined, LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormCaptcha, ProFormCheckbox, ProFormText } from '@ant-design/pro-components';
 import { history, useModel, useSearchParams } from '@umijs/max';
 import { App, Image } from 'antd';
@@ -98,8 +98,7 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <LoginForm<LoginFormValues>
-          logo={<AntDesignOutlined className={styles.logo} />}
-          title="管理系统"
+          title="预约管理系统"
           initialValues={initialValues}
           onFinish={handleSubmit}
           submitter={{ searchConfig: { submitText: '登录' }, submitButtonProps: { block: true, size: 'large' } }}
