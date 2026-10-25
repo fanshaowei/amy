@@ -1,9 +1,7 @@
 package com.amy.sunpalaceartspace.mapper;
 
-import java.util.List;
-
-import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
@@ -12,6 +10,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * 预约订单Mapper接口
@@ -74,4 +75,17 @@ public interface ReservationOrderMapper extends BaseMapper<ReservationOrder> {
      * @return 各项目的预约订单总数，按项目ID升序
      */
     List<ReservationOrderStatisticByProjectVO> selectReservationOrderStatisticByProject(ReservationOrderStatisticCriteria criteria);
+
+    /**
+     * 查询预约了「次日（明天）」当天的号的所有订单。
+     * <p>
+     * 用 <b>半开区间</b> {@code [start, end)}（明天 00:00:00 含，后天 00:00:00 不含），
+     * 而不是 {@code date(reservation_time) = ...}——后者对列做函数运算会让索引失效，大表全表扫描。
+     *
+     * @param start 起始时间（含），即明天 00:00:00
+     * @param end   结束时间（不含），即后天 00:00:00
+     * @return 次日预约订单列表，按预约时间、项目ID升序
+     */
+    List<ReservationOrderVO> selectNextDayReservationOrder(@Param("start") Date start,
+                                                                    @Param("end") Date end);
 }

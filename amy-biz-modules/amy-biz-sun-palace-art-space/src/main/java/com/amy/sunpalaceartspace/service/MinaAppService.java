@@ -14,8 +14,10 @@ import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
+import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.GenderEnum;
 import com.amy.sunpalaceartspace.enums.IdType;
@@ -316,5 +318,16 @@ public class MinaAppService {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
         return data;
+    }
+
+    public List<NextDayReservationOrderResp> getNextDayReservationOrder() {
+        List<ReservationOrderVO> reservationOrderVOS = reservationOrderService.selectNextDayReservationOrder();
+        List<NextDayReservationOrderResp> respList = new ArrayList<>();
+        for (ReservationOrderVO vo : reservationOrderVOS) {
+            NextDayReservationOrderResp resp = new NextDayReservationOrderResp();
+            BeanUtils.copyProperties(vo, resp);
+            respList.add(resp);
+        }
+        return respList;
     }
 }

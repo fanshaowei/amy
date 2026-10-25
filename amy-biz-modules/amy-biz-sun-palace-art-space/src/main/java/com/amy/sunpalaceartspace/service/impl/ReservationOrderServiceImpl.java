@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -135,6 +135,18 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public List<ReservationOrderStatisticByProjectVO> selectReservationOrderStatisticByProject(ReservationOrderStatisticCriteria criteria)
     {
         return baseMapper.selectReservationOrderStatisticByProject(criteria);
+    }
+
+    @Override
+    public List<ReservationOrderVO> selectNextDayReservationOrder() {
+        // 次日 = 明天 00:00:00（含） ～ 后天 00:00:00（不含）。
+        // 用半开区间而不是 date(reservation_time) = date(...)：后者对列做函数运算会让索引失效，大表全表扫描。
+        LocalDate nextDay = LocalDate.now().plusDays(1);
+        Date startTime = Date.from(nextDay.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date endTime = Date.from(nextDay.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        List<ReservationOrderVO> list = baseMapper.selectNextDayReservationOrder(startTime, endTime);
+        return list;
     }
 
     /**

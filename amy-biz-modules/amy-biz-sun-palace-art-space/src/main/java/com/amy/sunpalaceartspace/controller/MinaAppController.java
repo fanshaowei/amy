@@ -13,6 +13,7 @@ import com.amy.sunpalaceartspace.domain.req.*;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
@@ -185,5 +186,11 @@ public class MinaAppController extends BaseController {
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
             @PathVariable("orderNum") String orderNum) {
         return R.ok(minaAppService.verifyReservationOrder(token, orderNum));
+    }
+
+    @MinaApiAuth
+    @GetMapping("/reservation/next/day/order")
+    public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder() {
+        return R.ok(minaAppService.getNextDayReservationOrder());
     }
 }
