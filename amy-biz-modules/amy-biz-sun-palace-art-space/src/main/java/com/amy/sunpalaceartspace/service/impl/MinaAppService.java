@@ -18,6 +18,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.GenderEnum;
+import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.IProjectsService;
@@ -29,6 +30,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
+import org.apache.xmlbeans.impl.xb.xsdschema.Attribute;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +58,7 @@ public class MinaAppService {
     private final MinaAppLoginService minaAppLoginService;
     private final IUserIdentityService userIdentityService;
     private final AliIdCheckService aliIdCheckService;
+    private final UserIdentityServiceImpl userIdentityServiceImpl;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -197,12 +201,16 @@ public class MinaAppService {
     public MinaReservationUserInfoResp extractUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
         ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
+        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityById(userInfo.getReservationUserId(), List.of( Boolean.FALSE));
+        UserIdentityVO userIdentityVO = userIdentityVOs.isEmpty() ? null: userIdentityVOs.getFirst();
         return MinaReservationUserInfoResp.builder()
                 .reservationUserId(userInfo.getReservationUserId())
                 .type(userInfo.getType())
                 .nickname(userInfo.getNickname())
-                .phone(userInfo.getPhone())
+                .phone(null != userIdentityVO ? userIdentityVO.getPhone() : userInfo.getPhone())
+                .idNum(null != userIdentityVO ? userIdentityVO.getIdNum() : userInfo.getIdNum())
                 .avatarImgUrl(userInfo.getAvatarImgUrl())
+                .isVerified(userInfo.getIsVerified())
                 .build();
     }
 
@@ -235,8 +243,12 @@ public class MinaAppService {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
 
-        AliIdCheckDto.DataDTO data = verify(req);
-        int gender = GenderEnum.getCodeFromDesc(data.getSex());
+        AliIdCheckDto.ResultDTO data = verify(req);
+        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+        if (idCardInfor == null) {
+            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+        }
+        int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
         req.setGender(gender);
         log.info("start to save/update user identity info, user:{}", req);
         userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
@@ -244,18 +256,25 @@ public class MinaAppService {
 
         log.info("update reservation user verify status, userId:{}", req.getUserIdentityId());
         user.setIsVerified(true);
+        user.setIdNum(req.getIdNum());
+        user.setType(IdType.ID_CARD.getType());
+        user.setUpdateTime(new Date());
         reservationUserService.saveOrUpdate(user);
         log.info("update reservation user verify status completed");
 
         return true;
     }
 
-    private AliIdCheckDto.DataDTO verify(UserIdentityReq req) {
+    private AliIdCheckDto.ResultDTO verify(UserIdentityReq req) {
         // 调阿里接口验证身份信息
         AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
-        AliIdCheckDto.DataDTO data = aliIdCheckDto.getData();
-        // result: 0=一致，1=不一致；用 Integer.valueOf().equals 避免 getResult() 为 null 时拆箱 NPE
-        if (Integer.valueOf(1).equals(data.getResult())) {
+        if (aliIdCheckDto == null) {
+            throw new ServiceException("身份核验服务异常，请稍后重试");
+        }
+        AliIdCheckDto.ResultDTO data = aliIdCheckDto.getResult();
+        // result 可能整体缺失（网关异常响应只含 error_code/reason）；
+        // isok 是 Boolean，必须用 Boolean.TRUE.equals 避免为 null 时拆箱 NPE
+        if (data == null || !Boolean.TRUE.equals(data.getIsok())) {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
         return data;
@@ -267,8 +286,12 @@ public class MinaAppService {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
 
-        AliIdCheckDto.DataDTO data = verify(req);
-        int gender = GenderEnum.getCodeFromDesc(data.getSex());
+        AliIdCheckDto.ResultDTO data = verify(req);
+        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+        if (idCardInfor == null) {
+            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+        }
+        int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
         req.setGender(gender);
 
         log.info("start to save/update follower info, user:{}", req);

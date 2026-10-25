@@ -54,6 +54,9 @@
         <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
             ${entity.params.dataScope}
         </if>
+        <if test="entity.isFollower != null">
+            and is_follower = #{entity.isFollower}
+        </if>
     </sql>
 
     <!--
@@ -75,6 +78,10 @@
 
     <select id="selectUserIdentityById" parameterType="Long" resultMap="UserIdentityResult">
         <include refid="selectUserIdentityVo"/>
-        where user_identity_id = #{userIdentityId} and del_flag = '0'
+        where user_identity_id = #{userIdentityId}
+        <if test="isFollower != null">
+            and is_follower in (#{isFollower})
+        </if>
+        and del_flag = '0'
     </select>
 </mapper>

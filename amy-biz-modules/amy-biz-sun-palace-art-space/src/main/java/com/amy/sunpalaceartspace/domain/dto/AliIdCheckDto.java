@@ -14,29 +14,42 @@ import lombok.NoArgsConstructor;
 @Data
 public class AliIdCheckDto {
 
-    @JsonProperty("msg")
-    private String msg;
-    @JsonProperty("success")
-    private Boolean success;
-    @JsonProperty("code")
-    private Integer code;
-    @JsonProperty("data")
-    private DataDTO data;
+    @JsonProperty("error_code")
+    private Integer errorCode;
+    @JsonProperty("reason")
+    private String reason;
+    @JsonProperty("result")
+    private ResultDTO result;
+    @JsonProperty("sn")
+    private String sn;
 
     @NoArgsConstructor
     @Data
-    public static class DataDTO {
-        @JsonProperty("birthday")
-        private String birthday;
-        @JsonProperty("result")
-        private Integer result;
-        @JsonProperty("address")
-        private String address;
-        @JsonProperty("orderNo")
-        private String orderNo;
-        @JsonProperty("sex")
-        private String sex;
-        @JsonProperty("desc")
-        private String desc;
+    public static class ResultDTO {
+        @JsonProperty("realname")
+        private String realname;
+        @JsonProperty("idcard")
+        private String idcard;
+        @JsonProperty("isok")
+        private Boolean isok;
+        @JsonProperty("IdCardInfor")
+        private IdCardInforDTO idCardInfor;
+
+        @NoArgsConstructor
+        @Data
+        public static class IdCardInforDTO {
+            @JsonProperty("province")
+            private String province;
+            @JsonProperty("city")
+            private String city;
+            @JsonProperty("district")
+            private String district;
+            @JsonProperty("area")
+            private String area;
+            @JsonProperty("sex")
+            private String sex;
+            @JsonProperty("birthday")
+            private String birthday;
+        }
     }
 }

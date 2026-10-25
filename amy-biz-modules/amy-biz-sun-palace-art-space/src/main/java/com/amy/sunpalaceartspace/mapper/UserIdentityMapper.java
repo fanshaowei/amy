@@ -43,5 +43,6 @@ public interface UserIdentityMapper extends BaseMapper<UserIdentity> {
      * @param userIdentityId 记录ID
      * @return 详情
      */
-    UserIdentityVO selectUserIdentityById(Long userIdentityId);
+    List<UserIdentityVO> selectUserIdentityById(@Param("userIdentityId") Long userIdentityId,
+                                                @Param("isFollower") List<Boolean> isFollower);
 }

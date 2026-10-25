@@ -25,10 +25,12 @@ public class RestClientConfig {
      * 不设置的话第三方接口挂起会一直占着 tomcat 线程，几次就把服务拖死。
      */
     @Bean
-    public RestClient restTemplate() {
+    public RestClient restClient() {
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build());
         requestFactory.setReadTimeout(READ_TIMEOUT);
-        return RestClient.builder().requestFactory(requestFactory).build();
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
     }
 }
