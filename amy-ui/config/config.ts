@@ -7,6 +7,10 @@ export default defineConfig({
   model: {},
   request: {},
   layout: {},
+  // 修复 max build 在压缩阶段报 "Found conflicts in esbuild helpers" 的问题：
+  // 多个 chunk 的 esbuild IIFE helper 变量名（Xc/Qc）冲突，开启此选项让 esbuild
+  // 在 minify 时对 helper 做 IIFE 包裹，消除冲突。源码编译本身无问题。
+  esbuildMinifyIIFE: true,
   hash: true,
   history: { type: 'hash' },
   npmClient: 'npm',
@@ -27,6 +31,7 @@ export default defineConfig({
         { path: '/system/post', name: '岗位管理', component: '@/pages/System/Post' },
         { path: '/system/dict', name: '字典管理', component: '@/pages/System/Dict' },
         { path: '/system/config', name: '参数设置', component: '@/pages/System/Config' },
+        { path: '/system/sysstyle', name: '系统样式', component: '@/pages/System/SysStyle' },
         { path: '/system/notice', name: '通知公告', component: '@/pages/System/Notice' },
         {
           path: '/system/log',

@@ -1,8 +1,10 @@
 import type {RunTimeLayoutConfig, RequestConfig} from '@umijs/max';
 import {history} from '@umijs/max';
-import {App, message as antdMessage} from 'antd';
+import {message as antdMessage} from 'antd';
 import React from 'react';
 import AvatarDropdown from '@/components/RightContent/AvatarDropdown';
+import {SystemThemeProvider, fetchSystemStyle} from '@/theme/SystemStyle';
+import type {SystemStyle} from '@/theme/SystemStyle';
 import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
 import {getRouters, getUserInfo} from '@/services/auth';
@@ -13,6 +15,8 @@ export interface AmyInitialState {
     roles: string[];
     permissions: string[];
     routes: BackendRoute[];
+    /** 系统整体样式（主题色 / 链接色 / 圆角 / 组件尺寸），登录态就绪后携带 */
+    systemStyle?: SystemStyle;
 }
 
 export async function getInitialState(): Promise<AmyInitialState> {
@@ -21,13 +25,18 @@ export async function getInitialState(): Promise<AmyInitialState> {
     }
 
     try {
-        const [userInfoResult, routeResult] = await Promise.all([getUserInfo(), getRouters()]);
+        const [userInfoResult, routeResult, styleResult] = await Promise.all([
+            getUserInfo(),
+            getRouters(),
+            fetchSystemStyle(),
+        ]);
         const routes = routeResult.data;
         return {
             currentUser: userInfoResult.user,
             roles: userInfoResult.roles || [],
             permissions: userInfoResult.permissions || [],
-            routes: routes || []
+            routes: routes || [],
+            systemStyle: styleResult,
         };
     } catch {
         clearSession();
@@ -233,6 +242,7 @@ const ROUTE_PERMISSIONS: Record<string, string> = {
     '/system/post': 'system:post:list',
     '/system/dict': 'system:dict:list',
     '/system/config': 'system:config:list',
+    '/system/sysstyle': 'system:sysstyle:list',
     '/system/notice': 'system:notice:list',
     '/system/log/operlog': 'system:operlog:list',
     '/system/log/logininfor': 'system:logininfor:list',
@@ -248,7 +258,10 @@ function hasRoutePermission(path: string, permissions: string[]) {
 }
 
 export function rootContainer(container: React.ReactNode) {
-    return <App>{container}</App>;
+    // 全局主题：用 SystemThemeProvider 包裹整个应用，使所有 antd / Pro 组件统一应用
+    // 系统整体样式（主色 / 圆角 / 组件尺寸等）。Provider 内部已包含 antd 的 <App>，
+    // 因此这里不再单独包一层 <App>。
+    return <SystemThemeProvider>{container}</SystemThemeProvider>;
 }
 
 declare global {
