@@ -1,7 +1,7 @@
-import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
-import { LoginForm, ProFormCaptcha, ProFormCheckbox, ProFormText } from '@ant-design/pro-components';
+import { LockOutlined, ReloadOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import { LoginForm, ProFormCheckbox, ProFormText } from '@ant-design/pro-components';
 import { history, useModel, useSearchParams } from '@umijs/max';
-import { App, Image } from 'antd';
+import { App, ConfigProvider, Tooltip } from 'antd';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import { getCaptcha, getRouters, getUserInfo, login } from '@/services/auth';
@@ -17,6 +17,21 @@ interface LoginFormValues extends LoginParams {
 const USERNAME_KEY = 'username';
 const PASSWORD_KEY = 'password';
 const REMEMBER_KEY = 'rememberMe';
+
+/**
+ * 登录页主题：只作用于本页（不像全局 ConfigProvider 那样污染后台）。
+ * 主色取 login-bg.jpg 同款水墨绿（青瓷绿），
+ * 按钮/输入框聚焦/复选框选中/链接 hover 等所有「主色相关」组件一次性统一，
+ * 无需再逐个覆盖 antd 内部类。
+ */
+const loginTheme = {
+  token: {
+    colorPrimary: '#4f7d6d',
+    colorLink: '#4f7d6d',
+    colorLinkHover: '#3f6a5b',
+    borderRadius: 6,
+  },
+};
 
 export default function LoginPage() {
   const { message } = App.useApp();
@@ -94,54 +109,67 @@ export default function LoginPage() {
     }
   };
 
+  // 「忘记密码」不走 href="#"（hash 路由下会把地址改成空 hash），改为提示联系管理员
+  const handleForgotPassword = () => {
+    message.info('请联系系统管理员重置密码');
+  };
+
+  // 验证码：标准写法是 ProFormText + addonAfter，图片自身承担「点击刷新」
+  // （此前用 ProFormCaptcha 并隐藏其发码按钮、给 onGetCaptcha 空实现，属于 hack）
+  const captchaAddon = (
+    <Tooltip title="点击刷新验证码">
+      <div className={styles.captchaAddon} role="button" aria-label="刷新验证码" onClick={() => void loadCaptcha()}>
+        {captchaUrl ? <img src={captchaUrl} alt="验证码"/> : <ReloadOutlined/>}
+      </div>
+    </Tooltip>
+  );
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <LoginForm<LoginFormValues>
-          title="预约管理系统"
-          initialValues={initialValues}
-          onFinish={handleSubmit}
-          submitter={{ searchConfig: { submitText: '登录' }, submitButtonProps: { block: true, size: 'large' } }}
-        >
-          <ProFormText
-            name="username"
-            fieldProps={{ size: 'large', prefix: <UserOutlined className={styles.inputIcon} /> }}
-            placeholder="请输入账号"
-            rules={[{ required: true, message: '请输入您的账号' }]}
-          />
-          <ProFormText.Password
-            name="password"
-            fieldProps={{ size: 'large', prefix: <LockOutlined className={styles.inputIcon} /> }}
-            placeholder="请输入密码"
-            rules={[{ required: true, message: '请输入您的密码' }]}
-          />
-          {captchaEnabled && (
-            <div className={styles.captchaRow}>
-              <ProFormCaptcha
-                name="code"
-                fieldProps={{ size: 'large', prefix: <SafetyCertificateOutlined className={styles.inputIcon} /> }}
-                placeholder="请输入验证码"
-                rules={[{ required: true, message: '请输入验证码' }]}
-                captchaProps={{ style: { display: 'none' } }}
-                onGetCaptcha={async () => undefined}
-              />
-              <button
-                type="button"
-                className={styles.captchaButton}
-                onClick={() => void loadCaptcha()}
-                aria-label="刷新验证码"
-              >
-                {captchaUrl ? <Image preview={false} src={captchaUrl} alt="验证码" height={40} /> : '点击刷新'}
-              </button>
+        <ConfigProvider theme={loginTheme}>
+          <LoginForm<LoginFormValues>
+            title="预约管理系统"
+            initialValues={initialValues}
+            onFinish={handleSubmit}
+            submitter={{ searchConfig: { submitText: '登录' }, submitButtonProps: { block: true, size: 'large' } }}
+          >
+            <ProFormText
+              name="username"
+              fieldProps={{ size: 'large', prefix: <UserOutlined className={styles.inputIcon}/> }}
+              placeholder="请输入账号"
+              rules={[{ required: true, message: '请输入您的账号' }]}
+            />
+            <ProFormText.Password
+              name="password"
+              fieldProps={{ size: 'large', prefix: <LockOutlined className={styles.inputIcon}/> }}
+              placeholder="请输入密码"
+              rules={[{ required: true, message: '请输入您的密码' }]}
+            />
+            {captchaEnabled && (
+              <div className={styles.captchaItem}>
+                <ProFormText
+                  name="code"
+                  fieldProps={{
+                    size: 'large',
+                    prefix: <SafetyCertificateOutlined className={styles.inputIcon}/>,
+                    addonAfter: captchaAddon,
+                  }}
+                  placeholder="请输入验证码"
+                  rules={[{ required: true, message: '请输入验证码' }]}
+                />
+              </div>
+            )}
+            <div className={styles.formOptions}>
+              <ProFormCheckbox noStyle name="rememberMe">
+                记住密码
+              </ProFormCheckbox>
+              <a className={styles.forgotLink} onClick={handleForgotPassword}>
+                忘记密码 ?
+              </a>
             </div>
-          )}
-          <div className={styles.formOptions}>
-            <ProFormCheckbox name="rememberMe">记住密码</ProFormCheckbox>
-            <a className={styles.forgotLink} href="#">
-              忘记密码 ?
-            </a>
-          </div>
-        </LoginForm>
+          </LoginForm>
+        </ConfigProvider>
       </div>
       <footer className={styles.footer}>Copyright © 2018-2026 RuoYi. All Rights Reserved.</footer>
     </div>
