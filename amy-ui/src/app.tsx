@@ -1,6 +1,6 @@
 import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import type {RunTimeLayoutConfig, RequestConfig} from '@umijs/max';
-import {history, Link} from '@umijs/max';
+import {history} from '@umijs/max';
 import {App, Avatar, Dropdown, message as antdMessage} from 'antd';
 import React from 'react';
 import {renderIcon} from '@/components/IconSelect';
@@ -169,24 +169,16 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
         return filterHiddenRoutes(source).map((item) => toProLayoutMenu(item, '/'));
     },
     /**
-     * pro-layout 的 BaseMenu 内部限制死了图标层级：
-     *   `const hasIcon = level === 0 || (isGroup && level === 1);`
-     *   `const icon = !hasIcon ? null : getIcon(item.icon);`
-     * 也就是只有一级菜单（以及 group 模式下的二级）才会渲染 icon，
-     * 后端菜单树里「系统管理(0) → 用户管理(1)」这类二级/三级子菜单的 icon 会被强行丢弃。
-     * 所以这里接管 menuItemRender / subMenuItemRender，自己渲染「图标 + 标题」，
-     * 使任意层级的菜单都能显示在菜单管理模块里配置的图标。
+     * 这里不覆写 menuItemRender / subMenuItemRender，沿用 Ant Design Pro 官方实现。
+     * 官方写法见 src/.umi/plugin-layout/Layout.tsx（menuItemRender）：保留框架渲染好的
+     * defaultDom，只在外层包 <Link> 做路由跳转。收起态只有图标、图标居中、悬浮 tooltip、
+     * 弹出子菜单显示「图标 + 文字」等行为都由 pro-layout 内部按 defaultDom 的结构控制。
+     * 一旦像之前那样整个丢弃 defaultDom 自己渲染，就会丢失它内部的收起态类名
+     * （-item-title-collapsed / -item-text-has-icon / hashId），导致上述行为全部失效。
+     *
+     * 代价：pro-layout 约定只有一级菜单渲染 icon（BaseMenu 内部 hasIcon = level === 0 ...），
+     * 二级及更深的子菜单图标不再强行显示——这是 Ant Design Pro 的默认形态。
      */
-    menuItemRender: (item, defaultDom, menuProps) => {
-        if (item.isUrl || item.children) return defaultDom;
-        const label = renderMenuLabel(item as unknown as BackendRoute, menuProps);
-        // 复刻 umi 内置 menuItemRender 的跳转行为（我们用自定义实现覆盖了它）
-        if (item.path && history.location.pathname !== item.path) {
-            return <Link to={(item.path || '').replace('/*', '')} target={item.target}>{label}</Link>;
-        }
-        return label;
-    },
-    subMenuItemRender: (item, defaultDom, menuProps) => renderMenuLabel(item as unknown as BackendRoute, menuProps),
     onPageChange: () => {
         if (!getToken() && history.location.pathname !== '/login') {
             history.push(`/login?redirect=${encodeURIComponent(history.location.pathname)}`);
@@ -195,22 +187,6 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => ({
         }
     }
 });
-
-/**
- * 自定义渲染菜单标题（图标 + 文字），绕过 pro-layout 只给一级菜单显示 icon 的限制。
- * 结构完全对齐 BaseMenu 默认生成的 DOM（`-item-title` > `-item-icon` / `-item-text`），
- * 以便复用 pro-layout 自带的排版样式（含收起态）。
- */
-function renderMenuLabel(item: BackendRoute, menuProps?: {prefixCls?: string; mode?: string}): React.ReactNode {
-    const baseClassName = `${menuProps?.prefixCls || 'ant-pro'}-base-menu-${menuProps?.mode || 'inline'}`;
-    const icon = item.icon as React.ReactNode;
-    return (
-        <span className={`${baseClassName}-item-title`}>
-            {icon ? <span className={`${baseClassName}-item-icon`}>{icon}</span> : null}
-            <span className={`${baseClassName}-item-text`}>{item.name}</span>
-        </span>
-    );
-}
 
 /** 把 config.ts 里的静态路由转成 pro-layout 的菜单数据格式 */
 function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {
