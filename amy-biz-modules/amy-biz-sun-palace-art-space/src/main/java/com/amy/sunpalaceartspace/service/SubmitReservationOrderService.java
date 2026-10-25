@@ -5,6 +5,7 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.common.mq.bo.AmyMqProducerBO;
 import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
@@ -79,10 +80,15 @@ public class SubmitReservationOrderService {
             throw new ServiceException("预约会员不存在，请先注册");
         }
         // 验证项目是否存在
-        boolean projectExist = projectsService.checkProjectExistById(req.getProjectId());
-        if(!projectExist) {
+        Projects project = projectsService.selectProjectById(req.getProjectId());
+        if(project == null) {
             throw new ServiceException("预约项目不存在，无法进行预约");
         }
+        Integer travelerCount = project.getTravelerCount();
+        if(null != req.getCompUsers() && req.getCompUsers().size() > travelerCount) {
+            throw new ServiceException("随行人数超过限制，无法进行预约");
+        }
+
         // 预约频次校验（微信号维度）：1月最多2次、取消满2次当月禁约、3天内不可重复预约
         validateReservationFrequency(user.getReservationUserId(), req.getIdNum());
     }

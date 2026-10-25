@@ -5,6 +5,7 @@ import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
+import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -64,7 +65,7 @@ public class MinaAppController extends BaseController {
      * 小程序首页项目列表信息
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @GetMapping("/homepage/project")
     public R<TableDataInfo> getHomePage() {
         PageDomain pageDomain = TableSupport.buildPageRequest();
@@ -92,7 +93,7 @@ public class MinaAppController extends BaseController {
      * @param request
      * @return
      */
-//    @MinaApiAuth
+    @MinaApiAuth
     @PostMapping("/reservation/submit")
     public R<String> submitReservation(@RequestHeader("Authorization") String token,
             @RequestBody @Validated SubmitReservationReq request) {
@@ -104,7 +105,7 @@ public class MinaAppController extends BaseController {
      * @param token
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @GetMapping("/user/reservation/records")
     public R<TableDataInfo> userReservationRecords(@RequestHeader("Authorization") String token) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
@@ -122,7 +123,7 @@ public class MinaAppController extends BaseController {
      * @param token
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @GetMapping("/user/info")
     public R<MinaReservationUserInfoResp> getUserInfo(@RequestHeader("Authorization") String token) {
         return R.ok(minaAppService.extractReservationUserInfo(token));
@@ -134,7 +135,7 @@ public class MinaAppController extends BaseController {
      * @param userIdentityReq
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @PostMapping("/user/verify")
     public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
@@ -149,7 +150,7 @@ public class MinaAppController extends BaseController {
      * @param userIdentityReq
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @PostMapping("/user/follower/add")
     public R<List<UserIdentityVO>> addFollower(@RequestHeader("Authorization") String token,
                                                @RequestBody @Validated UserIdentityReq userIdentityReq) {
@@ -164,7 +165,7 @@ public class MinaAppController extends BaseController {
      * @param orderNum
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @GetMapping("/reservation/{orderNum}")
     public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
@@ -179,7 +180,7 @@ public class MinaAppController extends BaseController {
      * @param orderNum
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @PostMapping("/reservation/verify/{orderNum}")
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
             @PathVariable("orderNum") String orderNum) {
