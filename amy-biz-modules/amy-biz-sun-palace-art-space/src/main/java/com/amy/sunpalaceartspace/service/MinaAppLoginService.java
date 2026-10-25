@@ -1,4 +1,4 @@
-package com.amy.sunpalaceartspace.service.impl;
+package com.amy.sunpalaceartspace.service;
 
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
@@ -14,7 +14,6 @@ import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +27,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
 
 /**
  * @ClassName WechatService
- * @Description TODO
+ * @Description 小程序登录处理类
  * @Author fantasyfan
  * @Date 2026-09-19 11:41
  */

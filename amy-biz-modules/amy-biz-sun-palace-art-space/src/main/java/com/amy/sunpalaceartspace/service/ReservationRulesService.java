@@ -1,10 +1,8 @@
-package com.amy.sunpalaceartspace.service.impl;
+package com.amy.sunpalaceartspace.service;
 
 import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
-import com.amy.sunpalaceartspace.service.IProjectsService;
-import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +19,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
  * 预约放号（库存）规则
  *
  * <p>放号规则：每天 6 时段 × 每时段 20 = 120 名；分两批释放，每批每时段 +10（共 60）。
- * 批次1（12:00）释放“第二天”的第一批；批次2（00:00）释放“当天”的剩余名额（补足至满）。</p>
+ * 批次1（12:00）释放“第二天”的第一批,各时段各10名共约60；批次2（00:00）释放“当天”的剩余名额（补足至满）。</p>
  *
  * <p>幂等：基于 batch1Released / batch2Released 标记，定时器重跑或集群多节点重复触发均不会重复放号。</p>
  *

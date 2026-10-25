@@ -2,7 +2,7 @@ package com.amy.sunpalaceartspace.timetask;
 
 import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.common.SpasLock;
-import com.amy.sunpalaceartspace.service.impl.ReservationRulesService;
+import com.amy.sunpalaceartspace.service.ReservationRulesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.web.bind.annotation.*;
 
-import com.amy.sunpalaceartspace.service.impl.MinaAppLoginService;
+import com.amy.sunpalaceartspace.service.MinaAppLoginService;
 
 /**
  * @ClassName WechatController

@@ -1,4 +1,4 @@
-package com.amy.sunpalaceartspace.service.impl;
+package com.amy.sunpalaceartspace.service;
 
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
@@ -21,10 +21,8 @@ import com.amy.sunpalaceartspace.enums.GenderEnum;
 import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
-import com.amy.sunpalaceartspace.service.IProjectsService;
-import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
-import com.amy.sunpalaceartspace.service.IUserIdentityService;
+import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
+import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -56,7 +54,7 @@ public class MinaAppService {
     private final ReservationUtil reservationUtil;
     private final MinaAppLoginService minaAppLoginService;
     private final IUserIdentityService userIdentityService;
-    private final AliIdCheckService aliIdCheckService;
+    private final AliIdCheckUtil aliIdCheckUtil;
     private final UserIdentityServiceImpl userIdentityServiceImpl;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
@@ -307,7 +305,7 @@ public class MinaAppService {
 
     private AliIdCheckDto.ResultDTO verify(UserIdentityReq req) {
         // 调阿里接口验证身份信息
-        AliIdCheckDto aliIdCheckDto = aliIdCheckService.checkUserIdentify(req.getName(), req.getIdNum());
+        AliIdCheckDto aliIdCheckDto = aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
         if (aliIdCheckDto == null) {
             throw new ServiceException("身份核验服务异常，请稍后重试");
         }

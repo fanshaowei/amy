@@ -1,4 +1,4 @@
-package com.amy.sunpalaceartspace.service.impl;
+package com.amy.sunpalaceartspace.utils;
 
 import com.amy.common.core.exception.ServiceException;
 import com.amy.sunpalaceartspace.config.AliConfig;
@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -41,8 +41,8 @@ import java.nio.charset.StandardCharsets;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Service
-public class AliIdCheckService {
+@Component
+public class AliIdCheckUtil {
 
     /**
      * 表单编码的 Content-Type，显式带上 UTF-8。

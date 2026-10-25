@@ -1,6 +1,6 @@
 package com.amy.sunpalaceartspace.config;
 
-import com.amy.sunpalaceartspace.service.impl.ReservationRulesService;
+import com.amy.sunpalaceartspace.service.ReservationRulesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
