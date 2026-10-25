@@ -162,7 +162,7 @@ export default function LineChart({data, color = '#4096ff', height = 300, unit =
                 >
                     <defs>
                         <linearGradient id={`${gradientId}-area`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color} stopOpacity={0.16}/>
+                            <stop offset="0%" stopColor={color} stopOpacity={0.28}/>
                             <stop offset="100%" stopColor={color} stopOpacity={0}/>
                         </linearGradient>
                     </defs>
@@ -174,7 +174,7 @@ export default function LineChart({data, color = '#4096ff', height = 300, unit =
                         return (
                             <g key={`y-${i}`}>
                                 <line x1={PADDING.left} y1={y} x2={PADDING.left + innerWidth} y2={y}
-                                      stroke="#f0f0f0" strokeWidth={1}/>
+                                      stroke="#eef1f6" strokeWidth={1}/>
                                 <text x={PADDING.left - 10} y={y + 4} textAnchor="end" fontSize={12} fill="#8c8c8c">
                                     {formatNumber(value)}
                                 </text>
@@ -196,7 +196,7 @@ export default function LineChart({data, color = '#4096ff', height = 300, unit =
                     })}
 
                     {areaPath && <path d={areaPath} fill={`url(#${gradientId}-area)`}/>}
-                    <path d={linePath} fill="none" stroke={color} strokeWidth={2}
+                    <path d={linePath} fill="none" stroke={color} strokeWidth={2.5}
                           strokeLinecap="round" strokeLinejoin="round"/>
 
                     {hover && (
@@ -216,17 +216,18 @@ export default function LineChart({data, color = '#4096ff', height = 300, unit =
                     left: hover.point[0],
                     top: hover.point[1],
                     transform: 'translate(-50%, calc(-100% - 12px))',
-                    background: 'rgba(0,0,0,0.75)',
+                    background: 'rgba(28,35,51,0.92)',
                     color: '#fff',
-                    padding: '6px 10px',
-                    borderRadius: 4,
+                    padding: '8px 12px',
+                    borderRadius: 8,
                     fontSize: 12,
-                    lineHeight: 1.5,
+                    lineHeight: 1.7,
                     whiteSpace: 'nowrap',
+                    boxShadow: '0 6px 20px rgba(28,35,51,0.25)',
                     pointerEvents: 'none'
                 }}>
-                    <div>{hover.item.title || hover.item.label}</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                    <div style={{color: 'rgba(255,255,255,0.65)'}}>{hover.item.title || hover.item.label}</div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700}}>
                         <span style={{
                             display: 'inline-block',
                             width: 6,

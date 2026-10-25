@@ -1,16 +1,12 @@
 import {
     AppstoreOutlined,
-    CalendarOutlined,
     ClockCircleOutlined,
-    CopyOutlined,
     DeleteOutlined,
-    EditOutlined,
-    FieldTimeOutlined,
+    EyeInvisibleOutlined,
+    EyeOutlined,
     FileTextOutlined,
-    HistoryOutlined,
     InfoCircleOutlined,
-    PlusOutlined,
-    TeamOutlined
+    PlusOutlined
 } from '@ant-design/icons';
 import {
     ModalForm,
@@ -25,9 +21,10 @@ import {
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Card, Checkbox, Col, Empty, Image, Row, Skeleton, Space, Tag, Typography} from 'antd';
+import {App, Col, Empty, Row, Skeleton, Space, Typography} from 'antd';
 import dayjs, {Dayjs} from 'dayjs';
-import {useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {ProFormRichText} from '@/components/RichTextEditor';
 import {
@@ -38,7 +35,11 @@ import {
     updateProject
 } from '@/services/sunpalaceartspace/project';
 import type {ProjectRecord} from '@/services/sunpalaceartspace/project';
+import {StatFilterBar} from '../StatFilterBar';
+import type {StatFilterItem} from '../StatFilterBar';
+import styles from '../spas.less';
 import {CoverUpload} from './CoverUpload';
+import ProjectCard from './ProjectCard';
 
 /** 表单值类型：时间字段使用 dayjs 对象，提交时再转回 HH:mm:ss 字符串 */
 interface ProjectFormValues extends Omit<ProjectRecord, 'cutOffTime' | 'reservationStartTime' | 'reservationEndTime'> {
@@ -46,6 +47,13 @@ interface ProjectFormValues extends Omit<ProjectRecord, 'cutOffTime' | 'reservat
     reservationStartTime?: Dayjs;
     reservationEndTime?: Dayjs;
 }
+
+/**
+ * 统计时一次性拉取的项目数量。
+ * 后端 ProjectsController.list 未支持 status 过滤（见 ProjectsMapper.xml），
+ * 因此 展示中 / 已隐藏 两个数量在本地统计；项目属于配置类小表，直接取整页即可。
+ */
+const STAT_PAGE_SIZE = 200;
 
 const toDayjs = (value?: string | null) => {
     if (!value) return undefined;
@@ -69,8 +77,6 @@ const toStr = (value?: Dayjs | string | null) => {
     return parsedRaw.isValid() ? parsedRaw.format('HH:mm:ss') : (timePart || undefined);
 };
 
-/** 去掉字符串里可能存在的日期前缀，只显示时间（用于列表/卡片展示） */
-const timeOnly = (value?: string | null) => (value || '').replace(/^\d{4}-\d{2}-\d{2}[T\s]+/, '');
 const toFormValues = (record?: ProjectRecord): ProjectFormValues | undefined => record ? {
     ...record,
     cutOffTime: toDayjs(record.cutOffTime),
@@ -124,12 +130,38 @@ const TipBox = ({
     <span>{text}</span>
 </div>;
 
+const pad = (value: number) => String(value).padStart(2, '0');
+
 export default function ProjectPage() {
     const {message, modal} = App.useApp();
     const tableRef = useRef<ActionType>();
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<ProjectRecord>();
     const [open, setOpen] = useState(false);
+    const [stats, setStats] = useState<{ total?: number; shown?: number; hidden?: number }>({});
+    const [updatedAt, setUpdatedAt] = useState('');
+
+    /** 项目数量统计（展示中 / 已隐藏 在本地统计，见 STAT_PAGE_SIZE 注释） */
+    const loadStats = useCallback(async () => {
+        try {
+            const result = await listProjects({pageNum: 1, pageSize: STAT_PAGE_SIZE});
+            const rows = result.data?.rows ?? [];
+            const shown = rows.filter(row => row.status === '0').length;
+            setStats({total: rows.length, shown, hidden: rows.length - shown});
+            setUpdatedAt(`${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`);
+        } catch {
+            // 统计失败不影响列表本身，保留上一次的数值
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadStats();
+    }, [loadStats]);
+
+    const refreshAll = useCallback(() => {
+        tableRef.current?.reload();
+        void loadStats();
+    }, [loadStats]);
 
     const openForm = async (row?: ProjectRecord) => {
         setEditing(row?.projectId ? (await getProject(row.projectId)).data : undefined);
@@ -140,15 +172,13 @@ export default function ProjectPage() {
         await deleteProjects(ids);
         message.success('删除成功');
         setSelected([]);
-        tableRef.current?.reload();
+        refreshAll();
     };
 
-    const confirmDeleteRow = (row: ProjectRecord) => {
-        modal.confirm({
-            title: `确认删除项目「${row.projectName}」？`,
-            content: '删除后该项目将不再展示，且不可恢复。',
-            onOk: async () => await confirmDelete([row.projectId!])
-        });
+    const afterEdit = () => {
+        message.success(editing?.projectId ? '修改成功' : '新增成功');
+        setOpen(false);
+        refreshAll();
     };
 
     const copyPageAddress = (row: ProjectRecord) => {
@@ -157,221 +187,122 @@ export default function ProjectPage() {
     };
 
     const columns: ProColumns<ProjectRecord>[] = [{
-        title: '封面',
-        dataIndex: 'coverArtUrl',
-        search: false,
-        width: 90,
-        render: (_, row) => row.coverArtUrl
-            ? <Image width={44} height={44} src={row.coverArtUrl} alt={`${row.projectName}封面`}
-                     style={{objectFit: 'cover', borderRadius: 4}}/>
-            : '-'
-    }, {
         title: '标题',
         dataIndex: 'projectName',
         ellipsis: true
-    }, {
-        title: '可预约时段',
-        dataIndex: 'reservationStartTime',
-        search: false,
-        render: (_, row) => row.reservationStartTime || row.reservationEndTime
-            ? `${timeOnly(row.reservationStartTime) || ''} - ${timeOnly(row.reservationEndTime) || ''}`
-            : '-'
-    }, {
-        title: '预约间隔',
-        dataIndex: 'reservationIntervalSecond',
-        search: false,
-        render: (_, row) => row.reservationIntervalSecond != null ? `${row.reservationIntervalSecond} 分钟` : '-'
-    }, {
-        title: '时段预约人数',
-        dataIndex: 'reservationCount',
-        search: false
-    }, {
-        title: '停留秒数',
-        dataIndex: 'reservationStaySecond',
-        search: false,
-        render: (_, row) => row.reservationStaySecond != null ? `${row.reservationStaySecond} 秒` : '-'
-    }, {
-        title: '当日截止时间',
-        dataIndex: 'cutOffTime',
-        search: false
-    }, {
-        title: '提前预约天数',
-        dataIndex: 'advanceReservationDays',
-        search: false
-    }, {
-        title: '页面地址',
-        dataIndex: 'pageAddress',
-        search: false,
-        render: (_, row) => <Typography.Link onClick={() => copyPageAddress(row)}>
-            <CopyOutlined/> 点击复制
-        </Typography.Link>
-    }, {
-        title: '展示状态',
-        dataIndex: 'status',
-        search: false,
-        render: (_, row) => <Tag color={row.status === '0' ? 'success' : 'default'}>
-            {row.status === '0' ? '展示' : '隐藏'}
-        </Tag>
-    }, {
-        title: '排序',
-        dataIndex: 'sort',
-        search: false
-    }, {
-        title: '发布时间',
-        dataIndex: 'createTime',
-        search: false,
-        width: 160
-    }, {
-        title: '操作',
-        valueType: 'option',
-        fixed: 'right',
-        width: 130,
-        render: (_, row) => [
-            <PermissionButton key="edit" type="link" size="small" permission="sunpalaceartspace:project:edit"
-                              onClick={() => void openForm(row)}>编辑</PermissionButton>,
-            <PermissionButton key="delete" type="link" size="small" danger
-                              permission="sunpalaceartspace:project:remove"
-                              onClick={() => modal.confirm({
-                                  title: `确认删除项目「${row.projectName}」？`,
-                                  content: '删除后该项目将不再展示，且不可恢复。',
-                                  onOk: async () => {
-                                      await deleteProjects([row.projectId!]);
-                                      message.success('删除成功');
-                                      tableRef.current?.reload();
-                                  }
-                              })}>删除</PermissionButton>
-        ]
     }];
 
-    return <PageContainer header={{title: false}}>
-        <ProTable<ProjectRecord>
-            rowKey="projectId"
-            actionRef={tableRef}
-            columns={columns}
-            tableAlertRender={false}
-            rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
-            request={async ({current, pageSize, ...params}) => {
-                const result = await listProjects({...params, pageNum: current, pageSize});
-                return {data: result.data.rows, total: result.data.total, success: result.code === 200 || result.code == 0};
-            }}
-            tableViewRender={({dataSource, loading, rowSelection}) => {
-                const spinning = loading === true || (typeof loading === 'object' && loading?.spinning);
-                if (spinning) {
-                    return <Row gutter={[16, 16]}>{Array.from({length: 8}).map((_, i) => (
-                        <Col key={i} xs={24} sm={12} md={8} lg={8} xl={6}>
-                            <Skeleton.Button active block style={{height: 320, borderRadius: 8}}/>
-                        </Col>
-                    ))}</Row>;
-                }
-                if (!dataSource?.length) {
-                    return <Empty description="暂无数据" style={{padding: 48}}/>;
-                }
-                const selectedKeys = new Set((rowSelection?.selectedRowKeys ?? []) as React.Key[]);
-                const toggle = (row: ProjectRecord, checked: boolean) => {
-                    const key = row.projectId!;
-                    const next = new Set(selectedKeys);
-                    if (checked) next.add(key); else next.delete(key);
-                    const keys = Array.from(next);
-                    const rows = dataSource.filter(r => keys.includes(r.projectId!));
-                    rowSelection?.onChange?.(keys, rows, {type: 'multiple' as any});
-                };
-                const infoItem = (icon: React.ReactNode, label: string, value?: React.ReactNode) => (
-                    <div style={{display: 'flex', alignItems: 'center', gap: 6, color: '#595959', fontSize: 12}}>
-                        <span style={{color: '#8c8c8c'}}>{icon}</span>
-                        <span style={{whiteSpace: 'nowrap'}}>{label}</span>
-                        <span style={{
-                            color: '#262626',
-                            fontWeight: 500,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                        }}>{value ?? '-'}</span>
-                    </div>
-                );
-                return <Row gutter={[16, 16]} style={{marginBottom: 16}}>
-                    {dataSource.map(row => {
-                        const isSelected = selectedKeys.has(row.projectId!);
-                        return <Col key={row.projectId} xs={24} sm={12} md={8} lg={8} xl={6}>
-                            <Card
-                                hoverable
-                                bodyStyle={{padding: 14}}
-                                cover={<div style={{height: 160, background: '#f5f5f5', position: 'relative', overflow: 'hidden'}}>
-                                    {row.coverArtUrl
-                                        ? <Image src={row.coverArtUrl} preview={false}
-                                                 style={{width: '100%', height: '100%', objectFit: 'cover'}}
-                                                 alt={`${row.projectName}封面`}/>
-                                        : <div style={{
-                                            height: '100%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#bfbfbf',
-                                            fontSize: 12
-                                        }}>暂无封面</div>}
-                                    <div style={{position: 'absolute', top: 8, left: 8, zIndex: 1}}>
-                                        <Checkbox checked={isSelected} onChange={e => toggle(row, e.target.checked)}/>
+    const statItems: StatFilterItem[] = [{
+        key: 'total',
+        label: '项目总数',
+        value: stats.total,
+        icon: <AppstoreOutlined/>,
+        color: '#4f6ef7',
+        background: '#eef1fe',
+        clickable: false
+    }, {
+        key: 'shown',
+        label: '展示中',
+        value: stats.shown,
+        icon: <EyeOutlined/>,
+        color: '#10b981',
+        background: '#e7f8f1',
+        clickable: false
+    }, {
+        key: 'hidden',
+        label: '已隐藏',
+        value: stats.hidden,
+        icon: <EyeInvisibleOutlined/>,
+        color: '#f59e0b',
+        background: '#fef4e2',
+        clickable: false
+    }];
+
+    return <PageContainer pageHeaderRender={false}
+                          token={{paddingInlinePageContainerContent: 0, paddingBlockPageContainerContent: 0}}>
+        <div className={styles.page}>
+            <PageHero
+                crumb={<>艺术空间&nbsp;›&nbsp;<b>项目管理</b></>}
+                title="项目管理"
+                description="配置小程序端可预约的艺术空间项目、时段规则与预约须知"
+                updatedAt={updatedAt}
+                onRefresh={refreshAll}
+            />
+            <div className={styles.content}>
+                <StatFilterBar items={statItems}/>
+                <ProTable<ProjectRecord>
+                    rowKey="projectId"
+                    actionRef={tableRef}
+                    columns={columns}
+                    tableAlertRender={false}
+                    cardProps={{bodyStyle: {padding: '14px 16px'}}}
+                    rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
+                    request={async ({current, pageSize, ...params}) => {
+                        const result = await listProjects({...params, pageNum: current, pageSize});
+                        return {
+                            data: result.data.rows,
+                            total: result.data.total,
+                            success: result.code === 200 || result.code == 0
+                        };
+                    }}
+                    tableViewRender={({dataSource, loading, rowSelection}) => {
+                        const spinning = loading === true || (typeof loading === 'object' && loading?.spinning);
+                        if (spinning) {
+                            return <Row gutter={[16, 16]}>{Array.from({length: 8}).map((_, i) => (
+                                <Col key={i} xs={24} sm={12} md={8} lg={8} xl={6}>
+                                    <div className={styles.projectCard}>
+                                        <Skeleton.Image active style={{width: '100%', height: 168}}/>
+                                        <div className={styles.projectBody}>
+                                            <Skeleton active paragraph={{rows: 3}}/>
+                                        </div>
                                     </div>
-                                    <Tag style={{position: 'absolute', top: 8, right: 8, zIndex: 1}}
-                                         color={row.status === '0' ? 'success' : 'default'}>
-                                        {row.status === '0' ? '展示' : '隐藏'}
-                                    </Tag>
-                                </div>}
-                            >
-                                <Typography.Title level={5} style={{margin: 0, marginBottom: 10}}
-                                                    ellipsis={{rows: 1}}>{row.projectName}</Typography.Title>
-                                <Space direction="vertical" size={6} style={{width: '100%'}}>
-                                    {infoItem(<ClockCircleOutlined/>, '可预约时段：',
-                                        `${timeOnly(row.reservationStartTime) || '--'} - ${timeOnly(row.reservationEndTime) || '--'}`)}
-                                    {infoItem(<HistoryOutlined/>, '预约规则：', [
-                                        row.reservationIntervalSecond != null && `每 ${row.reservationIntervalSecond} 分钟一场`,
-                                        row.advanceReservationDays != null && `提前 ${row.advanceReservationDays} 天`,
-                                        row.reservationStaySecond != null && `可停留 ${row.reservationStaySecond} 秒`
-                                    ].filter(Boolean).join('，') || '-')}
-                                    {infoItem(<TeamOutlined/>, '人数规则：', [
-                                        row.reservationCount != null && `每场 ${row.reservationCount} 人`,
-                                        row.travelerCount != null && `最多随行 ${row.travelerCount} 人`
-                                    ].filter(Boolean).join('，') || '-')}
-                                    {infoItem(<FieldTimeOutlined/>, '当日截止：', timeOnly(row.cutOffTime) || '-')}
-                                </Space>
-                                <div style={{
-                                    marginTop: 12,
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
-                                    <Space size={4}>
-                                        <PermissionButton type="link" size="small"
-                                                          permission="sunpalaceartspace:project:edit"
-                                                          onClick={() => void openForm(row)}
-                                                          icon={<EditOutlined/>}>编辑</PermissionButton>
-                                        <PermissionButton type="link" size="small"
-                                                          permission="sunpalaceartspace:project:edit"
-                                                          onClick={() => copyPageAddress(row)}
-                                                          icon={<CopyOutlined/>}>复制</PermissionButton>
-                                    </Space>
-                                    <PermissionButton type="link" size="small" danger
-                                                      permission="sunpalaceartspace:project:remove"
-                                                      onClick={() => confirmDeleteRow(row)}
-                                                      icon={<DeleteOutlined/>}>删除</PermissionButton>
-                                </div>
-                            </Card>
-                        </Col>;
-                    })}
-                </Row>;
-            }}
-            toolBarRender={() => [
-                <PermissionButton key="add" type="primary" icon={<PlusOutlined/>}
-                                  permission="sunpalaceartspace:project:add"
-                                  onClick={() => void openForm()}>新增</PermissionButton>,
-                <PermissionButton key="batchDelete" danger icon={<DeleteOutlined/>}
-                                  permission="sunpalaceartspace:project:remove"
-                                  disabled={!selected.length}
-                                  onClick={() => modal.confirm({
-                                      title: `确认删除选中的 ${selected.length} 个项目？`,
-                                      onOk: async () => await confirmDelete(selected)
-                                  })}>删除</PermissionButton>
-            ]}
-        />
+                                </Col>
+                            ))}</Row>;
+                        }
+                        if (!dataSource?.length) {
+                            return <Empty description="暂无项目，点击右上角「新增」创建" style={{padding: 48}}/>;
+                        }
+                        const selectedKeys = new Set((rowSelection?.selectedRowKeys ?? []) as React.Key[]);
+                        const toggle = (row: ProjectRecord, checked: boolean) => {
+                            const key = row.projectId!;
+                            const next = new Set(selectedKeys);
+                            if (checked) next.add(key); else next.delete(key);
+                            const keys = Array.from(next);
+                            const rows = dataSource.filter(r => keys.includes(r.projectId!));
+                            rowSelection?.onChange?.(keys, rows, {type: 'multiple' as any});
+                        };
+                        return <Row className={styles.cardGrid} gutter={[16, 16]}>
+                            {dataSource.map(row => <Col key={row.projectId} xs={24} sm={12} md={8} lg={8} xl={6}>
+                                <ProjectCard
+                                    project={row}
+                                    selected={selectedKeys.has(row.projectId!)}
+                                    onSelectChange={checked => toggle(row, checked)}
+                                    onEdit={() => void openForm(row)}
+                                    onCopy={() => copyPageAddress(row)}
+                                    onDelete={() => modal.confirm({
+                                        title: `确认删除项目「${row.projectName}」？`,
+                                        content: '删除后该项目将不再展示，且不可恢复。',
+                                        onOk: async () => await confirmDelete([row.projectId!])
+                                    })}
+                                />
+                            </Col>)}
+                        </Row>;
+                    }}
+                    toolBarRender={() => [
+                        <PermissionButton key="add" type="primary" icon={<PlusOutlined/>}
+                                          permission="sunpalaceartspace:project:add"
+                                          onClick={() => void openForm()}>新增项目</PermissionButton>,
+                        <PermissionButton key="batchDelete" danger icon={<DeleteOutlined/>}
+                                          permission="sunpalaceartspace:project:remove"
+                                          disabled={!selected.length}
+                                          onClick={() => modal.confirm({
+                                              title: `确认删除选中的 ${selected.length} 个项目？`,
+                                              onOk: async () => await confirmDelete(selected)
+                                          })}>批量删除</PermissionButton>
+                    ]}
+                />
+            </div>
+        </div>
         <ModalForm<ProjectFormValues>
             title={editing?.projectId ? '编辑项目' : '添加项目'}
             open={open}
@@ -392,9 +323,7 @@ export default function ProjectPage() {
                 } else {
                     await addProject(data);
                 }
-                message.success(editing?.projectId ? '修改成功' : '新增成功');
-                setOpen(false);
-                tableRef.current?.reload();
+                afterEdit();
                 return true;
             }}
         >

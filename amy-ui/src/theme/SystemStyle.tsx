@@ -38,7 +38,7 @@ export const DEFAULT_SYSTEM_STYLE: SystemStyle = {
     borderRadius: 6,
     componentSize: 'middle',
     layout: 'mix',
-    navTheme: 'dark',
+    navTheme: 'light',
 };
 
 interface SystemThemeContextValue {

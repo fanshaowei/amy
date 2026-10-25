@@ -2,9 +2,9 @@
  * 预约接口
  *
  * 后端：MinaAppController
- *  - POST /mina/app/reservation/submit                     提交预约（需登录）
- *  - GET  /mina/app/user/reservation/records               我的预约记录（需登录）
- *  - GET  /mina/app/reservation/{orderNum}                 预约详情（按预约单号）
+ *  - POST /spas/mina/app/reservation/submit                     提交预约（需登录）
+ *  - GET  /spas/mina/app/user/reservation/records               我的预约记录（需登录）
+ *  - GET  /spas/mina/app/reservation/{orderNum}                 预约详情（按预约单号）
  */
 
 import type { ReservePerson, ReserveRecord } from '@/types'
@@ -76,11 +76,11 @@ function normalizeRecord(raw: RawReserveRecord): ReserveRecord {
 
 /**
  * 提交预约
- * POST /mina/app/reservation/submit
+ * POST /spas/mina/app/reservation/submit
  */
 export async function createReserve(payload: CreateReservePayload): Promise<boolean> {
   return request<boolean>({
-    url: '/mina/app/reservation/submit',
+    url: '/spas/mina/app/reservation/submit',
     method: 'POST',
     data: {
       projectId: payload.projectId,
@@ -105,11 +105,11 @@ export async function createReserve(payload: CreateReservePayload): Promise<bool
 
 /**
  * 我的预约记录
- * GET /mina/app/user/reservation/records
+ * GET /spas/mina/app/user/reservation/records
  */
 export async function getRecords(): Promise<ReserveRecord[]> {
   const page = await requestPage<RawReserveRecord>({
-    url: '/mina/app/user/reservation/records',
+    url: '/spas/mina/app/user/reservation/records',
     pageNum: 1,
     pageSize: 100,
   })
@@ -118,11 +118,11 @@ export async function getRecords(): Promise<ReserveRecord[]> {
 
 /**
  * 预约详情（按预约单号查询）
- * GET /mina/app/reservation/{orderNum}
+ * GET /spas/mina/app/reservation/{orderNum}
  */
 export async function getRecordDetail(orderNum: string): Promise<ReserveRecord> {
   const raw = await request<RawReserveRecord>({
-    url: `/mina/app/reservation/${encodeURIComponent(orderNum)}`,
+    url: `/spas/mina/app/reservation/${encodeURIComponent(orderNum)}`,
   })
   if (!raw || !raw.reservationNum) {
     throw new Error('未找到该预约单')

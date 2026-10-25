@@ -2,8 +2,8 @@
  * 项目/活动接口
  *
  * 后端：MinaAppController
- *  - GET /mina/app/homepage/project                       首页可预约项目列表
- *  - GET /mina/app/project/reservation/info/{projectId}    预约须知 + 各日期号源明细
+ *  - GET /spas/mina/app/homepage/project                       首页可预约项目列表
+ *  - GET /spas/mina/app/project/reservation/info/{projectId}    预约须知 + 各日期号源明细
  */
 
 import type { Activity, ReservationInfo, TimeSlot } from '@/types'
@@ -58,11 +58,11 @@ function toActivity(raw: MinaHomePageProjectResp): Activity {
 
 /**
  * 首页可预约项目列表
- * GET /mina/app/homepage/project
+ * GET /spas/mina/app/homepage/project
  */
 export async function getActivities(): Promise<Activity[]> {
   const page = await requestPage<MinaHomePageProjectResp>({
-    url: '/mina/app/homepage/project',
+    url: '/spas/mina/app/homepage/project',
     pageNum: 1,
     pageSize: 100,
   })
@@ -72,11 +72,11 @@ export async function getActivities(): Promise<Activity[]> {
 
 /**
  * 项目预约信息（预约须知 + 各日期号源明细）
- * GET /mina/app/project/reservation/info/{projectId}
+ * GET /spas/mina/app/project/reservation/info/{projectId}
  */
 export async function getReservationInfo(projectId: number): Promise<ReservationInfo> {
   const info = await request<ReservationInfo>({
-    url: `/mina/app/project/reservation/info/${projectId}`,
+    url: `/spas/mina/app/project/reservation/info/${projectId}`,
   })
   cachedInfoProjectId = projectId
   cachedInfo = {

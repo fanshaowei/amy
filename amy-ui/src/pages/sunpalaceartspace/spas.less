@@ -1,0 +1,428 @@
+/*
+ * 艺术空间模块（项目管理 / 预约订单 / 会员列表）共享样式。
+ * 与控制台 Welcome 保持同一套视觉语言：灰蓝底 + 渐变页头 + 白卡 + 轻阴影。
+ * 仅在本页面的作用域内生效，不覆盖 Ant Design 全局样式。
+ */
+
+.page {
+  min-height: 100%;
+  background: #f4f6fb;
+}
+
+.content {
+  max-width: 1440px;
+  padding: 0 20px 32px;
+  margin: 12px auto 0;
+}
+
+.panel {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #e8ecf3;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(28, 35, 51, 4%), 0 4px 16px rgba(28, 35, 51, 6%);
+}
+
+/* ===== 顶部统计 / 筛选卡 ===== */
+.filterBar {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+}
+
+/* 原生 button 的浏览器默认样式（字体、外观、内边距）需要显式重置 */
+.filterCard {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  gap: 10px;
+  align-items: center;
+  min-width: 152px;
+  padding: 12px 14px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  appearance: none;
+  background: #fff;
+  border: 1px solid #edf0f6;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.filterCard:hover {
+  border-color: #c7d2f7;
+  box-shadow: 0 6px 18px rgba(79, 110, 247, 14%);
+  transform: translateY(-2px);
+}
+
+.filterCard:focus-visible {
+  outline: 2px solid #4f6ef7;
+  outline-offset: 2px;
+}
+
+/* 纯统计（不可点击）卡：保持静态外观 */
+.filterStatic {
+  cursor: default;
+
+  &:hover {
+    border-color: #edf0f6;
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.filterActive {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4f6ef7 0%, #8b5cf6 100%);
+  box-shadow: 0 8px 22px rgba(79, 110, 247, 28%);
+
+  &:hover {
+    border-color: transparent;
+    box-shadow: 0 10px 26px rgba(79, 110, 247, 32%);
+  }
+
+  .filterLabel,
+  .filterSub {
+    color: rgba(255, 255, 255, 80%);
+  }
+
+  .filterValue {
+    color: #fff;
+  }
+
+  .filterIcon {
+    background: rgba(255, 255, 255, 22%);
+    color: #fff;
+  }
+}
+
+.filterBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.filterIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 17px;
+  border-radius: 10px;
+}
+
+.filterLabel {
+  font-size: 12.5px;
+  color: #6b7385;
+}
+
+.filterValue {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 2px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1c2333;
+  font-variant-numeric: tabular-nums;
+}
+
+.filterSub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #9aa3b5;
+}
+
+/* ===== 通用单元格 / 徽标 ===== */
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cellMain {
+  overflow: hidden;
+  font-weight: 600;
+  color: #1c2333;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellSub {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  color: #9aa3b5;
+}
+
+.cellMuted {
+  color: #8c93a5;
+}
+
+.pill {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.pillDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.2px;
+}
+
+/* ===== 项目卡片 ===== */
+.cardGrid {
+  margin-bottom: 4px;
+}
+
+.projectCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e8ecf3;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(28, 35, 51, 4%), 0 4px 16px rgba(28, 35, 51, 5%);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.projectCard:hover {
+  border-color: #cfd8fb;
+  box-shadow: 0 10px 28px rgba(28, 35, 51, 12%);
+  transform: translateY(-4px);
+}
+
+.projectCardActive {
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 18%), 0 10px 28px rgba(28, 35, 51, 12%);
+}
+
+.projectCover {
+  position: relative;
+  height: 168px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eef1fe 0%, #f6effd 100%);
+}
+
+.projectCover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.projectCard:hover .projectCover img {
+  transform: scale(1.06);
+}
+
+.projectCoverEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 12px;
+  color: #a9b4d3;
+}
+
+.projectCoverShade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 60px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 28%));
+}
+
+.projectCorner {
+  position: absolute;
+  top: 10px;
+  z-index: 2;
+}
+
+.projectCornerLeft {
+  left: 10px;
+}
+
+.projectCornerRight {
+  right: 10px;
+}
+
+.checkPill {
+  padding: 3px 6px;
+  line-height: 1;
+  background: rgba(255, 255, 255, 92%);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(28, 35, 51, 12%);
+}
+
+.projectBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 14px 14px 12px;
+}
+
+.projectTitle {
+  min-width: 0;
+  margin: 0;
+  font-size: 15px !important;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.projectMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: #f7f9fc;
+  border-radius: 10px;
+}
+
+.metaLabel {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11.5px;
+  color: #8c93a5;
+}
+
+.metaValue {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c2333;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectFooter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed #eef1f6;
+}
+
+.footerMeta {
+  font-size: 12px;
+  color: #a2a9b8;
+}
+
+.footerActions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* ===== 人员信息卡（订单详情） ===== */
+.personGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.personCard {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #eef1f6;
+  border-radius: 12px;
+}
+
+.personAvatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #4f6ef7 0%, #8b5cf6 100%);
+  border-radius: 50%;
+}
+
+.personAvatarComp {
+  background: linear-gradient(135deg, #06b6d4 0%, #4f6ef7 100%);
+}
+
+.personInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+  color: #1c2333;
+}
+
+.personRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7385;
+}
+
+.personRowLabel {
+  flex: none;
+  color: #9aa3b5;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 0 12px 24px;
+  }
+
+  .filterCard {
+    flex: 1 1 45%;
+    min-width: 136px;
+  }
+
+  .projectMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
