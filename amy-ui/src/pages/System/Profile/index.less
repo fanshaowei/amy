@@ -1,0 +1,71 @@
+/* 个人中心页样式：左侧头像/信息卡 + 右侧设置卡 */
+.profileDesc {
+  margin-top: 8px;
+}
+
+.avatarWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 20px;
+}
+
+/* 头像外框：圆形容器，悬浮时显示半透明遮罩 */
+.avatarBox {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  :global(.ant-avatar) {
+    width: 104px;
+    height: 104px;
+    line-height: 104px;
+  }
+}
+
+.avatarMask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.25s;
+
+  em {
+    font-style: normal;
+  }
+}
+
+.avatarBox:hover .avatarMask {
+  opacity: 1;
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.userName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.userAccount {
+  margin-bottom: 4px;
+  font-size: 13px;
+}

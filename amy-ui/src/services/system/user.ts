@@ -105,6 +105,28 @@ export const updateUserPassword = (oldPassword: string, newPassword: string) => 
     method: 'PUT',
     data: {oldPassword, newPassword}
 });
+/**
+ * 头像上传结果。
+ * 后端 SysProfileController#avatar 直接返回 AjaxResult 的 put 字段：{code, msg, imgUrl}，
+ * 不套一层 data，所以不能用通用的 RuoYiResponse<T>。
+ */
+export interface AvatarUploadResult {
+    code: number;
+    msg: string;
+    imgUrl: string;
+}
+
+/**
+ * 上传用户头像。
+ * 后端签名是 @RequestParam("avatarfile") MultipartFile，字段名必须固定为 avatarfile；
+ * 上传成功后会同时 sys_user.avatar 和登录缓存（LoginUser）。
+ */
+export const uploadUserAvatar = (file: File) => {
+    const formData = new FormData();
+    formData.append('avatarfile', file);
+    return request<AvatarUploadResult>('/system/user/profile/avatar', {method: 'POST', data: formData});
+};
+
 export const getUserAuthRoles = (userId: number) => request<UserAuthRoleResponse>(`/system/user/authRole/${userId}`);
 export const updateUserAuthRoles = (userId: number, roleIds: React.Key[]) => request('/system/user/authRole', {
     method: 'PUT',

@@ -1,0 +1,29 @@
+// 右上角用户入口（对齐 Ant Design Pro 官方 AvatarDropdown 视觉规格）
+.action {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.name {
+  margin-inline-start: 8px;
+  max-width: 120px;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .name {
+    display: none;
+  }
+}
