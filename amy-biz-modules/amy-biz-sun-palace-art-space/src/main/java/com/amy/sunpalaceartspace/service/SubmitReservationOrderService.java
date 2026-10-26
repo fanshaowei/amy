@@ -79,11 +79,23 @@ public class SubmitReservationOrderService {
         if(!userExists) {
             throw new ServiceException("预约会员不存在，请先注册");
         }
+
         // 验证项目是否存在
         Projects project = projectsService.selectProjectById(req.getProjectId());
         if(project == null) {
             throw new ServiceException("预约项目不存在，无法进行预约");
         }
+
+        // 超过当天时间的中午11点半，不能预约当天的号
+        Date reservationTime = req.getReservationTime();
+        Date cutOffTime = DateUtils.parseDate(String.format("%s %s", DateUtils.getDate(), project.getReservationEndTime()));
+        Date nowDate = new Date();
+        if(nowDate.after(cutOffTime) && DateUtils.isSameDay(reservationTime, nowDate)) {
+            String msg = String.format("超过当天预约截止时间（%s），无法预约当天的号", project.getReservationEndTime());
+            throw new ServiceException(msg);
+        }
+
+        // 校验随行人数
         Integer travelerCount = project.getTravelerCount();
         if(null != req.getCompUsers() && req.getCompUsers().size() > travelerCount) {
             throw new ServiceException("随行人数超过限制，无法进行预约");
