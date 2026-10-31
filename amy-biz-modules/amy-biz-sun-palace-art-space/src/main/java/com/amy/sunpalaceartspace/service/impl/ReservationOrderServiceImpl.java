@@ -12,6 +12,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -47,6 +48,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
+        // 「按日期筛选」：Mapper 用 [当天 00:00:00, 次日 00:00:00) 半开区间，这里保证起点落在当天零点
+        order.setReservationTime(DateRangeParamUtils.startOfDay(order.getReservationTime()));
         IPage<ReservationOrderVO> result = baseMapper.selectReservationOrderList(page, order);
         result.getRecords().forEach(ReservationOrderVO::fillReservationStatusName);
         return result;
@@ -56,6 +59,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     public List<ReservationOrderVO> selectReservationOrderExportList(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
+        // 与分页列表保持同一口径：导出同样按「当天」而不是「24 小时内」过滤
+        order.setReservationTime(DateRangeParamUtils.startOfDay(order.getReservationTime()));
         List<ReservationOrderVO> list = baseMapper.selectReservationOrderExportList(order);
         list.forEach(ReservationOrderVO::fillReservationStatusName);
         return list;

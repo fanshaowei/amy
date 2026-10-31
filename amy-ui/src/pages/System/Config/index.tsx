@@ -21,11 +21,14 @@ import {
     updateConfig
 } from '@/services/system/config';
 import type {ConfigRecord} from '@/services/system/config';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 export default function ConfigPage() {
     const {message, modal} = App.useApp();
     const ref = useRef<ActionType>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<ConfigRecord>();
     const [open, setOpen] = useState(false);
@@ -77,6 +80,7 @@ export default function ConfigPage() {
     return <PageContainer header={{title: false}}><ProTable<ConfigRecord> rowKey="configId" actionRef={ref} columns={columns}
                                                   rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                   request={async ({current, pageSize, ...p}) => {
+                                                      lastQueryRef.current = p;
                                                       const r = await listConfigs({...p, pageNum: current, pageSize});
                                                       return {data: r.rows, total: r.total, success: r.code === 200};
                                                   }} toolBarRender={() => [<PermissionButton key="a" type="primary"
@@ -101,7 +105,7 @@ export default function ConfigPage() {
             }
         })}>删除</PermissionButton>,
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:config:export"
-                          onClick={() => void downloadFile('/system/config/export', {}, `config_${Date.now()}.xlsx`)}>导出</PermissionButton>,
+                          onClick={() => void downloadFileWithQuery('/system/config/export', pruneQueryParams(lastQueryRef.current), `config_${Date.now()}.xlsx`)}>导出</PermissionButton>,
         <PermissionButton key="r" danger icon={<ReloadOutlined/>} permission="system:config:remove"
                           onClick={async () => {
                               await refreshConfigCache();

@@ -9,13 +9,14 @@ import {
     UserOutlined
 } from '@ant-design/icons';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
-import type {ActionType, ProColumns, ProFormInstance} from '@ant-design/pro-components';
+import type {ActionType, ProColumns} from '@ant-design/pro-components';
 import {App, Avatar, Badge, Space, Typography} from 'antd';
 import dayjs from 'dayjs';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 import {changeUserType, deleteUsers, listUsers} from '@/services/sunpalaceartspace/reservationUser';
 import type {ReservationUserRecord} from '@/services/sunpalaceartspace/reservationUser';
 import {StatFilterBar} from '../StatFilterBar';
@@ -57,11 +58,17 @@ const splitDateTime = (value?: string) => {
     return {date: date || '-', time: time || ''};
 };
 
+
 export default function ReservationUserPage() {
     const {message, modal} = App.useApp();
     const tableRef = useRef<ActionType>();
-    /** 搜索表单实例：导出时取当前查询条件 */
-    const formRef = useRef<ProFormInstance>();
+    /**
+     * 最近一次列表查询的参数（已由 ProTable 完成日期格式化与 search.transform）。
+     * 导出时直接复用它，保证「查到什么就导出什么」——不要再取表单原始值：
+     * getFieldsValue() 拿到的是 dayjs 对象，进 POST body 后会被序列化成带 Z 的 UTC 串，
+     * 与列表查询用的 'YYYY-MM-DD' 不是一回事。
+     */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
     const totalRef = useRef(0);
     /** 身份筛选（由顶部统计卡控制，同时用于列表查询与导出） */
@@ -274,7 +281,6 @@ export default function ReservationUserPage() {
                 <ProTable<ReservationUserRecord>
                     rowKey="reservationUserId"
                     actionRef={tableRef}
-                    formRef={formRef}
                     columns={columns}
                     scroll={{x: 1400}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
@@ -283,6 +289,8 @@ export default function ReservationUserPage() {
                     search={{labelWidth: 'auto', defaultCollapsed: false}}
                     options={{reload: true, density: false, setting: false}}
                     request={async ({current, pageSize, ...params}) => {
+                        // 记录本次查询条件（不含分页），导出时原样复用
+                        lastQueryRef.current = params;
                         const result = await listUsers({pageNum: current, pageSize, ...params});
                         totalRef.current = result.data.total ?? 0;
                         return {
@@ -300,23 +308,10 @@ export default function ReservationUserPage() {
                                                   message.warning('当前查询条件下没有数据，无需导出');
                                                   return;
                                               }
-                                              const values = formRef.current?.getFieldsValue() ?? {};
-                                              // 过滤空值：「用户类型=全部」的 value 是空字符串，传下去会导致查不到数据
-                                              const params: Record<string, unknown> = {};
-                                              Object.entries(values).forEach(([key, value]) => {
-                                                  if (value !== undefined && value !== null && value !== '') {
-                                                      params[key] = value;
-                                                  }
-                                              });
-                                              // 身份筛选来自顶部统计卡，需要显式带上
-                                              if (typeFilter) params.type = Number(typeFilter);
-                                              // 注册时间：表单值是 [begin, end] 数组，而后端实体的 createTime 是 Date，
-                                              // 直接传数组会反序列化失败，故转成 params.beginTime / params.endTime 并剔除原字段
-                                              const timeRange = params.createTime as string[] | undefined;
-                                              delete params.createTime;
-                                              if (Array.isArray(timeRange) && timeRange[0]) {
-                                                  params.params = {beginTime: timeRange[0], endTime: timeRange[1]};
-                                              }
+                                              // 复用最近一次列表请求的参数：ProTable 已把注册时间格式化成 'YYYY-MM-DD'
+                                              // 并经 search.transform 转成 params.beginTime / params.endTime，
+                                              // 顶部统计卡带出的 type 也在其中，无需再手动拼装
+                                              const params = pruneQueryParams(lastQueryRef.current);
                                               void downloadFile(
                                                   '/spas/reservation/user/export',
                                                   params,

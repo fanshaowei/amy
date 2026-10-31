@@ -36,6 +36,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </sql>
 
     <!--
+        创建时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd。
+
+        【不要用 date_format(create_time,...) 比较】
+        历史写法是 date_format(create_time,'%Y%m%d') &gt;= date_format(#{...},'%Y%m%d')，有两个问题：
+          ① 对列套函数 → 无法使用 create_time 的 B+ 树做 range scan，只能全表扫；
+          ② 前端导出传的是 ISO-8601（2026-10-09T16:00:00.000Z），MySQL 的 date_format 会丢弃
+             Z 时区标记，按本地时间解析成 2026-10-09，导致结果整体偏移一天。
+        改为「裸列 + 左闭右闭区间」，时间值的格式由 DateRangeParamUtils 在 Java 侧归一化。
+    -->
+    <sql id="projectsCreateTimeRange">
+        <if test="entity.params != null and entity.params.beginTime != null and entity.params.beginTime != ''">
+            and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
+        </if>
+        <if test="entity.params != null and entity.params.endTime != null and entity.params.endTime != ''">
+            and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
+        </if>
+    </sql>
+
+    <!--
         分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
         完成 count + limit，本处【不要】写 limit。
         条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 预留给 @DataScope 切面注入
@@ -47,33 +66,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="entity.projectName != null and entity.projectName != ''">
                 AND project_name like concat('%', #{entity.projectName}, '%')
             </if>
-            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
-                and date_format(create_time,'%Y%m%d') &gt;= date_format(#{entity.params.beginTime},'%Y%m%d')
-            </if>
-            <if test="entity.params.endTime != null and entity.params.endTime != ''">
-                and date_format(create_time,'%Y%m%d') &lt;= date_format(#{entity.params.endTime},'%Y%m%d')
-            </if>
-            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+            <include refid="projectsCreateTimeRange"/>
+            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
                 ${entity.params.dataScope}
             </if>
         </where>
         order by sort, project_id
     </select>
 
-    <!-- 导出列表：不分页 -->
+    <!-- 导出列表：不分页。条件与列表共用 <include>，避免两处写法漂移 -->
     <select id="selectProjectsExportList" resultMap="ProjectsResult">
         <include refid="selectProjectsVo"/>
         <where>
             <if test="entity.projectName != null and entity.projectName != ''">
                 AND project_name like concat('%', #{entity.projectName}, '%')
             </if>
-            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
-                and date_format(create_time,'%Y%m%d') &gt;= date_format(#{entity.params.beginTime},'%Y%m%d')
-            </if>
-            <if test="entity.params.endTime != null and entity.params.endTime != ''">
-                and date_format(create_time,'%Y%m%d') &lt;= date_format(#{entity.params.endTime},'%Y%m%d')
-            </if>
-            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+            <include refid="projectsCreateTimeRange"/>
+            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
                 ${entity.params.dataScope}
             </if>
         </where>

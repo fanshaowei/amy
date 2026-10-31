@@ -15,11 +15,14 @@ import {PermissionButton} from '@/components/PermissionButton';
 import {useDict} from '@/hooks/useDict';
 import {addPost, deletePosts, getPost, listPosts, updatePost} from '@/services/system/post';
 import type {PostRecord} from '@/services/system/post';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 export default function PostPage() {
     const {message, modal} = App.useApp();
     const actionRef = useRef<ActionType>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<PostRecord>();
     const [open, setOpen] = useState(false);
@@ -65,6 +68,7 @@ export default function PostPage() {
     return <PageContainer header={{title: false}}><ProTable<PostRecord> rowKey="postId" actionRef={actionRef} columns={columns}
                                                 rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                 request={async ({current, pageSize, ...p}) => {
+                                                    lastQueryRef.current = p;
                                                     const r = await listPosts({...p, pageNum: current, pageSize});
                                                     return {data: r.rows, total: r.total, success: r.code === 200};
                                                 }} toolBarRender={() => [
@@ -88,7 +92,7 @@ export default function PostPage() {
             }
         })}>删除</PermissionButton>,
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:post:export"
-                          onClick={() => void downloadFile('/system/post/export', {}, `post_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/>
+                          onClick={() => void downloadFileWithQuery('/system/post/export', pruneQueryParams(lastQueryRef.current), `post_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/>
         <ModalForm<PostRecord> title={editing?.postId ? '修改岗位' : '添加岗位'} open={open} initialValues={editing}
                                modalProps={{destroyOnHidden: true, onCancel: () => setOpen(false)}}
                                onFinish={async (v) => {

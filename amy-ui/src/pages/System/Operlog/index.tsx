@@ -7,7 +7,8 @@ import {PermissionButton} from '@/components/PermissionButton';
 import {useDict} from '@/hooks/useDict';
 import {cleanOperlogs, deleteOperlogs, listOperlogs} from '@/services/system/operlog';
 import type {OperlogRecord} from '@/services/system/operlog';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 const formatJson = (value?: string) => {
     if (!value) return '（无数据）';
@@ -20,6 +21,8 @@ const formatJson = (value?: string) => {
 export default function OperlogPage() {
     const {message, modal} = App.useApp();
     const ref = useRef<ActionType>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [detail, setDetail] = useState<OperlogRecord>();
     const typeDict = useDict('sys_oper_type');
@@ -73,6 +76,7 @@ export default function OperlogPage() {
     return <PageContainer header={{title: false}}><ProTable<OperlogRecord> rowKey="operId" actionRef={ref} columns={columns}
                                                    rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                    request={async ({current, pageSize, ...p}, sort) => {
+                                                       lastQueryRef.current = p;
                                                        const sortEntry = Object.entries(sort || {})[0];
                                                        const orderByColumn = sortEntry?.[0];
                                                        const direction = sortEntry?.[1];
@@ -105,7 +109,7 @@ export default function OperlogPage() {
             }
         })}>清空</PermissionButton>,
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:operlog:export"
-                          onClick={() => void downloadFile('/system/operlog/export', {}, `operlog_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/>
+                          onClick={() => void downloadFileWithQuery('/system/operlog/export', pruneQueryParams(lastQueryRef.current), `operlog_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/>
         <Drawer title="操作日志详细" width={820} open={Boolean(detail)}
                 onClose={() => setDetail(undefined)}><Descriptions bordered column={2} items={[{
             key: 'title',

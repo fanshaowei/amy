@@ -10,6 +10,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationUserVO;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
 import com.amy.sunpalaceartspace.mapper.ReservationUserMapper;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
+import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -37,11 +38,15 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
 
     @Override
     public IPage<ReservationUserVO> selectReservationUserList(Page<ReservationUserVO> page, ReservationUser entity) {
+        // 统一时间参数格式：列表请求传 yyyy-MM-dd，导出请求传 ISO-8601（...Z），
+        // 不归一化会出现「列表查得到、导出为空」。详见 DateRangeParamUtils 类注释。
+        DateRangeParamUtils.normalize(entity);
         return baseMapper.selectReservationUserList(page, entity);
     }
 
     @Override
     public List<ReservationUserVO> selectReservationUserExportList(ReservationUser entity) {
+        DateRangeParamUtils.normalize(entity);
         return baseMapper.selectReservationUserExportList(entity);
     }
 

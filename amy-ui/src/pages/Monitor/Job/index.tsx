@@ -17,7 +17,8 @@ import {
     updateJob
 } from '@/services/monitor/job';
 import type {JobRecord} from '@/services/monitor/job';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 import JobDetail from './detail';
 
 export default function JobPage() {
@@ -25,6 +26,8 @@ export default function JobPage() {
     const access = useAccess();
     const ref = useRef<ActionType>();
     const formRef = useRef<ProFormInstance>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<JobRecord>();
     const [open, setOpen] = useState(false);
@@ -161,6 +164,7 @@ export default function JobPage() {
                 columns={columns}
                 rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                 request={async ({current, pageSize, ...p}) => {
+                    lastQueryRef.current = p;
                     const r = await listJobs({...p, pageNum: current, pageSize});
                     return {data: r.rows, total: r.total, success: r.code === 200};
                 }}
@@ -207,7 +211,7 @@ export default function JobPage() {
                         key="x"
                         icon={<DownloadOutlined />}
                         permission="monitor:job:export"
-                        onClick={() => void downloadFile('/schedule/job/export', {}, `job_${Date.now()}.xlsx`)}
+                        onClick={() => void downloadFileWithQuery('/schedule/job/export', pruneQueryParams(lastQueryRef.current), `job_${Date.now()}.xlsx`)}
                     >
                         导出
                     </PermissionButton>,

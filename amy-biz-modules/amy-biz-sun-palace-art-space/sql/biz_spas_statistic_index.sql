@@ -1,12 +1,12 @@
 -- =====================================================================
--- 控制台统计（StatisticMapper.xml）配套索引
+-- 预约相关查询配套索引（控制台统计 StatisticMapper + 订单列表 ReservationOrderMapper）
 --
 -- 背景：原 SQL 在 where 中对时间列套了 date(col) / date_add(curdate(), ...)，
---       对列做函数运算后 MySQL 无法用该列的 B+ 树索引做 range scan，只能全表扫。
+--       对列做函数运算后 MySQL 无法用该列的 B+ 树索引做 range scan。
 --       已统一改为裸列 + 左闭右开区间 [start, end)，边界由 Service 层计算传入。
 --
 -- 索引设计原则：
---   1. 等值条件列（del_flag / reservation_status）放最左，范围列（时间）放最后；
+--   1. 等值条件列（del_flag / reservation_status / project_id）放最左，范围列（时间）放最后；
 --   2. 不过度加列，保持索引够小，便于被优化器选中。
 --
 -- 执行前请先确认现有索引，避免重复创建：
@@ -24,8 +24,15 @@ ALTER TABLE biz_spas_reservation_order
 ALTER TABLE biz_spas_reservation_order
     ADD INDEX idx_order_del_status_verify (del_flag, reservation_status, verify_time);
 
+-- 4) 订单列表 / 导出「按日期 + 项目」筛选：
+--    where del_flag='0' and project_id=? and reservation_time >= ? and < ?
+--    （ReservationOrderMapper.xml 原写法 date(reservation_time)=date(?) 已改为裸列半开区间）
+--    实测 5400 行样本：带项目筛选时 rows 由 1783 降到 30，无项目筛选时由 5345 降到 89。
+ALTER TABLE biz_spas_reservation_order
+    ADD INDEX idx_order_del_project_time (del_flag, project_id, reservation_time);
+
 -- 会员表
--- 3) 今日新增会员：where del_flag='0' and create_time >= ? and < ?
+-- 5) 今日新增会员：where del_flag='0' and create_time >= ? and < ?
 ALTER TABLE biz_spas_reservation_user
     ADD INDEX idx_user_del_create_time (del_flag, create_time);
 

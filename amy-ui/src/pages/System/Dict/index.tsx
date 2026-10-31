@@ -28,12 +28,16 @@ import {
     updateDictType
 } from '@/services/system/dict';
 import type {DictDataRecord, DictTypeRecord} from '@/services/system/dict';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 export default function DictPage() {
     const {message, modal} = App.useApp();
     const typeRef = useRef<ActionType>();
     const dataRef = useRef<ActionType>();
+    // 本页有两个列表（字典类型 / 字典数据），各自记录自己的查询条件供导出复用
+    const typeQueryRef = useRef<Record<string, unknown>>({});
+    const dataQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [dataSelected, setDataSelected] = useState<React.Key[]>([]);
     const [typeEditing, setTypeEditing] = useState<DictTypeRecord>();
@@ -141,6 +145,7 @@ export default function DictPage() {
     return <PageContainer header={{title: false}}><ProTable<DictTypeRecord> rowKey="dictId" actionRef={typeRef} columns={typeColumns}
                                                     rowSelection={{selectedRowKeys: selected, onChange: setSelected}}
                                                     request={async ({current, pageSize, ...p}) => {
+                                                        typeQueryRef.current = p;
                                                         const r = await listDictTypes({
                                                             ...p,
                                                             pageNum: current,
@@ -167,7 +172,7 @@ export default function DictPage() {
             }
         })}>删除</PermissionButton>,
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:dict:export"
-                          onClick={() => void downloadFile('/system/dict/type/export', {}, `dict_${Date.now()}.xlsx`)}>导出</PermissionButton>,
+                          onClick={() => void downloadFileWithQuery('/system/dict/type/export', pruneQueryParams(typeQueryRef.current), `dict_${Date.now()}.xlsx`)}>导出</PermissionButton>,
         <PermissionButton key="r" danger icon={<ReloadOutlined/>} permission="system:dict:remove" onClick={async () => {
             await refreshDictCache();
             message.success('刷新成功');
@@ -203,6 +208,7 @@ export default function DictPage() {
                                                                                                                      pageSize,
                                                                                                                      ...p
                                                                                                                  }) => {
+            dataQueryRef.current = p;
             const r = await listDictData({...p, dictType: activeType?.dictType, pageNum: current, pageSize});
             return {data: r.rows, total: r.total, success: r.code === 200};
         }} toolBarRender={() => [<PermissionButton key="a" type="primary" icon={<PlusOutlined/>}
@@ -216,7 +222,11 @@ export default function DictPage() {
                 dataRef.current?.reload();
             }}>删除</PermissionButton>,
             <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:dict:export"
-                              onClick={() => void downloadFile('/system/dict/data/export', {dictType: activeType?.dictType}, `data_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/></Drawer>
+                              onClick={() => void downloadFileWithQuery('/system/dict/data/export', {
+                                  ...pruneQueryParams(dataQueryRef.current),
+                                  // dictType 来自当前选中的字典类型，不在请求参数里，需显式带上
+                                  dictType: activeType?.dictType
+                              }, `data_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/></Drawer>
         <ModalForm<DictDataRecord> title={dataEditing?.dictCode ? '修改字典数据' : '添加字典数据'} open={dataOpen}
                                    initialValues={dataEditing}
                                    modalProps={{destroyOnHidden: true, onCancel: () => setDataOpen(false)}}

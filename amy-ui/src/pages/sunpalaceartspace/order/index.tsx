@@ -19,6 +19,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 import {deleteOrders, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import {StatFilterBar} from '../StatFilterBar';
@@ -111,6 +112,14 @@ function StatusPill({style}: { style?: StatusStyle }) {
 export default function OrderPage() {
     const {message, modal} = App.useApp();
     const tableRef = useRef<ActionType>();
+    /**
+     * 最近一次列表查询的参数（已由 ProTable 完成日期格式化，并已剔除分页字段）。
+     * 导出时直接复用它，保证「查到什么就导出什么」——原先这里传的是 `{}`，
+     * 导致无论怎么筛选，导出的都是全量订单。
+     */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
+    /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
+    const totalRef = useRef(0);
     const [activeStatus, setActiveStatus] = useState('');
     const [counts, setCounts] = useState<Record<string, number>>({});
     const [personOpen, setPersonOpen] = useState(false);
@@ -298,12 +307,15 @@ export default function OrderPage() {
                     search={{labelWidth: 'auto', defaultCollapsed: false}}
                     options={{reload: true, density: false, setting: false}}
                     request={async ({current, pageSize, reservationTime, ...params}) => {
-                        const result = await listOrders({
+                        const queryParams = {
                             ...params,
-                            reservationTime: reservationTime ? String(reservationTime).slice(0, 10) : undefined,
-                            pageNum: current,
-                            pageSize
-                        });
+                            // valueType:'date' 经 dateFormatter 后已是 'YYYY-MM-DD'，slice 只为兜底
+                            reservationTime: reservationTime ? String(reservationTime).slice(0, 10) : undefined
+                        };
+                        // 记录本次查询条件（不含分页），导出时原样复用，保证「查到什么就导出什么」
+                        lastQueryRef.current = queryParams;
+                        const result = await listOrders({...queryParams, pageNum: current, pageSize});
+                        totalRef.current = result.data.total ?? 0;
                         return {
                             data: result.data.rows,
                             total: result.data.total,
@@ -313,11 +325,22 @@ export default function OrderPage() {
                     toolBarRender={() => [
                         <PermissionButton key="export" icon={<ExportOutlined/>}
                                           permission="sunpalaceartspace:reservationOrder:export"
-                                          onClick={() => void downloadFile(
-                                              '/spas/reservation/order/export',
-                                              {},
-                                              `预约订单_${Date.now()}.xlsx`
-                                          ).then(() => message.success('导出成功'))}>导出数据</PermissionButton>
+                                          onClick={() => {
+                                              // 查询结果为 0 条时直接提示，不发起导出请求（否则会下载一个只有表头的空文件）
+                                              if (!totalRef.current) {
+                                                  message.warning('当前查询条件下没有数据，无需导出');
+                                                  return;
+                                              }
+                                              // 复用最近一次列表请求的参数（含项目 / 预约日期 / 状态 / 姓名 / 电话等筛选，
+                                              // 以及顶部统计卡带出的 reservationStatus），与查询口径完全一致。
+                                              // 后端 export 接口签名是 @RequestBody ReservationOrderReq，支持带条件导出。
+                                              const params = pruneQueryParams(lastQueryRef.current);
+                                              void downloadFile(
+                                                  '/spas/reservation/order/export',
+                                                  params,
+                                                  `预约订单_${Date.now()}.xlsx`
+                                              ).then(() => message.success('导出成功'));
+                                          }}>导出数据</PermissionButton>
                     ]}
                 />
             </div>

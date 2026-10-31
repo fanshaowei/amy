@@ -7,11 +7,14 @@ import {PermissionButton} from '@/components/PermissionButton';
 import {useDict} from '@/hooks/useDict';
 import {cleanLoginInfo, deleteLoginInfo, listLoginInfo, unlockLogin} from '@/services/system/logininfor';
 import type {LoginInfoRecord} from '@/services/system/logininfor';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 export default function LoginInfoPage() {
     const {message, modal} = App.useApp();
     const ref = useRef<ActionType>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [selectedRows, setSelectedRows] = useState<LoginInfoRecord[]>([]);
     const statusDict = useDict('sys_common_status');
@@ -50,6 +53,9 @@ export default function LoginInfoPage() {
             setSelectedRows(rows);
         }
     }} request={async ({current, pageSize, ...p}, sort) => {
+        // 记录本次查询条件：访问时间是 dateRange，经 search.transform 已转成 params.beginTime/endTime，
+        // 且 ProTable 已按 dateFormatter 格式化——导出直接复用它，不要去取表单原始值（那是 dayjs 对象）
+        lastQueryRef.current = p;
         const sortEntry = Object.entries(sort || {})[0];
         const r = await listLoginInfo({
             ...p,
@@ -88,5 +94,5 @@ export default function LoginInfoPage() {
                               }
                           })}>解锁</PermissionButton>,
         <PermissionButton key="x" icon={<DownloadOutlined/>} permission="system:logininfor:export"
-                          onClick={() => void downloadFile('/system/logininfor/export', {}, `logininfor_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/></PageContainer>;
+                          onClick={() => void downloadFileWithQuery('/system/logininfor/export', pruneQueryParams(lastQueryRef.current), `logininfor_${Date.now()}.xlsx`)}>导出</PermissionButton>]}/></PageContainer>;
 }

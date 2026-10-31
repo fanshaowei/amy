@@ -29,7 +29,8 @@ import {
     , updateUserAuthRoles
 } from '@/services/system/user';
 import type {AuthRoleOption, PostOption, RoleOption, TreeOption, UserRecord} from '@/services/system/user';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 function filterEnabled(nodes: TreeOption[]): TreeOption[] {
     return nodes.filter((node) => !node.disabled).map((node) => ({
@@ -66,6 +67,8 @@ export default function UserPage() {
     const [authRoleOpen, setAuthRoleOpen] = useState(false);
     const normalDict = useDict('sys_normal_disable');
     const sexDict = useDict('sys_user_sex');
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
 
     const refreshTree = async () => setDeptTree((await getDeptTree()).data || []);
     useEffect(() => {
@@ -193,6 +196,8 @@ export default function UserPage() {
                         scroll={{x: 1100}}
                         request={async (params) => {
                             const {current, pageSize, ...queryParams} = params;
+                            // 记录本次查询条件（不含分页、不含左侧部门树选中的 deptId），导出时原样复用
+                            lastQueryRef.current = queryParams;
                             const response = await listUsers({
                                 ...queryParams,
                                 deptId,
@@ -233,7 +238,11 @@ export default function UserPage() {
                                     }}><PermissionButton icon={<UploadOutlined/>}
                                                          permission="system:user:import">导入</PermissionButton></Upload>,
                             <PermissionButton key="export" icon={<DownloadOutlined/>} permission="system:user:export"
-                                              onClick={() => void downloadFile('/system/user/export', {deptId}, `user_${Date.now()}.xlsx`)}>导出</PermissionButton>
+                                              onClick={() => void downloadFileWithQuery('/system/user/export', {
+                                                  ...pruneQueryParams(lastQueryRef.current),
+                                                  // deptId 来自左侧部门树，不在请求参数里，需显式带上
+                                                  deptId
+                                              }, `user_${Date.now()}.xlsx`)}>导出</PermissionButton>
                         ]}
                     />
                 </Col>

@@ -19,6 +19,7 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
 import com.amy.sunpalaceartspace.service.IProjectsService;
+import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 
 /**
@@ -45,11 +46,15 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
 
     @Override
     public IPage<Projects> selectProjectsList(Page<Projects> page, Projects projects) {
+        // 统一时间参数格式：列表请求传 yyyy-MM-dd，导出请求传 ISO-8601（...Z），
+        // 不归一化会出现「列表查得到、导出为空」。详见 DateRangeParamUtils 类注释。
+        DateRangeParamUtils.normalize(projects);
         return baseMapper.selectProjectsList(page, projects);
     }
 
     @Override
     public List<Projects> selectProjectsExportList(Projects projects) {
+        DateRangeParamUtils.normalize(projects);
         return baseMapper.selectProjectsExportList(projects);
     }
 

@@ -23,13 +23,16 @@ import {
 } from '@/services/system/role';
 import type {RoleRecord} from '@/services/system/role';
 import type {TreeOption, UserRecord} from '@/services/system/user';
-import {downloadFile} from '@/utils/download';
+import {downloadFileWithQuery} from '@/utils/download';
+import {pruneQueryParams} from '@/utils/exportParams';
 
 export default function RolePage() {
     const {message, modal} = App.useApp();
     const actionRef = useRef<ActionType>();
     const authActionRef = useRef<ActionType>();
     const selectActionRef = useRef<ActionType>();
+    /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
+    const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<RoleRecord>();
     const [formOpen, setFormOpen] = useState(false);
@@ -145,6 +148,7 @@ export default function RolePage() {
             rowSelection={{selectedRowKeys: selectedKeys, onChange: setSelectedKeys}}
             pagination={{defaultPageSize: 10}}
             request={async ({current, pageSize, ...params}) => {
+                lastQueryRef.current = params;
                 const response = await listRoles({...params, pageNum: current, pageSize});
                 return {data: response.rows, total: response.total, success: response.code === 200};
             }}
@@ -169,7 +173,7 @@ export default function RolePage() {
                     }
                 })}>删除</PermissionButton>,
                 <PermissionButton key="export" icon={<DownloadOutlined/>} permission="system:role:export"
-                                  onClick={() => void downloadFile('/system/role/export', {}, `role_${Date.now()}.xlsx`)}>导出</PermissionButton>
+                                  onClick={() => void downloadFileWithQuery('/system/role/export', pruneQueryParams(lastQueryRef.current), `role_${Date.now()}.xlsx`)}>导出</PermissionButton>
             ]}
         />
 

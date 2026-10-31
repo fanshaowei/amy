@@ -34,6 +34,22 @@
     </sql>
 
     <!--
+        注册时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd。
+
+        【务必用 include 复用，不要再在列表/导出里各写一份】
+        历史 bug：导出 SQL 曾漏写 concat(...' 00:00:00')，两处写法漂移，
+        导致「列表能查到、导出为空」。时间条件是裸列比较，可命中 create_time 索引。
+    -->
+    <sql id="createTimeRange">
+        <if test="entity.params != null and entity.params.beginTime != null and entity.params.beginTime != ''">
+            and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
+        </if>
+        <if test="entity.params != null and entity.params.endTime != null and entity.params.endTime != ''">
+            and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
+        </if>
+    </sql>
+
+    <!--
         分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
         完成 count + limit，本处【不要】写 limit。
         条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 预留给 @DataScope 切面注入。
@@ -63,22 +79,16 @@
             <if test="entity.isVerified != null">
                 and is_verified = #{entity.isVerified}
             </if>
-            <!-- 注册时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd -->
-            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
-                and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
-            </if>
-            <if test="entity.params.endTime != null and entity.params.endTime != ''">
-                and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
-            </if>
+            <include refid="createTimeRange"/>
             <!-- 数据权限 -->
-            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
                 ${entity.params.dataScope}
             </if>
         </where>
         order by create_time desc
     </select>
 
-    <!-- 导出列表：不分页 -->
+    <!-- 导出列表：不分页。条件与列表共用 <include>，避免两处写法漂移 -->
     <select id="selectReservationUserExportList" resultMap="ReservationUserResult">
         <include refid="selectReservationUserVo"/>
         <where>
@@ -104,15 +114,9 @@
             <if test="entity.isVerified != null">
                 and is_verified = #{entity.isVerified}
             </if>
-            <!-- 注册时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd -->
-            <if test="entity.params.beginTime != null and entity.params.beginTime != ''">
-                and create_time &gt;= #{entity.params.beginTime}
-            </if>
-            <if test="entity.params.endTime != null and entity.params.endTime != ''">
-                and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
-            </if>
+            <include refid="createTimeRange"/>
             <!-- 数据权限 -->
-            <if test="entity.params.dataScope != null and entity.params.dataScope != ''">
+            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
                 ${entity.params.dataScope}
             </if>
         </where>
