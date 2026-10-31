@@ -54,6 +54,7 @@ public class SubmitReservationOrderService {
     private final DefaultRedisScript<Long> reserveScript;
     private final StringRedisTemplate stringRedisTemplate;
     private final MinaAppLoginService minaAppLoginService;
+    private final IProjectReservationConfigService projectReservationConfigService;
 
     @Transactional
     public String submitReservationOrder(String token, SubmitReservationReq req) {
@@ -86,8 +87,13 @@ public class SubmitReservationOrderService {
             throw new ServiceException("预约项目不存在，无法进行预约");
         }
 
-        // 超过当天时间的中午11点半，不能预约当天的号
+        // 项目是否在该日期该时段开放预约（配置了「不可预约」的时段直接拒绝）
         Date reservationTime = req.getReservationTime();
+        if (!projectReservationConfigService.isTimeSlotOpen(project.getProjectId(), reservationTime)) {
+            throw new ServiceException("该日期该时段已设置为不可预约，请选择其它时间");
+        }
+
+        // 超过当天时间的中午11点半，不能预约当天的号
         Date cutOffTime = DateUtils.parseDate(String.format("%s %s", DateUtils.getDate(), project.getReservationEndTime()));
         Date nowDate = new Date();
         if(nowDate.after(cutOffTime) && DateUtils.isSameDay(reservationTime, nowDate)) {

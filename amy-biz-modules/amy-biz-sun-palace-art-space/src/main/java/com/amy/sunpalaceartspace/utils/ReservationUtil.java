@@ -56,7 +56,7 @@ public class ReservationUtil {
             result.add(start.format(formatter));
             start = start.plusMinutes(intervalSecond / 60);
             loop++;
-            if(loop > 6) break;
+            if(loop > 10) break;
         }
 
         return result;
@@ -68,6 +68,7 @@ public class ReservationUtil {
      * @return
      */
     public List<String> extractReservationDatesFromCurrent(Integer dateInterval) {
+        assert dateInterval >= 0;
         List<String> dates = new LinkedList<>();
 
         Date dateStart = DateUtils.addDays(DateUtils.getNowDate(), 1);

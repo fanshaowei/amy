@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper">
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigVO" id="ProjectReservationConfigVOResult">
+        <id     property="configId"            column="config_id"            />
+        <result property="projectId"           column="project_id"           />
+        <result property="startTime"           column="start_time"           />
+        <result property="endTime"             column="end_time"             />
+        <result property="reservationEnabled"  column="reservation_enabled"  />
+        <result property="projectName"         column="project_name"         />
+        <result property="createBy"            column="create_by"            />
+        <result property="createTime"          column="create_time"          />
+        <result property="updateBy"            column="update_by"            />
+        <result property="updateTime"          column="update_time"          />
+        <result property="remark"              column="remark"               />
+        <result property="delFlag"             column="del_flag"             />
+    </resultMap>
+
+    <resultMap type="com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig" id="ProjectReservationConfigResult">
+        <id     property="configId"            column="config_id"            />
+        <result property="projectId"           column="project_id"           />
+        <result property="startTime"           column="start_time"           />
+        <result property="endTime"             column="end_time"             />
+        <result property="reservationEnabled"  column="reservation_enabled"  />
+        <result property="createBy"            column="create_by"            />
+        <result property="createTime"          column="create_time"          />
+        <result property="updateBy"            column="update_by"            />
+        <result property="updateTime"          column="update_time"          />
+        <result property="remark"              column="remark"               />
+        <result property="delFlag"             column="del_flag"             />
+    </resultMap>
+
+    <sql id="selectConfigVo">
+        select c.config_id, c.project_id, c.start_time, c.end_time,
+               c.reservation_enabled, c.create_by, c.create_time,
+               c.update_by, c.update_time,
+               c.remark, c.del_flag,
+               p.project_name
+        from biz_spas_project_reservation_config c
+        left join biz_spas_projects p on p.project_id = c.project_id and p.del_flag = '0'
+    </sql>
+
+    <sql id="configWhere">
+        <where>
+            c.del_flag = '0'
+            <if test="entity.projectId != null">
+                and c.project_id = #{entity.projectId}
+            </if>
+            <if test="entity.reservationEnabled != null">
+                and c.reservation_enabled = #{entity.reservationEnabled}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页列表：第一个参数是 MP 的 Page 对象，由拦截器自动改写完成 count + limit，本处【不要】写 limit -->
+    <select id="selectConfigList" resultMap="ProjectReservationConfigVOResult">
+        <include refid="selectConfigVo"/>
+        <include refid="configWhere"/>
+        order by c.start_time asc, c.config_id desc
+    </select>
+
+    <!-- 导出列表：不分页 -->
+    <select id="selectConfigExportList" resultMap="ProjectReservationConfigVOResult">
+        <include refid="selectConfigVo"/>
+        <include refid="configWhere"/>
+        order by c.start_time asc, c.config_id desc
+    </select>
+
+    <!-- 单条详情（带项目名称） -->
+    <select id="selectConfigVOById" resultMap="ProjectReservationConfigVOResult">
+        <include refid="selectConfigVo"/>
+        where c.config_id = #{configId} and c.del_flag = '0'
+    </select>
+
+    <select id="selectByProjectId" resultMap="ProjectReservationConfigResult">
+        select config_id, project_id, start_time, end_time, reservation_enabled,
+               create_by, create_time, update_by, update_time, remark, del_flag
+        from biz_spas_project_reservation_config
+        <where>
+            del_flag = '0'
+            and project_id = #{projectId}
+        </where>
+        order by start_time asc
+    </select>
+
+    <select id="selectByProjectIds" resultMap="ProjectReservationConfigVOResult">
+        <include refid="selectConfigVo"/>
+        where c.del_flag = '0'
+        and c.project_id in
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        order by c.project_id asc, c.start_time asc, c.config_id desc
+    </select>
+
+    <!--
+        批量插入：单条 SQL 多值 insert，一次网络往返写完全部时段配置。
+        注意 del_flag 必须显式写 '0' —— 手写 SQL 不经过 MP 的字段策略，不会自动填默认值。
+        调用方需保证 list 非空；超大批量请自行按 500 条分片，避免单条 SQL 过长。
+    -->
+    <insert id="insertBatch">
+        insert into biz_spas_project_reservation_config
+            (project_id, start_time, end_time, reservation_enabled, del_flag,
+             create_by, create_time, update_by, update_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.projectId}, #{item.startTime}, #{item.endTime}, #{item.reservationEnabled},
+             '0', #{item.createBy}, #{item.createTime}, #{item.createBy}, #{item.createTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <!--
+        物理清除已软删行：唯一键 uk_project_time 含 del_flag，
+        不清理历史 del_flag='1' 的行会导致「删除→重建→再删除」撞 1062。
+        必须在软删（removeByIds）之前执行。
+    -->
+    <delete id="purgeDeleted">
+        delete from biz_spas_project_reservation_config where del_flag = '1'
+    </delete>
+
+</mapper>

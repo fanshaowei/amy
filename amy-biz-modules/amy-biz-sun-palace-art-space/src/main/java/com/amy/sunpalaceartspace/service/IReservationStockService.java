@@ -53,6 +53,29 @@ public interface IReservationStockService extends IService<ReservationStock> {
     List<ReservationStock> selectByProjectId(Long projectId);
 
     /**
+     * 查询指定项目在指定日期（yyyyMMdd 前缀）的全部时段库存，按预约时段升序。
+     *
+     * <p>reservationTime 形如 202610310930，按 8 位日期前缀 likeRight 匹配，可命中 idx_reservation_time。</p>
+     *
+     * @param projectId  项目ID
+     * @param datePrefix 日期前缀，形如 20261031
+     * @return 库存列表
+     */
+    List<ReservationStock> selectByProjectAndDatePrefix(Long projectId, String datePrefix);
+
+    /**
+     * 查询指定项目「某一天及以后」的全部时段库存，按预约时段升序。
+     *
+     * <p>reservationTime 形如 202610310930，传 8 位日期前缀即可筛出该日期及之后的所有库存
+     * （字符串比较：'20261031' &lt;= '202610310930'）。用于时段配置变更后的库存开关同步。</p>
+     *
+     * @param projectId  项目ID
+     * @param minDayTime 日期下界，形如 20261031（含）
+     * @return 库存列表
+     */
+    List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, String minDayTime);
+
+    /**
      * 扣减库存（原子操作：reservation_count = reservation_count - delta，用于用户预约占名额）
      *
      * @param reservationStockId 库存ID

@@ -80,7 +80,7 @@ public class MinaAppController extends BaseController {
      * @param projectId
      * @return
      */
-    //@MinaApiAuth
+    @MinaApiAuth
     @GetMapping("/project/reservation/info/{projectId}")
     public R<MinaProjectReservationInfoResp> getProjectReservationInfo(
             @PathVariable("projectId") @NotNull @Min(1) Long projectId
@@ -188,6 +188,10 @@ public class MinaAppController extends BaseController {
         return R.ok(minaAppService.verifyReservationOrder(token, orderNum));
     }
 
+    /**
+     * 获取第二天预约记录
+     * @return
+     */
     @MinaApiAuth
     @GetMapping("/reservation/next/day/order")
     public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder() {

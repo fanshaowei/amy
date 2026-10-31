@@ -6,6 +6,7 @@ import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.entity.UserIdentity;
@@ -26,6 +27,7 @@ import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
 import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
+import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -35,6 +37,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.*;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
@@ -58,6 +61,7 @@ public class MinaAppService {
     private final IUserIdentityService userIdentityService;
     private final AliIdCheckUtil aliIdCheckUtil;
     private final UserIdentityServiceImpl userIdentityServiceImpl;
+    private final IProjectReservationConfigService projectReservationConfigService;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -145,9 +149,11 @@ public class MinaAppService {
                 project.getReservationIntervalSecond()
         );
         // 获取预约日期
-        List<String> reservationDatas = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
+        List<String> reservationDates = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
+        // 一次性载入该项目的全部时段配置，供「是否开放预约」判定（配置不区分日期，每天通用）
+        List<ProjectReservationConfig> configs = projectReservationConfigService.selectByProjectId(projectId);
 
-        reservationDatas.forEach(reservationDate -> {
+        reservationDates.forEach(reservationDate -> {
             // 构造返回的结果
             MinaProjectReservationInfoResp.ReservationDetails reservationDetails = MinaProjectReservationInfoResp.ReservationDetails
                     .builder()
@@ -164,6 +170,19 @@ public class MinaAppService {
             List<ReservationOrderStatisticByTimeVO> statisticByTimeVOS = reservationOrderService.selectReservationOrderStatisticByTime(criteria);
 
             reservationTimes.forEach(reservationTime -> {
+                // 后台配置为「不可预约」的时段：名额置 0、状态标记为不可预约，前端置灰
+                LocalTime slot = ProjectReservationConfigChecker.parseTime(reservationTime);
+                if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
+                    reservationDetails.getReservationTimeDetails().add(
+                            MinaProjectReservationInfoResp.ReservationTimeDetails
+                                    .builder()
+                                    .reservationTime(reservationTime)
+                                    .remainingReservationCount(0)
+                                    .reservationStatus(ReservationStatusEnum.CLOSED.getValue())
+                                    .build());
+                    return;
+                }
+
                 statisticByTimeVOS.stream()
                         // 匹配对就时间段的统计结果
                         .filter(statisticByTimeVO -> reservationTime.equals(statisticByTimeVO.getReservationTime()))

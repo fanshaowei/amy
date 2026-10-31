@@ -64,6 +64,26 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
+    public List<ReservationStock> selectByProjectAndDatePrefix(Long projectId, String datePrefix) {
+        LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ReservationStock::getProjectId, projectId)
+                // likeRight → reservation_time like '20261031%'，前缀匹配可走索引
+                .likeRight(ReservationStock::getReservationTime, datePrefix)
+                .orderByAsc(ReservationStock::getReservationTime);
+        return list(wrapper);
+    }
+
+    @Override
+    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, String minDayTime) {
+        LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ReservationStock::getProjectId, projectId)
+                // reservation_time 是定长 yyyyMMddHHmm，字符串比较等价于时间先后比较
+                .ge(ReservationStock::getReservationTime, minDayTime)
+                .orderByAsc(ReservationStock::getReservationTime);
+        return list(wrapper);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deductReservationCount(Long reservationStockId, int delta) {
         LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
