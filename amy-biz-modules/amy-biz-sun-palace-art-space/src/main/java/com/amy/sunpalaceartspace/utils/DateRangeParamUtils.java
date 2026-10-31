@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 
@@ -119,6 +120,55 @@ public final class DateRangeParamUtils {
             log.warn("时间参数解析失败，已忽略该条件: {}", value);
             return null;
         }
+    }
+
+    /**
+     * 校验「导出」请求的时间范围：beginTime / endTime 必填，且跨度不超过 {@code maxDays} 天
+     *
+     * <p><b>为什么导出要额外加这个约束</b>：列表查询有分页保护，一次最多取几十行；
+     * 而导出是<b>不分页</b>的，会把命中的每一行都加载进堆内存。
+     * 像会员表这种累积到百万级的表，不加约束的一次导出就要吃掉 600MB~1GB 堆内存，
+     * 轻则长时间 Full GC 无响应，重则 OOM。所以大数据量的导出接口必须强制按时间分片。</p>
+     *
+     * <p><b>注意调用顺序</b>：本方法必须先经过 {@link #normalize(BaseEntity)} 归一化，
+     * 否则若前端传的是 ISO 瞬时时间（如 {@code 2026-10-09T16:00:00.000Z}），
+     * 直接按字符串比较会算错天数。{@link #toLocalDate(Object)} 本身能解析 ISO 串，
+     * 所以这里即使不归一化也能算对，但归一化后语义更明确。</p>
+     *
+     * @param entity  查询条件对象（继承 BaseEntity，params 里带 beginTime / endTime）
+     * @param maxDays 允许的最大跨度（天），含端点，即 {@code endTime - beginTime <= maxDays}
+     * @return 校验通过返回 {@code null}，否则返回可直接展示给用户的错误提示
+     */
+    public static String validateExportRange(BaseEntity entity, int maxDays) {
+        Map<String, Object> params = entity == null ? null : entity.getParams();
+        Object rawBegin = params == null ? null : params.get(BEGIN_TIME);
+        Object rawEnd = params == null ? null : params.get(END_TIME);
+
+        if (rawBegin == null || rawEnd == null) {
+            return "导出数据前请先选择时间范围（最多 " + maxDays + " 天）";
+        }
+
+        // toLocalDate 对无法解析的值会抛 DateTimeParseException（而非返回 null，
+        // normalize() 正是靠这个异常来移除非法 key），所以这里必须自己兜住
+        LocalDate begin;
+        LocalDate end;
+        try {
+            begin = toLocalDate(rawBegin);
+            end = toLocalDate(rawEnd);
+        } catch (Exception e) {
+            log.warn("导出时间参数解析失败: beginTime={}, endTime={}", rawBegin, rawEnd);
+            return "时间格式不正确，请重新选择";
+        }
+        if (begin == null || end == null) {
+            return "时间格式不正确，请重新选择";
+        }
+        if (begin.isAfter(end)) {
+            return "开始日期不能晚于结束日期";
+        }
+        if (ChronoUnit.DAYS.between(begin, end) > maxDays) {
+            return "时间跨度不能超过 " + maxDays + " 天，请缩小范围后重试";
+        }
+        return null;
     }
 
     /**

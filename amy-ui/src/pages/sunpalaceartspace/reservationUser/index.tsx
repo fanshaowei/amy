@@ -27,6 +27,44 @@ import styles from '../spas.less';
 const USER_TYPE_NORMAL = 1;
 const USER_TYPE_VERIFIER = 2;
 
+/**
+ * 导出要求按时间分片的最大跨度（天）
+ */
+const MAX_EXPORT_DAYS = 7;
+
+/**
+ * 不限制时间跨度、可直接导出的最大行数
+ */
+const MAX_EXPORT_ROWS_WITHOUT_RANGE = 5000;
+
+/**
+ * 检查导出参数里的注册时间范围是否满足「分片要求」
+ *
+ * 只在点击「导出数据」时调用，且**只在结果行数超过 MAX_EXPORT_ROWS_WITHOUT_RANGE 时才采纳返回值**——
+ * 行数少时内存完全可控，没必要强迫用户限定时间范围。
+ *
+ * 返回的是简短原因，具体提示由调用方拼上行数后再展示。
+ *
+ * @returns 合规返回 null，否则返回不合规的原因
+ */
+const validateExportRange = (params: Record<string, unknown>): string | null => {
+    const range = params.params as {beginTime?: string; endTime?: string} | undefined;
+    const begin = range?.beginTime;
+    const end = range?.endTime;
+
+    if (!begin || !end) {
+        return `请先筛选注册时间，且跨度不超过 ${MAX_EXPORT_DAYS} 天`;
+    }
+    const days = dayjs(end).diff(dayjs(begin), 'day');
+    if (days < 0) {
+        return '注册时间的开始日期不能晚于结束日期';
+    }
+    if (days > MAX_EXPORT_DAYS) {
+        return `注册时间跨度不能超过 ${MAX_EXPORT_DAYS} 天`;
+    }
+    return null;
+};
+
 /** 身份切换二次确认文案 */
 const TYPE_CONFIRM_TEXT: Record<number, string> = {
     [USER_TYPE_NORMAL]: '确认将该用户切换为普通用户？',
@@ -204,6 +242,10 @@ export default function ReservationUserPage() {
         dataIndex: 'createTime',
         valueType: 'dateRange',
         width: 170,
+        /*
+         * 这里刻意不加 disabledDate：查询是分页的，任意跨度都不会有性能问题，限制可选日期只会妨碍查询。
+         * 跨度限制只作用于导出，见 MAX_EXPORT_DAYS 与 validateExportRange。
+         */
         // 提交时把 [begin, end] 转成 RuoYi 约定的 params.beginTime / params.endTime
         search: {transform: (value) => ({params: {beginTime: value?.[0], endTime: value?.[1]}})},
         render: (_, row) => {
@@ -312,11 +354,27 @@ export default function ReservationUserPage() {
                                               // 并经 search.transform 转成 params.beginTime / params.endTime，
                                               // 顶部统计卡带出的 type 也在其中，无需再手动拼装
                                               const params = pruneQueryParams(lastQueryRef.current);
+                                              /*
+                                               * 是否要求按时间分片，取决于「结果量级」而非固定规则：
+                                               *   - 结果 ≤ 5000 条：内存可控，任意时间跨度都能直接导出；
+                                               *   - 结果 > 5000 条：必须限定注册时间跨度 ≤ 7 天，分批导出。
+                                               * 行数取列表查询返回的 total（导出参数与之同源，必然一致）。
+                                               * 后端是同一套规则，此处提前拦截只为点击后立刻看到提示。
+                                               */
+                                              const rangeError = validateExportRange(params);
+                                              if (rangeError && totalRef.current > MAX_EXPORT_ROWS_WITHOUT_RANGE) {
+                                                  message.warning(`${rangeError}（当前查询结果 ${totalRef.current} 条，`
+                                                      + `超过 ${MAX_EXPORT_ROWS_WITHOUT_RANGE} 条请缩小注册时间范围后重新查询再导出）`);
+                                                  return;
+                                              }
                                               void downloadFile(
                                                   '/spas/reservation/user/export',
                                                   params,
                                                   `会员列表_${Date.now()}.xlsx`
-                                              ).then(() => message.success('导出成功'));
+                                              )
+                                                  .then(() => message.success('导出成功'))
+                                                  // 后端校验不通过时返回 JSON 错误体，downloadFile 会解析出 msg 抛出
+                                                  .catch((error: Error) => message.error(error.message || '导出失败'));
                                           }}>导出数据</PermissionButton>
                     ]}
                 />

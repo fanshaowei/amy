@@ -51,6 +51,12 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
     }
 
     @Override
+    public long countReservationUserExport(ReservationUser entity) {
+        DateRangeParamUtils.normalize(entity);
+        return baseMapper.selectReservationUserExportCount(entity);
+    }
+
+    @Override
     public ReservationUserVO selectReservationUserById(Long reservationUserId) {
         return baseMapper.selectReservationUserById(reservationUserId);
     }

@@ -37,6 +37,17 @@ public interface ReservationUserMapper extends BaseMapper<ReservationUser> {
     List<ReservationUserVO> selectReservationUserExportList(@Param("entity") ReservationUser entity);
 
     /**
+     * 统计当前条件下待导出的行数（条件与 selectReservationUserExportList 完全一致）。
+     *
+     * <p>用于判断导出的量级：行数少时允许不按时间分片导出，行数大时才强制要求限定时间范围。
+     * 仅在时间跨度不合规时调用，正常分片导出的场景不会走到这里。</p>
+     *
+     * @param entity 查询条件
+     * @return 命中行数
+     */
+    long selectReservationUserExportCount(@Param("entity") ReservationUser entity);
+
+    /**
      * 根据ID查询预约会员详情
      *
      * @param reservationUserId 会员ID

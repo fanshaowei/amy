@@ -50,40 +50,51 @@
     </sql>
 
     <!--
+        会员查询的公共 where 片段：列表 / 导出 / 导出计数 三处共用。
+
+        【务必用 include 复用，不要在各 select 里各写一份】
+        历史 bug：列表与导出的时间条件曾各写一份且导出那份漏了 concat(...)，
+        导致「列表能查到、导出为空」。这里把所有条件收口到一处，杜绝再次漂移。
+        条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 由 @DataScope 切面注入。
+    -->
+    <sql id="reservationUserWhere">
+        del_flag = '0'
+        <if test="entity.openId != null and entity.openId != ''">
+            and open_id = #{entity.openId}
+        </if>
+        <if test="entity.nickname != null and entity.nickname != ''">
+            and nickname like concat('%', #{entity.nickname}, '%')
+        </if>
+        <if test="entity.name != null and entity.name != ''">
+            and name like concat('%', #{entity.name}, '%')
+        </if>
+        <if test="entity.phone != null and entity.phone != ''">
+            and phone like concat('%', #{entity.phone}, '%')
+        </if>
+        <if test="entity.status != null">
+            and status = #{entity.status}
+        </if>
+        <if test="entity.type != null">
+            and type = #{entity.type}
+        </if>
+        <if test="entity.isVerified != null">
+            and is_verified = #{entity.isVerified}
+        </if>
+        <include refid="createTimeRange"/>
+        <!-- 数据权限 -->
+        <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
+            ${entity.params.dataScope}
+        </if>
+    </sql>
+
+    <!--
         分页列表：第一个参数是 MP 的 Page 对象，由 PaginationInnerInterceptor 自动改写 SQL
         完成 count + limit，本处【不要】写 limit。
-        条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 预留给 @DataScope 切面注入。
     -->
     <select id="selectReservationUserList" resultMap="ReservationUserResult">
         <include refid="selectReservationUserVo"/>
         <where>
-            del_flag = '0'
-            <if test="entity.openId != null and entity.openId != ''">
-                and open_id = #{entity.openId}
-            </if>
-            <if test="entity.nickname != null and entity.nickname != ''">
-                and nickname like concat('%', #{entity.nickname}, '%')
-            </if>
-            <if test="entity.name != null and entity.name != ''">
-                and name like concat('%', #{entity.name}, '%')
-            </if>
-            <if test="entity.phone != null and entity.phone != ''">
-                and phone like concat('%', #{entity.phone}, '%')
-            </if>
-            <if test="entity.status != null">
-                and status = #{entity.status}
-            </if>
-            <if test="entity.type != null">
-                and type = #{entity.type}
-            </if>
-            <if test="entity.isVerified != null">
-                and is_verified = #{entity.isVerified}
-            </if>
-            <include refid="createTimeRange"/>
-            <!-- 数据权限 -->
-            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
-                ${entity.params.dataScope}
-            </if>
+            <include refid="reservationUserWhere"/>
         </where>
         order by create_time desc
     </select>
@@ -92,35 +103,23 @@
     <select id="selectReservationUserExportList" resultMap="ReservationUserResult">
         <include refid="selectReservationUserVo"/>
         <where>
-            del_flag = '0'
-            <if test="entity.openId != null and entity.openId != ''">
-                and open_id = #{entity.openId}
-            </if>
-            <if test="entity.nickname != null and entity.nickname != ''">
-                and nickname like concat('%', #{entity.nickname}, '%')
-            </if>
-            <if test="entity.name != null and entity.name != ''">
-                and name like concat('%', #{entity.name}, '%')
-            </if>
-            <if test="entity.phone != null and entity.phone != ''">
-                and phone like concat('%', #{entity.phone}, '%')
-            </if>
-            <if test="entity.status != null">
-                and status = #{entity.status}
-            </if>
-            <if test="entity.type != null">
-                and type = #{entity.type}
-            </if>
-            <if test="entity.isVerified != null">
-                and is_verified = #{entity.isVerified}
-            </if>
-            <include refid="createTimeRange"/>
-            <!-- 数据权限 -->
-            <if test="entity.params != null and entity.params.dataScope != null and entity.params.dataScope != ''">
-                ${entity.params.dataScope}
-            </if>
+            <include refid="reservationUserWhere"/>
         </where>
         order by create_time desc
+    </select>
+
+    <!--
+        导出前的结果行数统计。
+
+        用途：判断本次导出的量级是否必须按时间分片。只有「时间跨度不合规」时才需要查它
+        （跨度合规说明用户已主动分片，无论多少行都放行），所以实际调用频率很低。
+        条件与列表、导出完全一致，保证「看到多少条就能导出多少条」。
+    -->
+    <select id="selectReservationUserExportCount" resultType="long">
+        select count(1) from biz_spas_reservation_user
+        <where>
+            <include refid="reservationUserWhere"/>
+        </where>
     </select>
 
     <select id="selectReservationUserById" parameterType="Long" resultMap="ReservationUserResult">

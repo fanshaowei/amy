@@ -35,6 +35,17 @@ public interface IReservationUserService extends IService<ReservationUser> {
     List<ReservationUserVO> selectReservationUserExportList(ReservationUser entity);
 
     /**
+     * 统计当前条件下待导出的行数
+     *
+     * <p>条件与 {@link #selectReservationUserExportList(ReservationUser)} 完全一致，
+     * 保证「列表看到多少条，就能导出多少条」。用于导出前的量级判断。</p>
+     *
+     * @param entity 查询条件
+     * @return 命中行数
+     */
+    long countReservationUserExport(ReservationUser entity);
+
+    /**
      * 根据ID查询预约会员详情
      *
      * @param reservationUserId 会员ID

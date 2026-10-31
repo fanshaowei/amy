@@ -189,7 +189,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 获取第二天预约记录
+     * 获取第二天预约记录,用于小程序实时数据看板
      * @return
      */
     @MinaApiAuth
