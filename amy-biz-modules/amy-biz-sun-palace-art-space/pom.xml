@@ -74,6 +74,12 @@
             <artifactId>amy-common-core</artifactId>
         </dependency>
 
+        <!-- amy Common Sensitive：脱敏规则（手机号等），只依赖 core，无额外负担 -->
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-sensitive</artifactId>
+        </dependency>
+
         <!-- amy Common DataScope -->
         <dependency>
             <groupId>com.amy</groupId>

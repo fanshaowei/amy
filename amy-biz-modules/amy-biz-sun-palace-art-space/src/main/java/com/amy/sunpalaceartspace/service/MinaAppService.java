@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
+import com.amy.common.sensitive.enums.DesensitizedType;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
 
@@ -345,8 +347,31 @@ public class MinaAppService {
         for (ReservationOrderVO vo : reservationOrderVOS) {
             NextDayReservationOrderResp resp = new NextDayReservationOrderResp();
             BeanUtils.copyProperties(vo, resp);
+            // 手机号脱敏：这个接口面向小程序端展示，不应暴露完整号码
+            resp.setPhone(maskPhone(vo.getPhone()));
             respList.add(resp);
         }
         return respList;
+    }
+
+    /** 标准手机号：11 位纯数字 */
+    private static final Pattern STANDARD_PHONE = Pattern.compile("^\\d{11}$");
+
+    /**
+     * 手机号脱敏（{@code 138****1234}）
+     * @param phone 原始手机号，允许为 null 或空串
+     * @return 脱敏后的号码；null / 空串原样返回
+     */
+    private static String maskPhone(String phone) {
+        if (phone == null || phone.isEmpty()) {
+            return phone;
+        }
+        if (STANDARD_PHONE.matcher(phone).matches()) {
+            return DesensitizedType.PHONE.desensitizer().apply(phone);
+        }
+        if (phone.length() <= 7) {
+            return "****";
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }
