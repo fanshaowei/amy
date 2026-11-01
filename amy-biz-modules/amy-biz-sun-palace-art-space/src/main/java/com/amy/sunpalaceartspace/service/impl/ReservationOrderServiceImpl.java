@@ -17,6 +17,7 @@ import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
+import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -205,6 +206,10 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         }
         if(Strings.isBlank(req.getPhone())){
             throw new ServiceException("手机号不能为空");
+        }
+        boolean contact = PhoneVerifyUtil.isContact(req.getPhone());
+        if(!contact) {
+            throw new ServiceException("联系电话格式不正确");
         }
         if(Strings.isBlank(req.getIdNum())){
             throw new ServiceException("身份证号不能为空");

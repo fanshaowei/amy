@@ -12,6 +12,7 @@ import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
 import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
+import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +76,11 @@ public class SubmitReservationOrderService {
     }
 
     private void reservationPreCheck(SubmitReservationReq req, ReservationUser user) {
+        boolean contact = PhoneVerifyUtil.isContact(req.getPhone());
+        if(!contact) {
+            throw new ServiceException("联系电话格式不正确");
+        }
+
         // 验证预约会员是否存在
         boolean userExists = reservationUserService.checkUserExistById(user.getReservationUserId());
         if(!userExists) {
