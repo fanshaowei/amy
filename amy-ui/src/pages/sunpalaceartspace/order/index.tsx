@@ -120,6 +120,9 @@ export default function OrderPage() {
     const lastQueryRef = useRef<Record<string, unknown>>({});
     /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
     const totalRef = useRef(0);
+    /** 当前页码与每页条数：用于计算跨页连续的「序号」列 */
+    const currentRef = useRef(1);
+    const pageSizeRef = useRef(10);
     const [activeStatus, setActiveStatus] = useState('');
     const [counts, setCounts] = useState<Record<string, number>>({});
     const [personOpen, setPersonOpen] = useState(false);
@@ -180,6 +183,14 @@ export default function OrderPage() {
     };
 
     const columns: ProColumns<ReservationOrderRecord>[] = [{
+        title: '序号',
+        dataIndex: 'index',
+        width: 64,
+        fixed: 'left',
+        align: 'center',
+        search: false,
+        render: (_dom, _row, index) => (currentRef.current - 1) * pageSizeRef.current + index + 1
+    }, {
         title: '订单号',
         dataIndex: 'reservationNum',
         width: 180,
@@ -300,13 +311,16 @@ export default function OrderPage() {
                     rowKey="reservationOrderId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1400}}
+                    scroll={{x: 1460}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 状态筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{reservationStatus: activeStatus || undefined}}
                     search={{labelWidth: 'auto', defaultCollapsed: false}}
                     options={{reload: true, density: false, setting: false}}
                     request={async ({current, pageSize, reservationTime, ...params}) => {
+                        // 记录当前分页，供「序号」列计算跨页连续编号
+                        currentRef.current = current ?? 1;
+                        pageSizeRef.current = pageSize ?? 10;
                         const queryParams = {
                             ...params,
                             // valueType:'date' 经 dateFormatter 后已是 'YYYY-MM-DD'，slice 只为兜底

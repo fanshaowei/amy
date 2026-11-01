@@ -109,6 +109,9 @@ export default function ReservationUserPage() {
     const lastQueryRef = useRef<Record<string, unknown>>({});
     /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
     const totalRef = useRef(0);
+    /** 当前页码与每页条数：用于计算跨页连续的「序号」列 */
+    const currentRef = useRef(1);
+    const pageSizeRef = useRef(10);
     /** 身份筛选（由顶部统计卡控制，同时用于列表查询与导出） */
     const [typeFilter, setTypeFilter] = useState('');
     const [counts, setCounts] = useState<Record<string, number>>({});
@@ -169,6 +172,14 @@ export default function ReservationUserPage() {
     };
 
     const columns: ProColumns<ReservationUserRecord>[] = [{
+        title: '序号',
+        dataIndex: 'index',
+        width: 64,
+        fixed: 'left',
+        align: 'center',
+        search: false,
+        render: (_dom, _row, index) => (currentRef.current - 1) * pageSizeRef.current + index + 1
+    }, {
         title: '会员',
         dataIndex: 'nickname',
         width: 220,
@@ -324,13 +335,16 @@ export default function ReservationUserPage() {
                     rowKey="reservationUserId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1400}}
+                    scroll={{x: 1460}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 身份筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{type: typeFilter ? Number(typeFilter) : undefined}}
                     search={{labelWidth: 'auto', defaultCollapsed: false}}
                     options={{reload: true, density: false, setting: false}}
                     request={async ({current, pageSize, ...params}) => {
+                        // 记录当前分页，供「序号」列计算跨页连续编号
+                        currentRef.current = current ?? 1;
+                        pageSizeRef.current = pageSize ?? 10;
                         // 记录本次查询条件（不含分页），导出时原样复用
                         lastQueryRef.current = params;
                         const result = await listUsers({pageNum: current, pageSize, ...params});
