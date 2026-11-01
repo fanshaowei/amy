@@ -6,11 +6,7 @@ import com.amy.common.redis.service.RedisService;
 import com.amy.common.sensitive.enums.DesensitizedType;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
-import com.amy.sunpalaceartspace.domain.entity.Projects;
-import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
-import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
-import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
-import com.amy.sunpalaceartspace.domain.entity.UserIdentity;
+import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
@@ -18,17 +14,16 @@ import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.GenderEnum;
 import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
+import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
-import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,7 +33,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalTime;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -63,7 +59,16 @@ public class MinaAppService {
     private final IUserIdentityService userIdentityService;
     private final AliIdCheckUtil aliIdCheckUtil;
     private final UserIdentityServiceImpl userIdentityServiceImpl;
-    private final IProjectReservationConfigService projectReservationConfigService;
+    private final IReservationStockService reservationStockService;
+
+    /** 库存表 reservation_time 定长 yyyyMMddHHmm */
+    private static final int STOCK_TIME_LENGTH = 12;
+
+    /** 库存表 reservation_time 里的日期前缀长度 yyyyMMdd */
+    private static final int STOCK_DATE_PREFIX_LENGTH = 8;
+
+    /** 日期前缀格式，用于取「今天」下界（与时区分界一致，按服务所在时区算当天） */
+    private static final DateTimeFormatter STOCK_DATE_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -125,97 +130,125 @@ public class MinaAppService {
         return result.size() * count;
     }
 
-    private Integer calculateReservationStatus(Integer totalReservationCount, Integer reservationCount) {
-        Integer reservationPercent = 0;
-        if(reservationCount >= totalReservationCount) return ReservationStatusEnum.FILLED.getValue();
-
-        reservationPercent = Math.divideExact(reservationCount, totalReservationCount) * 100;
-
-        return reservationPercent > 80 ?
-                (reservationPercent >= 100 ? ReservationStatusEnum.FILLED.getValue() : ReservationStatusEnum.TIGHT.getValue() ) :
-                ReservationStatusEnum.AMPLE.getValue();
+    /**
+     * 由「总量 + 已占用」推导拥挤度：充足(1) / 紧张(2) / 已满(3)
+     *
+     * @param total 总量（<b>传「已放号」而非「总名额」</b>，才与 {@link #toTimeDetail} 的余量口径一致）
+     * @param used  已占用量
+     */
+    private Integer calculateReservationStatus(Integer total, Integer used) {
+        int t = nvl(total);
+        int u = nvl(used);
+        if (t <= 0 || u >= t) {
+            return ReservationStatusEnum.FILLED.getValue();
+        }
+        int percent = u * 100 / t;
+        return percent > 80 ? ReservationStatusEnum.TIGHT.getValue() : ReservationStatusEnum.AMPLE.getValue();
     }
 
+    /** null 安全取值 */
+    private static int nvl(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    /**
+     * 小程序预订页：项目预约须知 + 各日期各时段的号源明细。
+     *
+     * <p><b>数据源是库存表 {@code biz_spas_reservation_stock}，不再按项目配置实时推算时段。</b>
+     *
+     * <p>统计范围：该项目 <b>今天及以后</b> 的全部库存行。{@code reservation_time} 是定长
+     * {@code yyyyMMddHHmm}，用 8 位日期前缀做 {@code >=} 比较即可（字符串序 == 时间序）。</p>
+     *
+     * @param projectId 项目ID
+     */
     public MinaProjectReservationInfoResp extractProjectReservationInfo(Long projectId) {
         Projects project = projectsService.getBaseMapper().selectById(projectId);
+        if (project == null) {
+            throw new ServiceException("项目不存在或已下架");
+        }
 
         MinaProjectReservationInfoResp resp = MinaProjectReservationInfoResp.builder()
                 .reservationNotes(project.getReservationNotes())
                 .reservationDetails(new LinkedList<>())
                 .build();
 
-        // 获取预约时间段
-        List<String> reservationTimes = reservationUtil.extractReservationTimes(
-                project.getReservationStartTime(),
-                project.getReservationEndTime(),
-                project.getReservationIntervalSecond()
-        );
-        // 获取预约日期
-        List<String> reservationDates = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
-        // 一次性载入该项目的全部时段配置，供「是否开放预约」判定（配置不区分日期，每天通用）
-        List<ProjectReservationConfig> configs = projectReservationConfigService.selectByProjectId(projectId);
+        String todayPrefix = LocalDate.now().format(STOCK_DATE_PREFIX_FORMATTER);
+        List<ReservationStock> stocks = reservationStockService.selectByProjectIdAndTimeGe(projectId, todayPrefix);
+        if (stocks.isEmpty()) {
+            log.info("项目当天及以后暂无库存记录: projectId:{} today:{}", projectId, todayPrefix);
+            return resp;
+        }
 
-        reservationDates.forEach(reservationDate -> {
-            // 构造返回的结果
-            MinaProjectReservationInfoResp.ReservationDetails reservationDetails = MinaProjectReservationInfoResp.ReservationDetails
-                    .builder()
-                    .reservationDate(reservationDate)
-                    .reservationTimeDetails(new LinkedList<>())
-                    .build();
+        // 按日期分组（TreeMap 保证日期升序）
+        Map<String, List<ReservationStock>> stocksByDate = new TreeMap<>();
+        for (ReservationStock stock : stocks) {
+            String reservationTime = stock.getReservationTime();
+            if (reservationTime == null || reservationTime.length() != STOCK_TIME_LENGTH) {
+                log.warn("库存记录 reservation_time 长度非法，已跳过: stockId:{} value:{}",
+                        stock.getReservationStockId(), reservationTime);
+                continue;
+            }
+            stocksByDate.computeIfAbsent(
+                    reservationTime.substring(0, STOCK_DATE_PREFIX_LENGTH),
+                    key -> new LinkedList<>()
+            ).add(stock);
+        }
 
-            // 查询对应日期的各个时间段已经预约数量
-            ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
-                    .projectId(projectId)
-                    .reservationTimeStart(DateUtils.parseDate(reservationDate + "00:00:00"))
-                    .reservationTimeEnd(DateUtils.parseDate(reservationDate + "23:59:59"))
-                    .build();
-            List<ReservationOrderStatisticByTimeVO> statisticByTimeVOS = reservationOrderService.selectReservationOrderStatisticByTime(criteria);
-
-            reservationTimes.forEach(reservationTime -> {
-                // 后台配置为「不可预约」的时段：名额置 0、状态标记为不可预约，前端置灰
-                LocalTime slot = ProjectReservationConfigChecker.parseTime(reservationTime);
-                if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
-                    reservationDetails.getReservationTimeDetails().add(
-                            MinaProjectReservationInfoResp.ReservationTimeDetails
-                                    .builder()
-                                    .reservationTime(reservationTime)
-                                    .remainingReservationCount(0)
-                                    .reservationStatus(ReservationStatusEnum.CLOSED.getValue())
-                                    .build());
-                    return;
-                }
-
-                statisticByTimeVOS.stream()
-                        // 匹配对就时间段的统计结果
-                        .filter(statisticByTimeVO -> reservationTime.equals(statisticByTimeVO.getReservationTime()))
-                        .findFirst()
-                        .ifPresentOrElse(
-                                statisticByTimeVO -> {
-                                    // 设置匹配到的统计结果
-                                    MinaProjectReservationInfoResp.ReservationTimeDetails reservationTimeDetails = MinaProjectReservationInfoResp.ReservationTimeDetails
-                                            .builder()
-                                            .reservationTime(reservationTime)
-                                            .remainingReservationCount(project.getReservationCount() - statisticByTimeVO.getCount())
-                                            .reservationStatus(calculateReservationStatus(project.getReservationCount(), statisticByTimeVO.getCount()))
-                                            .build();
-                                    reservationDetails.getReservationTimeDetails().add(reservationTimeDetails);
-                                },
-                                () -> {
-                                    // 没有匹配到说明该时段没有人预约
-                                    MinaProjectReservationInfoResp.ReservationTimeDetails reservationTimeDetails = MinaProjectReservationInfoResp.ReservationTimeDetails
-                                            .builder()
-                                            .reservationTime(reservationTime)
-                                            .remainingReservationCount(project.getReservationCount())
-                                            .reservationStatus(ReservationStatusEnum.AMPLE.getValue())
-                                            .build();
-                                    reservationDetails.getReservationTimeDetails().add(reservationTimeDetails);
-                                }
-                        );
-            });
-
+        stocksByDate.forEach((datePrefix, dayStocks) -> {
+            // 同一天内按时段升序
+            dayStocks.sort(Comparator.comparing(ReservationStock::getReservationTime));
+            MinaProjectReservationInfoResp.ReservationDetails reservationDetails =
+                    MinaProjectReservationInfoResp.ReservationDetails
+                            .builder()
+                            .reservationDate(formatStockDate(datePrefix))
+                            .reservationTimeDetails(new LinkedList<>())
+                            .build();
+            dayStocks.forEach(stock ->
+                    reservationDetails.getReservationTimeDetails().add(toTimeDetail(stock)));
             resp.getReservationDetails().add(reservationDetails);
         });
         return resp;
+    }
+
+    /**
+     * 库存行 → 小程序时段明细
+     *
+     * <p><b>余量口径 = 已放号 - 已预约</b>，与 Redis 库存缓存（{@code reserve.lua} 实际扣减的那个值）
+     * 保持一致。不用「总名额 - 已预约」：分批放号期间尚未放出的名额会被算进余量，
+     * 页面显示有余号、提交却被判「名额已满」。</p>
+     *
+     * <p><b>非「正常可预约」的库存行同样返回</b>（这是本次改造的核心收益之一）：
+     * 已过可预约时间(0)、手动设置不可预约(2) 都置为 {@link ReservationStatusEnum#CLOSED}、余量 0，
+     * 由前端置灰展示。</p>
+     */
+    private MinaProjectReservationInfoResp.ReservationTimeDetails toTimeDetail(ReservationStock stock) {
+        String reservationTime = stock.getReservationTime();
+        String slotLabel = reservationTime.substring(8, 10) + ":" + reservationTime.substring(10, 12) + ":00";
+
+        // status 为 null 或非「正常可预约」，一律按不可预约处理：宁可置灰，也不能把约不了的时段放给用户点
+        if (!ReservationStockStatus.AVAILABLE.getCode().equals(stock.getStatus())) {
+            return MinaProjectReservationInfoResp.ReservationTimeDetails
+                    .builder()
+                    .reservationTime(slotLabel)
+                    .remainingReservationCount(0)
+                    .reservationStatus(ReservationStatusEnum.CLOSED.getValue())
+                    .build();
+        }
+
+        int released = nvl(stock.getReleaseCount());
+        int reserved = nvl(stock.getReservedCount());
+        // 分母取「已放号」：只衡量已放出来的这批被占了多少，与 remainder 口径一致
+        return MinaProjectReservationInfoResp.ReservationTimeDetails
+                .builder()
+                .reservationTime(slotLabel)
+                .remainingReservationCount(Math.max(0, released - reserved))
+                .reservationStatus(calculateReservationStatus(released, reserved))
+                .build();
+    }
+
+    /** 库存表日期前缀 yyyyMMdd → 前端日期 yyyy-MM-dd */
+    private static String formatStockDate(String datePrefix) {
+        return datePrefix.substring(0, 4) + "-" + datePrefix.substring(4, 6) + "-" + datePrefix.substring(6, 8);
     }
 
     public MinaReservationUserInfoResp extractReservationUserInfo(String token) {
