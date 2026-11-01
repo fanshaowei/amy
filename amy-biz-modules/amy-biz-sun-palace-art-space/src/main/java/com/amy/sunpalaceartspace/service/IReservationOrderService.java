@@ -2,6 +2,7 @@ package com.amy.sunpalaceartspace.service;
 
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
@@ -124,4 +125,6 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      * @return 次日预约订单列表，按预约时间、项目ID升序
      */
     List<ReservationOrderVO> selectNextDayReservationOrder();
+
+    void verifyManualGenerate(ReservationOrderManualReq req);
 }

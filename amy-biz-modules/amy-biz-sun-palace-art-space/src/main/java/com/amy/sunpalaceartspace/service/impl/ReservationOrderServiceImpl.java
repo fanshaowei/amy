@@ -1,18 +1,22 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
+import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -190,5 +194,25 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             }
         }
         return order;
+    }
+
+    public void verifyManualGenerate(ReservationOrderManualReq req) {
+        if(null == req.getProjectId()) {
+            throw new ServiceException("项目ID不能为空");
+        }
+        if(null == req.getName() || req.getName().isBlank()) {
+            throw new ServiceException("姓名不能为空");
+        }
+        if(Strings.isBlank(req.getPhone())){
+            throw new ServiceException("手机号不能为空");
+        }
+        if(Strings.isBlank(req.getIdNum())){
+            throw new ServiceException("身份证号不能为空");
+        }
+
+        IdVerifyUtil.verify(IdType.fromType(Integer.valueOf(req.getIdType())), req.getIdNum());
+        if(null == req.getReservationTime()) {
+            throw new ServiceException("预约时间不能为空");
+        }
     }
 }

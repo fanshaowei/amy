@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.controller;
 
 import com.amy.common.core.domain.R;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.poi.ExcelUtil;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
@@ -9,12 +10,17 @@ import com.amy.common.core.web.page.TableSupport;
 import com.amy.common.log.annotation.Log;
 import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +33,16 @@ import java.util.List;
  * @author fantasyfan
  * @date 2026-09-13
  */
+@Slf4j
 @RestController
 @RequestMapping("/reservation/order")
 public class ReservationOrderController extends BaseController {
 
     @Autowired
     private IReservationOrderService reservationOrderService;
+
+    @Autowired
+    private ReservationUtil reservationUtil;
 
     /**
      * 查询预约订单列表（MP IPage 分页）
@@ -68,13 +78,23 @@ public class ReservationOrderController extends BaseController {
     }
 
     /**
-     * 新增预约订单
+     * 手动新增预约订单
      */
     @RequiresPermissions("sunpalaceartspace:reservationOrder:add")
-    @Log(title = "预约订单管理", businessType = BusinessType.INSERT)
-    @PostMapping
-    public R<Boolean> add(@Validated @RequestBody ReservationOrderReq req) {
-        return R.ok(reservationOrderService.saveReservationOrder(req));
+    @Log(title = "手动创建预约订单", businessType = BusinessType.INSERT)
+    @PostMapping("/manual/generate")
+    public R<Boolean> add(@Validated @RequestBody ReservationOrderManualReq req) {
+        req.setReservationUserId(99999999L);
+        if(req.getCompUsers() != null) {
+            req.setGuestsNum(req.getCompUsers().size() + 1);
+        } else {
+            req.setGuestsNum(1);
+        }
+        reservationOrderService.verifyManualGenerate(req);
+
+        ReservationOrderReq orderReq = new ReservationOrderReq();
+        BeanUtils.copyProperties(req, orderReq);
+        return R.ok(reservationOrderService.saveReservationOrder(orderReq));
     }
 
     /**
