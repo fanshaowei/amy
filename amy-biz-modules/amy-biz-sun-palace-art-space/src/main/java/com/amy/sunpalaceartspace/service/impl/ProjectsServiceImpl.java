@@ -1,19 +1,7 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
@@ -21,6 +9,16 @@ import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
 
 /**
  * 项目管理 服务层实现（MyBatis-Plus 模式）
@@ -41,7 +39,6 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
      * 构造器注入会形成循环依赖，启动直接 BeanCurrentlyInCreationException。
      */
     private final ProjectReservationConfigMapper projectReservationConfigMapper;
-
     private final ReservationUtil reservationUtil;
 
     @Override
@@ -141,10 +138,37 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
         log.info("项目时段配置初始化完成: projectId:{}, 时段数:{}", projectId, configs.size());
     }
 
+    @Transactional
     @Override
     public boolean updateProjects(Projects projects) {
+        Projects record = this.selectProjectById(projects.getProjectId());
+        String oldReservationStartTime = record.getReservationStartTime();
+        String oldReservationEndTime = record.getReservationEndTime();
+        Integer oldReservationIntervalSecond = record.getReservationIntervalSecond();
+
+        projects.setUpdateBy(SecurityUtils.getUsername());
         projects.setUpdateTime(DateUtils.getNowDate());
-        return updateById(projects);
+        boolean b = updateById(projects);
+
+        if(b) {
+            // 用值比较（Objects.equals）判断时段参数是否真的变了：
+            // 原代码用 `!=` 做 String 引用比较，内容相同但引用不同的字符串会误判为「已修改」，
+            // 在硬删除场景下会误删全部配置，必须改成值比较。
+            boolean timeOrIntervalChanged =
+                    !Objects.equals(oldReservationStartTime, projects.getReservationStartTime())
+                            || !Objects.equals(oldReservationEndTime, projects.getReservationEndTime())
+                            || !Objects.equals(oldReservationIntervalSecond, projects.getReservationIntervalSecond());
+            if (timeOrIntervalChanged) {
+                log.warn("项目预约时段参数已修改，将硬删除原有配置并按新参数重建: projectId:{}, startTime:{}, endTime:{}, interval:{}",
+                        projects.getProjectId(), projects.getReservationStartTime(), projects.getReservationEndTime(),
+                        projects.getReservationIntervalSecond());
+                int count = projectReservationConfigMapper.hardDeleteByProjectId(projects.getProjectId());
+                log.info("硬删除原有项目预约配置记录条数: {}", count);
+                initReservationTimeConfig(projects);
+            }
+        }
+
+        return b;
     }
 
     @Override

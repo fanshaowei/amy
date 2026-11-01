@@ -121,4 +121,12 @@
         delete from biz_spas_project_reservation_config where del_flag = '1'
     </delete>
 
+    <!--
+        硬删除某项目的全部时段配置（绕过 @TableLogic 软删）。
+        用于「修改项目预约时段参数」时先把旧配置物理抹掉、再按新参数重建。
+    -->
+    <delete id="hardDeleteByProjectId">
+        delete from biz_spas_project_reservation_config where project_id = #{projectId}
+    </delete>
+
 </mapper>
