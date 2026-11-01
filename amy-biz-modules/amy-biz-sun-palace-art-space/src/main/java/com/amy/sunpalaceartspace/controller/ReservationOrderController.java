@@ -12,6 +12,7 @@ import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderUpdateStatusReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
@@ -116,5 +117,11 @@ public class ReservationOrderController extends BaseController {
     @DeleteMapping("/{reservationOrderIds}")
     public R<Boolean> remove(@PathVariable Long[] reservationOrderIds) {
         return R.ok(reservationOrderService.removeReservationOrderByIds(reservationOrderIds));
+    }
+
+    @Log(title = "订单管理-更新状态", businessType = BusinessType.UPDATE)
+    @PutMapping("/update/status")
+    public void updateOrderStatus(@RequestBody ReservationOrderUpdateStatusReq req){
+        reservationOrderService.updateReservationOrderStatus(req.getOrderId(), req.getStatus());
     }
 }

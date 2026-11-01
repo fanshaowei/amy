@@ -8,6 +8,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
@@ -115,16 +116,11 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
 
     /**
      * 查询预约了<b>次日（明天）</b>当天的号的订单。
-     *
-     * <p>典型用途：次日到访提醒（定时任务拉取明天的订单 → 按会员推送订阅消息）。
-     * 时间口径为「明天 00:00:00（含）～ 后天 00:00:00（不含）」。</p>
-     *
-     * <p>注：只排除逻辑删除（del_flag），不过滤订单状态；
-     * 调用方按 {@code reservationStatus} 自行筛选（如提醒场景通常只取「待核销」）。</p>
-     *
      * @return 次日预约订单列表，按预约时间、项目ID升序
      */
     List<ReservationOrderVO> selectNextDayReservationOrder();
 
     void verifyManualGenerate(ReservationOrderManualReq req);
+
+    boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status);
 }

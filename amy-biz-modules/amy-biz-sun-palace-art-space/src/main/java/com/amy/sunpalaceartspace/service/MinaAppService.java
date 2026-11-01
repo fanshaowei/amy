@@ -276,16 +276,12 @@ public class MinaAppService {
         Integer reservationStatus = reservationOrder.getReservationStatus();
         if(!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), reservationStatus)) {
             ReservationOrderStatus statusEnum = ReservationOrderStatus.fromCode(reservationStatus);
-            throw new ServiceException("该订单" + statusEnum.getName());
+            throw new ServiceException("该订单当前不是待核销状态: " + statusEnum.getName());
         }
 
-        ReservationOrderReq req = new ReservationOrderReq();
-        BeanUtils.copyProperties(reservationOrder, req);
-
-        req.setReservationStatus(ReservationOrderStatus.COMPLETED.getStatus());
-        reservationOrder.setVerifyBy(verifyUser.getName());
-        reservationOrder.setVerifyTime(new Date());
-        boolean verifyFlag = reservationOrderService.updateReservationOrder(req);
+        boolean verifyFlag = reservationOrderService.updateReservationOrderStatus(
+                reservationOrder.getReservationOrderId(),
+                ReservationOrderStatus.COMPLETED);
         log.info("verifyReservationOrder: {} result: {}", orderNum, verifyFlag);
         return verifyFlag;
     }

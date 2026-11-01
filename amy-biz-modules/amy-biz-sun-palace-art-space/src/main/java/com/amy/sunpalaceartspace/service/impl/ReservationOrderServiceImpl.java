@@ -215,4 +215,14 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             throw new ServiceException("预约时间不能为空");
         }
     }
+
+    @Override
+    public boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status) {
+        ReservationOrder order = getById(orderId);
+        if(order == null) {
+            throw new ServiceException("订单不存在");
+        }
+        order.setReservationStatus(status.getStatus());
+        return updateById(order);
+    }
 }
