@@ -127,7 +127,6 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
             config.setReservationEnabled(Boolean.TRUE);
             config.setCreateBy(createBy);
             config.setCreateTime(now);
-            config.setRemark("项目新增时自动生成，默认可预约");
             configs.add(config);
         }
         if (configs.isEmpty()) {

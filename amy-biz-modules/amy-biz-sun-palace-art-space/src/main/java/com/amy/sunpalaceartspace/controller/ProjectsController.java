@@ -106,9 +106,4 @@ public class ProjectsController extends BaseController
     {
         return R.ok(projectsService.removeProjectsByIds(projectIds));
     }
-
-/*    @PostMapping("")
-    public R<> configReservationTime() {
-
-    }*/
 }

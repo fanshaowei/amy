@@ -3,7 +3,7 @@ package com.amy.sunpalaceartspace.controller;
 import java.util.List;
 
 import com.amy.common.core.domain.R;
-import com.amy.common.core.utils.poi.ExcelUtil;
+import com.amy.common.core.utils.bean.BeanUtils;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
@@ -11,14 +11,13 @@ import com.amy.common.core.web.page.TableSupport;
 import com.amy.common.log.annotation.Log;
 import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
-import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
+import com.amy.sunpalaceartspace.domain.req.ProjectReservationConfigReq;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigGroupVO;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigVO;
 import com.amy.sunpalaceartspace.service.IProjectReservationConfigService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +51,7 @@ public class ProjectReservationConfigController extends BaseController
      * 按项目ID批量查询时段配置，并按项目分组返回
      */
     @RequiresPermissions("sunpalaceartspace:reservationConfig:list")
-    @GetMapping("/groupByProject")
+    @GetMapping("/groupby/project")
     public R<List<ProjectReservationConfigGroupVO>> groupByProject(
             @RequestParam("projectIds") List<Long> projectIds)
     {
@@ -64,25 +63,15 @@ public class ProjectReservationConfigController extends BaseController
      */
     @RequiresPermissions("sunpalaceartspace:reservationConfig:list")
     @GetMapping("/list")
-    public R<TableDataInfo> list(ProjectReservationConfig config)
+    public R<TableDataInfo> list(ProjectReservationConfigReq req)
     {
+        ProjectReservationConfig config = new ProjectReservationConfig();
+        BeanUtils.copyProperties(req, config);
+
         PageDomain pageDomain = TableSupport.buildPageRequest();
         Page<ProjectReservationConfigVO> page = new Page<>(pageDomain.getPageNum(), pageDomain.getPageSize());
         IPage<ProjectReservationConfigVO> result = projectReservationConfigService.selectConfigList(page, config);
         return R.ok(new TableDataInfo(result.getRecords(), (int) result.getTotal()));
-    }
-
-    /**
-     * 导出预约时段配置列表
-     */
-    @RequiresPermissions("sunpalaceartspace:reservationConfig:export")
-    @Log(title = "预约时段配置", businessType = BusinessType.EXPORT)
-    @PostMapping("/export")
-    public void export(HttpServletResponse response, @RequestBody ProjectReservationConfig config)
-    {
-        List<ProjectReservationConfigVO> list = projectReservationConfigService.selectConfigExportList(config);
-        ExcelUtil<ProjectReservationConfigVO> util = new ExcelUtil<>(ProjectReservationConfigVO.class);
-        util.exportExcel(response, list, "项目预约时段配置");
     }
 
     /**
@@ -101,9 +90,11 @@ public class ProjectReservationConfigController extends BaseController
     @RequiresPermissions("sunpalaceartspace:reservationConfig:add")
     @Log(title = "预约时段配置", businessType = BusinessType.INSERT)
     @PostMapping
-    public R<Boolean> add(@Validated @RequestBody ProjectReservationConfig config)
+    public R<Boolean> add(@Validated @RequestBody ProjectReservationConfigReq req)
     {
-        config.setCreateBy(SecurityUtils.getUsername());
+        ProjectReservationConfig config = new ProjectReservationConfig();
+        BeanUtils.copyProperties(req, config);
+
         return R.ok(projectReservationConfigService.saveConfig(config));
     }
 
@@ -112,11 +103,12 @@ public class ProjectReservationConfigController extends BaseController
      */
     @RequiresPermissions("sunpalaceartspace:reservationConfig:edit")
     @Log(title = "预约时段配置", businessType = BusinessType.UPDATE)
-    @PutMapping
-    public R<Boolean> edit(@Validated @RequestBody ProjectReservationConfig config)
+    @PutMapping("/update/reservation/enabled")
+    public R<Boolean> edit(@Validated @RequestBody ProjectReservationConfigReq req)
     {
-        config.setUpdateBy(SecurityUtils.getUsername());
-        return R.ok(projectReservationConfigService.updateConfig(config));
+        ProjectReservationConfig config = new ProjectReservationConfig();
+        BeanUtils.copyProperties(req, config);
+        return R.ok(projectReservationConfigService.updateConfigReservationEnabled(config));
     }
 
     /**

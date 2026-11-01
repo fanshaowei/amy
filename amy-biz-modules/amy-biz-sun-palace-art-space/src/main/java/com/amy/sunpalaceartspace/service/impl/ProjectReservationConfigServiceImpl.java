@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigGroupVO;
@@ -84,10 +85,15 @@ public class ProjectReservationConfigServiceImpl
     @Override
     public boolean saveConfig(ProjectReservationConfig config) {
         validateConfig(config);
+        if(config.getProjectId() == null) {
+            throw new ServiceException("项目ID不能为空");
+        }
         if (config.getReservationEnabled() == null) {
             config.setReservationEnabled(Boolean.TRUE);
         }
+        config.setCreateBy(SecurityUtils.getUsername());
         config.setCreateTime(DateUtils.getNowDate());
+
         boolean ok;
         try {
             ok = save(config);
@@ -95,14 +101,11 @@ public class ProjectReservationConfigServiceImpl
             // 并发兜底：uk_project_time (project_id, start_time, end_time, del_flag)
             throw new ServiceException("该项目已存在相同的时段配置");
         }
-        if (ok) {
-            //syncStock(config);
-        }
         return ok;
     }
 
     @Override
-    public boolean updateConfig(ProjectReservationConfig config) {
+    public boolean updateConfigReservationEnabled(ProjectReservationConfig config) {
         if (config.getConfigId() == null) {
             throw new ServiceException("配置ID不能为空");
         }
@@ -110,16 +113,15 @@ public class ProjectReservationConfigServiceImpl
         if (exist == null) {
             throw new ServiceException("配置不存在或已被删除");
         }
-        validateConfig(config);
-        config.setUpdateTime(DateUtils.getNowDate());
+        exist.setReservationEnabled(config.getReservationEnabled());
+        exist.setUpdateBy(SecurityUtils.getUsername());
+        exist.setUpdateTime(DateUtils.getNowDate());
+
         boolean ok;
         try {
-            ok = updateById(config);
+            ok = updateById(exist);
         } catch (DuplicateKeyException e) {
             throw new ServiceException("该项目已存在相同的时段配置");
-        }
-        if (ok) {
-            //syncStock(config);
         }
         return ok;
     }
@@ -230,11 +232,6 @@ public class ProjectReservationConfigServiceImpl
 
     /**
      * 配置校验：时间格式合法、结束时间须晚于开始时间、同一项目同一开始时间不允许重复。
-     *
-     * <p>去重口径【比数据库唯一键更严】：库上 uk_project_time 是
-     * (project_id, start_time, end_time, del_flag) 四列，
-     * 允许「同起点不同终点」两条并存；这里按 start_time 唯一先拦一道，
-     * 避免出现 09:00~10:00 关闭 + 09:00~12:00 开放这种自相矛盾的配置。</p>
      */
     private void validateConfig(ProjectReservationConfig config) {
         LocalTime start = ProjectReservationConfigChecker.parseTime(config.getStartTime());
@@ -257,23 +254,6 @@ public class ProjectReservationConfigServiceImpl
         }
         if (count(wrapper) > 0) {
             throw new ServiceException("该项目已存在相同开始时间的时段配置");
-        }
-    }
-
-    /**
-     * 配置变更后同步该项目的库存开关（关闭时段不再可约）。
-     *
-     * <p>配置不绑定日期，所以同步范围是该项目【今天及以后】的全部库存行，
-     * 历史日期的库存不动。失败不影响配置本身的保存结果，仅记日志。</p>
-     */
-    private void syncStock(ProjectReservationConfig config) {
-        if (config == null || config.getProjectId() == null) {
-            return;
-        }
-        try {
-            reservationRulesService.applyConfigToStock(config.getProjectId());
-        } catch (Exception e) {
-            log.error("预约时段配置变更后同步库存失败, projectId:{}", config.getProjectId(), e);
         }
     }
 }
