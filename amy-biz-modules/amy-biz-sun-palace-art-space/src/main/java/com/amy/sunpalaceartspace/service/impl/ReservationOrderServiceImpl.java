@@ -51,7 +51,10 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         // 「按日期筛选」：Mapper 用 [当天 00:00:00, 次日 00:00:00) 半开区间，这里保证起点落在当天零点
         order.setReservationTime(DateRangeParamUtils.startOfDay(order.getReservationTime()));
         IPage<ReservationOrderVO> result = baseMapper.selectReservationOrderList(page, order);
-        result.getRecords().forEach(ReservationOrderVO::fillReservationStatusName);
+        result.getRecords().forEach(vo -> {
+            vo.fillReservationStatusName();
+            vo.fillCompUsersText();
+        });
         return result;
     }
 
@@ -62,7 +65,10 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         // 与分页列表保持同一口径：导出同样按「当天」而不是「24 小时内」过滤
         order.setReservationTime(DateRangeParamUtils.startOfDay(order.getReservationTime()));
         List<ReservationOrderVO> list = baseMapper.selectReservationOrderExportList(order);
-        list.forEach(ReservationOrderVO::fillReservationStatusName);
+        list.forEach(vo -> {
+            vo.fillReservationStatusName();
+            vo.fillCompUsersText();
+        });
         return list;
     }
 
@@ -72,6 +78,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         ReservationOrderVO vo = baseMapper.selectReservationOrderById(reservationOrderId);
         if (vo != null) {
             vo.fillReservationStatusName();
+            vo.fillCompUsersText();
         }
         return vo;
     }

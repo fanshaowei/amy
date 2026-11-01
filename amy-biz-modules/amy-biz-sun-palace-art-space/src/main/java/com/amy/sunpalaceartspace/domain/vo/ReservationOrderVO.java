@@ -40,7 +40,7 @@ public class ReservationOrderVO {
     private Long reservationUserId;
 
     /** 会员真实姓名（来自 biz_spas_reservation_user.name） */
-    @Excel(name = "会员姓名")
+    //@Excel(name = "会员姓名")
     private String reservationUserName;
 
     /** 预约人姓名 */
@@ -100,9 +100,18 @@ public class ReservationOrderVO {
      * {@code ReservationOrderMapper.xml} 的 resultMap 通过
      * {@link com.amy.sunpalaceartspace.config.StringListJsonTypeHandler} 反序列化为
      * {@code List<String>}（每个元素为一条随行人信息的 JSON 对象字符串）。</p>
+     * <p><b>注意：</b>该字段为 {@code List<String>}，元素不是带 {@code @Excel} 字段的 POJO，
+     * 不能走 ExcelUtil 的 sub-list 机制（否则会被误判为子列表、导致导出出现两行表头且本列无法落值）。
+     * 若需导出随行人信息，请改用 {@link #compUsersText} 这种已扁平化的字符串字段。</p>
      */
-    @Excel(name = "随行人信息")
     private List<String> compUsers;
+
+    /**
+     * 随行人信息导出文本（扁平化）。由装配 VO 时把 {@link #compUsers} 用分隔符拼接而成。
+     * 仅用于 Excel 导出，不参与列表 JSON 返回。
+     */
+    @Excel(name = "随行人信息", width = 40)
+    private String compUsersText;
 
     /**
      * 通过状态码把 {@link #reservationStatus} 解析成枚举并写入 {@link #reservationStatusName}。
@@ -111,5 +120,18 @@ public class ReservationOrderVO {
     public void fillReservationStatusName() {
         ReservationOrderStatus s = ReservationOrderStatus.fromCode(this.reservationStatus);
         this.reservationStatusName = s == null ? null : s.getName();
+    }
+
+    /**
+     * 把 {@link #compUsers}（JSON 字符串列表）扁平化为 {@link #compUsersText}，供导出使用。
+     * <p>每个元素为一条随行人信息的 JSON 对象字符串，这里直接用分隔符拼接，避免触发 ExcelUtil 的
+     * sub-list 机制（见 {@link #compUsers} 上的说明）。若需更友好的展示，可在 service 层自行解析后写入。</p>
+     */
+    public void fillCompUsersText() {
+        if (this.compUsers == null || this.compUsers.isEmpty()) {
+            this.compUsersText = "";
+        } else {
+            this.compUsersText = String.join("；", this.compUsers);
+        }
     }
 }
