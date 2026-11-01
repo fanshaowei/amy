@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import java.util.List;
 
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
+import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
@@ -16,7 +17,7 @@ import com.baomidou.mybatisplus.spring.service.IService;
 public interface IReservationStockService extends IService<ReservationStock> {
 
     /**
-     * 新增预约库存（默认状态=有效 true）
+     * 新增预约库存（默认状态=正常可预约 1）
      *
      * @param stock 预约库存
      * @return 是否成功
@@ -29,11 +30,11 @@ public interface IReservationStockService extends IService<ReservationStock> {
      * @param page           分页参数
      * @param projectId      项目ID（可空）
      * @param reservationTime 预约时段，格式 yyyyMMddHHmm（可空）
-     * @param status         库存状态（可空）
+     * @param status         库存状态枚举（可空，为空表示不限制）
      * @return 分页结果
      */
     IPage<ReservationStock> selectReservationStockPage(Page<ReservationStock> page,
-            Long projectId, String reservationTime, Boolean status);
+            Long projectId, String reservationTime, ReservationStockStatus status);
 
     /**
      * 查询指定项目、指定时段的库存（一个项目+时段唯一对应一条库存记录；返回 null 表示不存在）
@@ -106,10 +107,10 @@ public interface IReservationStockService extends IService<ReservationStock> {
      * 更新库存状态
      *
      * @param reservationStockId 库存ID
-     * @param status             目标状态
+     * @param status             目标状态枚举
      * @return 是否成功
      */
-    boolean updateStatus(Long reservationStockId, Boolean status);
+    boolean updateStatus(Long reservationStockId, ReservationStockStatus status);
 
     /**
      * 批量删除预约库存（软删除）
@@ -119,5 +120,19 @@ public interface IReservationStockService extends IService<ReservationStock> {
      */
     boolean removeReservationStockByIds(Long[] reservationStockIds);
 
-    List<ReservationStock> selectAllByStatus(Boolean status);
+    /**
+     * 查询指定状态的全部库存（用于只把「正常可预约」的时段重建到 Redis 缓存）
+     *
+     * @param status 状态枚举（非空）
+     * @return 库存列表
+     */
+    List<ReservationStock> selectAllByStatus(ReservationStockStatus status);
+
+    /**
+     * 查询「除指定状态以外」的全部库存（用于清除过期/手动关闭时段可能残留的 Redis 缓存 key）
+     *
+     * @param excludeStatus 需要排除的状态枚举（非空）
+     * @return 库存列表
+     */
+    List<ReservationStock> selectAllExcludeStatus(ReservationStockStatus excludeStatus);
 }

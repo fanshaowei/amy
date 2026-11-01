@@ -4,6 +4,7 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
+import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
@@ -90,18 +91,29 @@ public class ReservationRulesService {
         List<String> times = reservationUtil.extractReservationTimes(
                 project.getReservationStartTime(), project.getReservationEndTime(), project.getReservationIntervalSecond());
         for (String time : times) {
-            // 被配置为「不可预约」的时段：不建库存行、不放号
-            LocalTime slot = ProjectReservationConfigChecker.parseTime(time);
-            if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
-                log.info("放号跳过：projectId:{} date:{} time:{} 被配置为不可预约", project.getProjectId(), targetDateStr, time);
-                continue;
-            }
             String reservationTimeStr = time.split(":")[0] + time.split(":")[1];
             String fullReservationDateTime = targetDateStr + reservationTimeStr;
             String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, project.getProjectId(), fullReservationDateTime);
 
             // 1. 确保库存行存在（total = 项目配置的每时段名额）
             ReservationStock stock = reservationStockService.selectByProjectAndTime(project.getProjectId(), fullReservationDateTime);
+            if(stock != null) {
+                if(1 == batch && stock.getBatch1Released()) continue;
+                if(2 == batch && stock.getBatch2Released()) continue;
+                if(null != stock.getStatus() && ReservationStockStatus.MANUAL_CLOSED.getCode().equals(stock.getStatus())) {
+                    continue;
+                }
+            }
+
+            log.info("开始处理放号流程,projectId:{}, datetime: {}", project.getProjectId(), fullReservationDateTime);
+            // 被 projectReservationConfig 配置为「不可预约」的时段：库存表保留一条 status=2 的记录
+            // （便于追溯/对账），但不放号、不写入 Redis 库存缓存。
+            LocalTime slot = ProjectReservationConfigChecker.parseTime(time);
+            if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
+                markSlotClosed(project.getProjectId(), fullReservationDateTime, project.getReservationCount(), stockKey);
+                continue;
+            }
+
             if (stock == null) {
                 stock = new ReservationStock();
                 stock.setProjectId(project.getProjectId());
@@ -111,7 +123,7 @@ public class ReservationRulesService {
                 stock.setReservedCount(0);
                 stock.setBatch1Released(false);
                 stock.setBatch2Released(false);
-                stock.setStatus(true);
+                stock.setStatus(ReservationStockStatus.AVAILABLE.getCode());
                 stock.setCreateTime(new Date());
                 stock.setCreateBy("system");
                 reservationStockService.saveReservationStock(stock);
@@ -122,17 +134,11 @@ public class ReservationRulesService {
             int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
             int delta;
             if (batch == 1) {
-                if (Boolean.TRUE.equals(stock.getBatch1Released())) {
-                    continue;
-                }
                 delta = Math.min(RESERVATION_RELEASE_BATCH_STEP, total - released);
                 stock.setBatch1Released(true);
                 stock.setUpdateTime(new Date());
                 stock.setUpdateBy("system");
             } else if (batch == 2) {
-                if (Boolean.TRUE.equals(stock.getBatch2Released())) {
-                    continue;
-                }
                 delta = total - released; // 补足至满
                 stock.setBatch2Released(true);
                 stock.setUpdateTime(new Date());
@@ -156,30 +162,73 @@ public class ReservationRulesService {
     }
 
     /**
+     * 时段被 projectReservationConfig 配置为「不可预约」时：确保库存表存在一条 status=2 的记录，
+     * 且该时段不进入 Redis 库存缓存。
+     *
+     * <p>与「直接跳过不建行」相比，保留状态行可以回答「这一天这个时段为什么约不了」，也便于对账；
+     * 而是否可约最终由 Redis 缓存决定——这里显式 {@code delete} 掉该 key，覆盖「该时段曾经开放过、
+     * 缓存里还残留余量」的流转场景，避免配置改了却仍能抢到号。</p>
+     *
+     * <p>幂等：已有 status=2 的行不会重复更新；已有非 2 的行才翻转为 2。放号由分布式锁保护，
+     * 不会与其它批次并发。</p>
+     */
+    private void markSlotClosed(Long projectId, String fullReservationDateTime,
+            Integer reservationCount, String stockKey) {
+        ReservationStock stock = reservationStockService.selectByProjectAndTime(projectId, fullReservationDateTime);
+        if (stock == null) {
+            stock = new ReservationStock();
+            stock.setProjectId(projectId);
+            stock.setReservationTime(fullReservationDateTime);
+            stock.setReservationCount(reservationCount);
+            stock.setReleaseCount(0);
+            stock.setReservedCount(0);
+            stock.setBatch1Released(false);
+            stock.setBatch2Released(false);
+            stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
+            stock.setCreateTime(new Date());
+            stock.setCreateBy("system");
+            reservationStockService.saveReservationStock(stock);
+        } else if (!ReservationStockStatus.MANUAL_CLOSED.getCode().equals(stock.getStatus())) {
+            stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
+            stock.setUpdateTime(new Date());
+            stock.setUpdateBy("system");
+            reservationStockService.updateById(stock);
+        }
+        // status=2（以及 0）不加入库存缓存；清除可能残留的旧 key，使抢号端读到「key 不存在」
+        stringRedisTemplate.delete(stockKey);
+        log.info("放号跳过（不可预约，库存标记 status=2 且不入缓存）: projectId:{} reservationTime:{}",
+                projectId, fullReservationDateTime);
+    }
+
+    /**
      * 从 MySQL 重建 Redis 可用库存（可用 = 已放号 - 已预约），用于启动恢复与每日对账，修复崩溃/漂移。
+     *
+     * <p>只把「正常可预约(1)」的库存写入缓存；已过可预约时间(0)、手动设置不可预约(2) 的时段
+     * 一律不入缓存，并清除可能残留的旧 key，使 {@code reserve.lua} 对它们返回 -1（尚未放号/不可预约）。
+     * 这样缓存集合与状态机严格对齐，重启后也不会把已关闭时段的号放出去。</p>
      */
     public void reconcileStockToRedis() {
-        List<ReservationStock> all = reservationStockService.selectAllByStatus(true);
-        for (ReservationStock stock : all) {
+        List<ReservationStock> availableStocks = reservationStockService.selectAllByStatus(ReservationStockStatus.AVAILABLE);
+        for (ReservationStock stock : availableStocks) {
             int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
             int reserved = stock.getReservedCount() == null ? 0 : stock.getReservedCount();
             int available = released - reserved;
             String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, stock.getProjectId(), stock.getReservationTime());
             stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(available));
+            log.info("项目启动初始化库存到redis: projectId:{} reservationTime:{} available:{}",
+                    stock.getProjectId(), stock.getReservationTime(), available);
         }
-        log.info("reconcileStockToRedis done, size:{}", all.size());
+        // 非「正常可预约」的时段清掉残留缓存，避免抢号端读到过期余量
+        List<ReservationStock> excludedStocks = reservationStockService.selectAllExcludeStatus(ReservationStockStatus.AVAILABLE);
+        for (ReservationStock stock : excludedStocks) {
+            String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, stock.getProjectId(), stock.getReservationTime());
+            stringRedisTemplate.delete(stockKey);
+        }
+        log.info("reconcileStockToRedis done, available:{} excluded:{}", availableStocks.size(), excludedStocks.size());
     }
 
     /**
      * 预约时段配置变更后，把该项目的库存开关对齐到最新配置（由 Service 层在增删改后调用）。
-     *
-     * <p>配置【不区分日期】，所以同步范围是该项目【今天及以后】的全部库存行；
-     * 历史日期的库存不动（已过期的号本来也约不了）。</p>
-     *
-     * <p>被关闭的时段：MySQL status=false + Redis 可用量置 0，Lua 抢号会返回「名额已满」；
-     * 已生成的订单不受影响，仍可正常核销。<br>
-     * 重新开放的时段：MySQL status=true + Redis 恢复为（已放号 - 已预约）。</p>
-     *
      * @param projectId 项目ID
      */
     public void applyConfigToStock(Long projectId) {
@@ -196,8 +245,8 @@ public class ReservationRulesService {
             LocalTime slot = parseSlotFromStockTime(stock.getReservationTime());
             boolean open = ProjectReservationConfigChecker.isOpen(configs, slot);
             if (open) {
-                if (Boolean.FALSE.equals(stock.getStatus())) {
-                    stock.setStatus(true);
+                if (!ReservationStockStatus.AVAILABLE.getCode().equals(stock.getStatus())) {
+                    stock.setStatus(ReservationStockStatus.AVAILABLE.getCode());
                     stock.setUpdateTime(new Date());
                     stock.setUpdateBy("system");
                     reservationStockService.updateById(stock);
@@ -205,14 +254,14 @@ public class ReservationRulesService {
                 int available = Math.max(0, nvl(stock.getReleaseCount()) - nvl(stock.getReservedCount()));
                 stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(available));
             } else {
-                if (Boolean.TRUE.equals(stock.getStatus())) {
-                    stock.setStatus(false);
+                if (!ReservationStockStatus.MANUAL_CLOSED.getCode().equals(stock.getStatus())) {
+                    stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
                     stock.setUpdateTime(new Date());
                     stock.setUpdateBy("system");
                     reservationStockService.updateById(stock);
                 }
-                // 可用量归零，后续抢号按「名额已满」处理
-                stringRedisTemplate.opsForValue().set(stockKey, "0");
+                // 手动关闭时段不入缓存：删除 key，后续抢号按「尚未放号/不可预约」处理
+                stringRedisTemplate.delete(stockKey);
                 log.info("时段已关闭，库存同步为不可用: projectId:{} reservationTime:{}",
                         projectId, stock.getReservationTime());
             }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
+import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationStockMapper;
 import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -28,19 +29,20 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveReservationStock(ReservationStock stock) {
+        // 未显式指定状态时默认「正常可预约」；调用方（如放号逻辑）会显式设置 MANUAL_CLOSED 等值
         if (stock.getStatus() == null) {
-            stock.setStatus(Boolean.TRUE);
+            stock.setStatus(ReservationStockStatus.AVAILABLE.getCode());
         }
         return save(stock);
     }
 
     @Override
     public IPage<ReservationStock> selectReservationStockPage(Page<ReservationStock> page,
-            Long projectId, String reservationTime, Boolean status) {
+            Long projectId, String reservationTime, ReservationStockStatus status) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(projectId != null, ReservationStock::getProjectId, projectId)
                 .eq(reservationTime != null, ReservationStock::getReservationTime, reservationTime)
-                .eq(status != null, ReservationStock::getStatus, status)
+                .eq(status != null, ReservationStock::getStatus, status != null ? status.getCode() : null)
                 .orderByAsc(ReservationStock::getProjectId)
                 .orderByAsc(ReservationStock::getReservationTime);
         return page(page, wrapper);
@@ -116,9 +118,9 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateStatus(Long reservationStockId, Boolean status) {
+    public boolean updateStatus(Long reservationStockId, ReservationStockStatus status) {
         ReservationStock update = new ReservationStock();
-        update.setStatus(status);
+        update.setStatus(status.getCode());
         update.setUpdateTime(DateUtils.getNowDate());
         LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ReservationStock::getReservationStockId, reservationStockId);
@@ -132,9 +134,16 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public List<ReservationStock> selectAllByStatus(Boolean status) {
+    public List<ReservationStock> selectAllByStatus(ReservationStockStatus status) {
         LambdaQueryWrapper<ReservationStock> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ReservationStock::getStatus, status);
+        queryWrapper.eq(ReservationStock::getStatus, status.getCode());
+        return list(queryWrapper);
+    }
+
+    @Override
+    public List<ReservationStock> selectAllExcludeStatus(ReservationStockStatus excludeStatus) {
+        LambdaQueryWrapper<ReservationStock> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.ne(ReservationStock::getStatus, excludeStatus.getCode());
         return list(queryWrapper);
     }
 }

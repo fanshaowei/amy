@@ -11,7 +11,7 @@ CREATE TABLE `biz_spas_reservation_stock`
     `reserved_count`       INT          NOT NULL DEFAULT 0      COMMENT '已预约数量',
     `batch1_released`      TINYINT(1)   NOT NULL DEFAULT 0      COMMENT '批次1是否已放号(12:00第一批,每时段+10)',
     `batch2_released`      TINYINT(1)   NOT NULL DEFAULT 0      COMMENT '批次2是否已放号(00:00第二批,补足至满)',
-    `status`               TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '库存状态(1=有效可预约 0=失效)',
+    `status`               TINYINT      NOT NULL DEFAULT 1      COMMENT '库存状态(0=已过可预约时间 1=正常可预约 2=手动设置不可预约)',
     `del_flag`             CHAR(1)      NOT NULL DEFAULT '0'    COMMENT '删除标志（0代表存在 1代表删除）',
     `create_by`            VARCHAR(64)  DEFAULT ''              COMMENT '创建者',
     `create_time`          DATETIME                               COMMENT '创建时间',
