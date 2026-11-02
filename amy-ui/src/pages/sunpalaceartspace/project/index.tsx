@@ -182,11 +182,6 @@ export default function ProjectPage() {
         refreshAll();
     };
 
-    const copyPageAddress = (row: ProjectRecord) => {
-        const address = `${window.location.origin}/#/sunpalaceartspace/project-preview?projectId=${row.projectId}`;
-        navigator.clipboard.writeText(address).then(() => message.success('页面地址已复制'));
-    };
-
     const columns: ProColumns<ProjectRecord>[] = [{
         title: '标题',
         dataIndex: 'projectName',
@@ -279,7 +274,6 @@ export default function ProjectPage() {
                                     selected={selectedKeys.has(row.projectId!)}
                                     onSelectChange={checked => toggle(row, checked)}
                                     onEdit={() => void openForm(row)}
-                                    onCopy={() => copyPageAddress(row)}
                                     onDelete={() => modal.confirm({
                                         title: `确认删除项目「${row.projectName}」？`,
                                         content: '删除后该项目将不再展示，且不可恢复。',

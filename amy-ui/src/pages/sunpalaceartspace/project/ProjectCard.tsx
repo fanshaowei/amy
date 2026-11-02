@@ -1,6 +1,5 @@
 import {
     ClockCircleOutlined,
-    CopyOutlined,
     DeleteOutlined,
     EditOutlined,
     FieldTimeOutlined,
@@ -36,12 +35,11 @@ export interface ProjectCardProps {
     selected: boolean;
     onSelectChange: (checked: boolean) => void;
     onEdit: () => void;
-    onCopy: () => void;
     onDelete: () => void;
 }
 
 /** 项目管理卡片：封面 + 标题 + 规则摘要 + 操作区 */
-export function ProjectCard({project, selected, onSelectChange, onEdit, onCopy, onDelete}: ProjectCardProps) {
+export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete}: ProjectCardProps) {
     const visible = project.status === '0';
 
     return (
@@ -108,10 +106,6 @@ export function ProjectCard({project, selected, onSelectChange, onEdit, onCopy, 
                         <Tooltip title="编辑项目">
                             <PermissionButton type="text" size="small" icon={<EditOutlined/>} aria-label="编辑项目"
                                               permission="sunpalaceartspace:project:edit" onClick={onEdit}/>
-                        </Tooltip>
-                        <Tooltip title="复制页面地址">
-                            <PermissionButton type="text" size="small" icon={<CopyOutlined/>} aria-label="复制页面地址"
-                                              permission="sunpalaceartspace:project:edit" onClick={onCopy}/>
                         </Tooltip>
                         <Tooltip title="删除项目">
                             <PermissionButton type="text" size="small" danger icon={<DeleteOutlined/>}
