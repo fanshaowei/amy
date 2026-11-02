@@ -25,12 +25,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"                   column="remark"                    />
         <result property="delFlag"                  column="del_flag"                  />
         <result property="status"                   column="status"                   />
+        <result property="maxMonthlyReservationCount" column="max_monthly_reservation_count" />
+        <result property="maxMonthlyCancellationCount" column="max_monthly_cancellation_count" />
+        <result property="reservationFrequencyDays" column="reservation_frequency_days" />
     </resultMap>
 
     <sql id="selectProjectsVo">
         select project_id, project_name, cover_art_url, cut_off_time, reservation_stay_second,
                reservation_start_time, reservation_end_time, reservation_interval_second,
                reservation_count, advance_reservation_days, traveler_count, reservation_notes, sort,
+               max_monthly_reservation_count, max_monthly_cancellation_count, reservation_frequency_days,
                create_by, create_time, update_by, update_time, remark, del_flag, status
         from biz_spas_projects
     </sql>

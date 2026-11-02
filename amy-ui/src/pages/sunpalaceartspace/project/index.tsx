@@ -6,7 +6,8 @@ import {
     EyeOutlined,
     FileTextOutlined,
     InfoCircleOutlined,
-    PlusOutlined
+    PlusOutlined,
+    TeamOutlined
 } from '@ant-design/icons';
 import {
     ModalForm,
@@ -309,7 +310,12 @@ export default function ProjectPage() {
             initialValues={toFormValues(editing)}
             layout="vertical"
             labelAlign="left"
-            modalProps={{destroyOnHidden: true, width: 900, onCancel: () => setOpen(false)}}
+            modalProps={{
+                destroyOnHidden: true,
+                width: 900,
+                onCancel: () => setOpen(false),
+                styles: {body: {maxHeight: '68vh', overflowY: 'auto', paddingTop: 16}}
+            }}
             onFinish={async (values) => {
                 const data: ProjectRecord = {
                     ...editing,
@@ -438,6 +444,47 @@ export default function ProjectPage() {
                         return <TipBox icon={<InfoCircleOutlined/>} text={parts.length
                             ? `规则预览：${parts.join('；')}`
                             : '规则预览：填写上方规则后，这里会实时显示预约规则摘要'}/>;
+                    }}
+                </ProFormDependency>
+            </ProCard>
+
+            <ProCard
+                bordered
+                size="small"
+                headerBordered
+                style={{marginBottom: 16}}
+                title={sectionTitle(<TeamOutlined/>, '用户预约规则', '#722ed1', '#f9f0ff')}
+                extra={sectionHint('限制每位用户的预约频率与次数')}
+            >
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <ProFormDigit name="maxMonthlyReservationCount" label="每月最多预约" placeholder="不填则不限制"
+                                      min={0} precision={0} fieldProps={{suffix: '次', style: {width: '100%'}}}
+                                      tooltip="每位用户每月最多可预约的次数，不填表示不限制"/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormDigit name="maxMonthlyCancellationCount" label="取消次数限制" placeholder="不填则不限制"
+                                      min={0} precision={0} fieldProps={{suffix: '次', style: {width: '100%'}}}
+                                      tooltip="每月取消达到该次数后，当月不可再预约，不填表示不限制"/>
+                    </Col>
+                    <Col span={8}>
+                        <ProFormDigit name="reservationFrequencyDays" label="预约频率限制" placeholder="不填则不限制"
+                                      min={0} precision={0} fieldProps={{suffix: '天', style: {width: '100%'}}}
+                                      tooltip="同一个用户在多少天内只能预约 1 次，不填表示不限制"/>
+                    </Col>
+                </Row>
+                <ProFormDependency name={[
+                    'maxMonthlyReservationCount',
+                    'maxMonthlyCancellationCount',
+                    'reservationFrequencyDays'
+                ]}>
+                    {(values) => {
+                        const parts: string[] = [];
+                        if (values.maxMonthlyReservationCount != null) parts.push(`每人每月最多预约 ${values.maxMonthlyReservationCount} 次`);
+                        if (values.maxMonthlyCancellationCount != null) parts.push(`每月取消 ${values.maxMonthlyCancellationCount} 次后不可再预约`);
+                        if (values.reservationFrequencyDays != null) parts.push(`每 ${values.reservationFrequencyDays} 天仅可预约 1 次`);
+                        return <TipBox icon={<InfoCircleOutlined/>} bg="#f9f0ff" border="#efdef7" color="#722ed1"
+                                     text={parts.length ? `规则预览：${parts.join('；')}` : '规则预览：填写上方规则后，这里会实时显示用户预约限制摘要'}/>;
                     }}
                 </ProFormDependency>
             </ProCard>

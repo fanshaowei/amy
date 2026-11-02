@@ -23,6 +23,12 @@ export interface ProjectRecord {
     advanceReservationDays?: number;
     /** 随行人数 */
     travelerCount?: number;
+    /** 每人每个月最多预约数量 */
+    maxMonthlyReservationCount?: number;
+    /** 每月取消几次不能预约 */
+    maxMonthlyCancellationCount?: number;
+    /** 多少天内只能预约1次 */
+    reservationFrequencyDays?: number;
     /** 预约须知（富文本 HTML） */
     reservationNotes?: string;
     sort?: number;

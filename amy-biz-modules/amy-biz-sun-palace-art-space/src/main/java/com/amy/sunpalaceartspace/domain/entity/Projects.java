@@ -89,4 +89,16 @@ public class Projects extends BaseEntity {
     @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
     @TableField("status")
     private String status;
+
+    /** 每人每个月最多预约数量*/
+    @Excel(name = "每人每个月最多预约数量", cellType = ColumnType.NUMERIC)
+    private Integer maxMonthlyReservationCount;
+
+    /** 每月取消几次不能预约 */
+    @Excel(name = "每月取消几次不能预约", cellType = ColumnType.NUMERIC)
+    private Integer maxMonthlyCancellationCount;
+
+    /** 多少天内只能预约1次 */
+    @Excel(name = "多少天内只能预约1次", cellType = ColumnType.NUMERIC)
+    private Integer reservationFrequencyDays;
 }
