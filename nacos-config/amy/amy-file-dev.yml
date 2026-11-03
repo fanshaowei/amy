@@ -1,0 +1,26 @@
+# 本地文件上传    
+file:
+    domain: http://127.0.0.1:9300
+    path: /Users/fantasyfan/opt/amy/uploadPath
+    prefix: /statics
+
+# FastDFS配置
+fdfs:
+  domain: http://127.0.0.1
+  soTimeout: 3000
+  connectTimeout: 2000
+  trackerList: 127.0.0.1:22122
+
+# Minio配置
+minio:
+  url: http://127.0.0.1:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: test
+
+  # 防盗链配置
+referer:
+  # 防盗链开关
+  enabled: false
+  # 允许的域名列表
+  allowed-domains: localhost,127.0.0.1,amy.vip,www.amy.vip
