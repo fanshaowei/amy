@@ -33,6 +33,11 @@ export interface RequestOptions {
   header?: Record<string, string>
   /** 是否需要登录态，默认 true；登录接口传 false */
   auth?: boolean
+  /**
+   * 鉴权失败时是否自动跳转登录页，默认 true。
+   * 首页等「游客可见」的展示型接口传 false，避免未登录用户被强制踢到登录页。
+   */
+  skipAuthRedirect?: boolean
 }
 
 export function getToken(): string {
@@ -65,6 +70,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
   return new Promise((resolve, reject) => {
     const token = getToken()
     const needAuth = options.auth !== false
+    const skipAuthRedirect = options.skipAuthRedirect === true
     uni.request({
       url: BASE_URL + options.url,
       method: options.method || 'GET',
@@ -76,7 +82,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
       },
       success: (res) => {
         if (res.statusCode === 401 || res.statusCode === 403) {
-          handleUnauthorized('登录已过期，请重新登录')
+          if (!skipAuthRedirect) handleUnauthorized('登录已过期，请重新登录')
           reject(new Error('登录已过期，请重新登录'))
           return
         }
@@ -90,7 +96,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
           return
         }
         const msg = body.msg || '请求失败'
-        if (body.code === 401 || (needAuth && LOGIN_EXPIRED_RE.test(msg))) {
+        if (!skipAuthRedirect && (body.code === 401 || (needAuth && LOGIN_EXPIRED_RE.test(msg)))) {
           handleUnauthorized('登录已过期，请重新登录')
         }
         reject(new Error(msg))

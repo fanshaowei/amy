@@ -94,6 +94,18 @@ export function maskTel(tel: string): string {
   return tel.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
 }
 
+/**
+ * 姓名脱敏：保留首字，两字姓名显示为「张*」，
+ * 多字姓名保留首尾（如「欧阳*娜」）
+ */
+export function maskName(name: string): string {
+  const chars = Array.from((name || '').trim())
+  if (!chars.length) return '匿名用户'
+  if (chars.length === 1) return chars[0]
+  if (chars.length === 2) return `${chars[0]}*`
+  return `${chars[0]}${'*'.repeat(chars.length - 2)}${chars[chars.length - 1]}`
+}
+
 /** 身份证号脱敏 */
 export function maskIdCard(id: string): string {
   if (!id) return ''

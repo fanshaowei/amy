@@ -1,7 +1,7 @@
 /**
  * 用户状态管理
  *
- * 登录流程：uni.login 取 code -> POST /mina/api/auth/login 换 token -> GET /mina/app/user/info 取会员信息
+ * 登录流程：uni.login 取 code -> POST /mina/app/auth/login 换 token -> GET /mina/app/user/info 取会员信息
  */
 
 import { defineStore } from 'pinia'

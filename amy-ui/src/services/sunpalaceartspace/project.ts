@@ -49,6 +49,7 @@ export const getProject = (projectId: number) => request<RuoYiResponse<ProjectRe
 export const addProject = (data: ProjectRecord) => request('/spas/project', {method: 'POST', data});
 export const updateProject = (data: ProjectRecord) => request('/spas/project', {method: 'PUT', data});
 export const deleteProjects = (projectIds: React.Key[]) => request(`/spas/project/${projectIds.join(',')}`, {method: 'DELETE'});
+export const refreshProject = (projectIds: React.Key[]) => request('/spas/inner/reservationStock/releaseBatch1', {method: 'POST'});
 
 /** 上传图片，走网关文件服务 /file/upload */
 export const uploadImage = (file: File) => {
