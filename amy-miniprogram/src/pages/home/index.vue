@@ -1,15 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import type { Activity } from '@/types'
+import type { Activity, NextDayReservation } from '@/types'
 import { getActivities } from '@/api/activity'
+import { getNextDayReservations } from '@/api/reserve'
 import { useUserStore } from '@/stores/user'
+import { maskName } from '@/utils'
 import ActivityCard from '@/components/ActivityCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
 const loading = ref(true)
+
+/* 首页「预约动态」：明日已预约名单（公开信息，姓名脱敏） */
+const nextDayReservations = ref<NextDayReservation[]>([])
+
+const noticeItems = computed(() =>
+  nextDayReservations.value.map((item) => {
+    const time = (item.reservationTime || '').slice(11, 16)
+    const who = maskName(item.name) + '(' + item.phone + ')'
+    return time ? `${who} 预约了明日 ${time} 场次` : `${who} 预约了明日场次`
+  })
+)
+
+/** 拉取明日预约动态：需登录，未登录/失效时静默失败，不影响首页展示 */
+async function loadNotice() {
+  if (!userStore.loggedIn) {
+    nextDayReservations.value = []
+    return
+  }
+  try {
+    const list = await getNextDayReservations()
+    nextDayReservations.value = list
+      .filter((item) => !!item.name)
+      .sort((a, b) => (a.reservationTime || '').localeCompare(b.reservationTime || ''))
+      .slice(0, 50)
+  } catch (e) {
+    nextDayReservations.value = []
+  }
+}
 
 async function load() {
   loading.value = true
@@ -21,6 +51,7 @@ async function load() {
     loading.value = false
     uni.stopPullDownRefresh()
   }
+  loadNotice()
 }
 
 function onBook(id: number) {
@@ -60,6 +91,33 @@ onPullDownRefresh(() => {
       />
     </view>
     <EmptyState v-else text="暂无活动" />
+
+    <!-- 预约动态：明日已预约名单滚动展示（公开信息，姓名脱敏） -->
+    <view v-if="noticeItems.length" class="notice">
+      <view class="notice__badge">
+        <text class="notice__dot"></text>
+        <text>明日已约 {{ noticeItems.length }} 人</text>
+      </view>
+      <swiper
+        v-if="noticeItems.length > 3"
+        class="notice__swiper"
+        vertical
+        autoplay
+        circular
+        :interval="2600"
+        :duration="480"
+        :display-multiple-items="3"
+      >
+        <swiper-item v-for="(item, i) in noticeItems" :key="i">
+          <view class="notice__item text-ellipsis">{{ item }}</view>
+        </swiper-item>
+      </swiper>
+      <view v-else class="notice__list">
+        <view v-for="(item, i) in noticeItems" :key="i" class="notice__item text-ellipsis">
+          {{ item }}
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -72,6 +130,64 @@ onPullDownRefresh(() => {
   background: linear-gradient(180deg, #3b7dff 0%, #5b95ff 100%);
   padding: 16rpx 24rpx 24rpx;
   margin-bottom: 24rpx;
+}
+
+/* 预约动态滚动条（列表下方，浅色卡片样式，三行展示） */
+.notice {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  margin: 24rpx 24rpx 0;
+  background: #ffffff;
+  border: 1rpx solid #e5e8ef;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(59, 125, 255, 0.08);
+  overflow: hidden;
+}
+.notice__badge {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  height: 44rpx;
+  padding-right: 16rpx;
+  margin-right: 16rpx;
+  border-right: 1rpx solid #e5e8ef;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #3b7dff;
+}
+.notice__dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #3b7dff;
+  margin-right: 8rpx;
+  animation: notice-pulse 1.6s ease-in-out infinite;
+}
+.notice__swiper {
+  flex: 1;
+  height: 132rpx;
+}
+.notice__list {
+  flex: 1;
+}
+.notice__item {
+  height: 44rpx;
+  line-height: 44rpx;
+  font-size: 22rpx;
+  color: #4e5969;
+}
+@keyframes notice-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
 }
 .search-box {
   background: #fff;

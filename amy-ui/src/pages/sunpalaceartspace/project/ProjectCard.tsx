@@ -2,6 +2,7 @@ import {
     ClockCircleOutlined,
     DeleteOutlined,
     EditOutlined,
+    ReloadOutlined,
     FieldTimeOutlined,
     HistoryOutlined,
     PictureOutlined,
@@ -36,10 +37,11 @@ export interface ProjectCardProps {
     onSelectChange: (checked: boolean) => void;
     onEdit: () => void;
     onDelete: () => void;
+    onRefresh: () => void;
 }
 
 /** 项目管理卡片：封面 + 标题 + 规则摘要 + 操作区 */
-export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete}: ProjectCardProps) {
+export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete, onRefresh}: ProjectCardProps) {
     const visible = project.status === '0';
 
     return (
@@ -103,6 +105,10 @@ export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete
                         {project.createTime ? `发布于 ${project.createTime.slice(0, 10)}` : '暂无发布时间'}
                     </span>
                     <Space className={styles.footerActions} size={0}>
+                        {/* <Tooltip title="重新放号">
+                            <PermissionButton type="text" size="small" icon={<ReloadOutlined/>} aria-label="重新放号"
+                                              permission="sunpalaceartspace:project:edit" onClick={onRefresh}/>
+                        </Tooltip> */}
                         <Tooltip title="编辑项目">
                             <PermissionButton type="text" size="small" icon={<EditOutlined/>} aria-label="编辑项目"
                                               permission="sunpalaceartspace:project:edit" onClick={onEdit}/>

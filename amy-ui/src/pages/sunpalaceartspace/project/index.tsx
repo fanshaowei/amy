@@ -31,6 +31,7 @@ import {ProFormRichText} from '@/components/RichTextEditor';
 import {
     addProject,
     deleteProjects,
+    refreshProject,
     getProject,
     listProjects,
     updateProject
@@ -176,6 +177,13 @@ export default function ProjectPage() {
         refreshAll();
     };
 
+    const confirmRefresh = async (ids: React.Key[]) => {
+        await refreshProject(ids);
+        message.success('刷新成功');
+        setSelected([]);
+        refreshAll();
+    }
+
     const afterEdit = () => {
         message.success(editing?.projectId ? '修改成功' : '新增成功');
         setOpen(false);
@@ -274,6 +282,11 @@ export default function ProjectPage() {
                                     selected={selectedKeys.has(row.projectId!)}
                                     onSelectChange={checked => toggle(row, checked)}
                                     onEdit={() => void openForm(row)}
+                                    onRefresh={() => modal.confirm({
+                                        title: `确认重新放号项目「${row.projectName}」？`,
+                                        content: '重新放号可能会导致已预约数据有问题，不可恢复。',
+                                        onOk: async () => await confirmRefresh([row.projectId!])
+                                    })}
                                     onDelete={() => modal.confirm({
                                         title: `确认删除项目「${row.projectName}」？`,
                                         content: '删除后该项目将不再展示，且不可恢复。',

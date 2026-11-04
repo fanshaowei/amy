@@ -49,12 +49,12 @@ const emit = defineEmits<{
             v-for="s in slots"
             :key="s.time"
             class="time-cell"
-            :class="{ full: s.full, selected: selectedTime === s.time }"
+            :class="{ full: s.full, closed: s.closed, selected: selectedTime === s.time }"
             @tap="!s.full && emit('pick-time', s.time)"
           >
             <view class="time-cell__t">{{ hmsToHm(s.time) }}</view>
             <view class="time-cell__sub">(参观{{ dwellTime || 30 }}分钟)</view>
-            <view class="time-cell__state">{{ s.full ? '约满' : `余${s.remain}号` }}</view>
+            <view class="time-cell__state">{{ s.closed ? '不可预约' : s.full ? '约满' : `余${s.remain}号` }}</view>
             <view v-if="selectedTime === s.time" class="time-cell__check">✓</view>
           </view>
         </view>
@@ -167,6 +167,18 @@ const emit = defineEmits<{
   color: #c9cdd4;
 }
 .time-cell.full .time-cell__state {
+  color: #c9cdd4;
+}
+/* 不可预约：与「约满」同样是置灰不可点，用虚线边框区分成因 */
+.time-cell.closed {
+  background: #f7f8fa;
+  border: 1px dashed #c9cdd4;
+}
+.time-cell.closed .time-cell__t,
+.time-cell.closed .time-cell__sub {
+  color: #c9cdd4;
+}
+.time-cell.closed .time-cell__state {
   color: #c9cdd4;
 }
 .time-cell.selected {

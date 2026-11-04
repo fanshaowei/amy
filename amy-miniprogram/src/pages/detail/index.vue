@@ -199,7 +199,7 @@ async function onSubmit() {
       phone: bookerTel.value,
       cardType: bookerCardType.value,
       idNum: bookerIdCard.value.trim(),
-      // 随行人按后端 UserIdentity 结构序列化，随行人默认使用预约人手机号
+      // 随行人对应后端 FollowerReq（name/idNum/phone），手机号缺省复用预约人手机号
       companions: companions.value.map((c) => ({
         name: c.name.trim(),
         idType: c.cardType,

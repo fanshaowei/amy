@@ -59,14 +59,15 @@ export const RESERVE_STATUS: Record<number, { text: string; type: string }> = {
 
 /**
  * 号源状态（与后端 ReservationStatusEnum 一致）
- * 1充足 2紧张 3已满
+ * 1充足 2紧张 3已满 4不可预约
  */
-export type RemainStatus = 1 | 2 | 3
+export type RemainStatus = 1 | 2 | 3 | 4
 
 export const REMAIN_STATUS: Record<number, { text: string; type: string }> = {
   1: { text: '充足号源', type: 'plenty' },
   2: { text: '号源紧张', type: 'tight' },
   3: { text: '已约满', type: 'soldout' },
+  4: { text: '不可预约', type: 'closed' },
 }
 
 /** 会员身份（与后端 UserTypeEnum 一致：1用户 2核销员） */
@@ -114,10 +115,15 @@ export interface TimeSlot {
   time: string
   /** 剩余号数 */
   remain: number
-  /** 号源状态 1充足 2紧张 3已满 */
+  /** 号源状态 1充足 2紧张 3已满 4不可预约 */
   status: number
-  /** 是否已约满 */
+  /** 不可选择（约满或不可预约） */
   full: boolean
+  /**
+   * 后台关闭该时段（已过可预约时间 / 手动设为不可预约），与「号被约完」语义不同。
+   * 对应 ReservationStatusEnum.CLOSED(4)。
+   */
+  closed: boolean
 }
 
 /** 随行人身份信息（对应后端 UserIdentity 快照） */
@@ -183,6 +189,19 @@ export interface ReserveRecord {
   createTime: string
   /** 随行人员（后端为 JSON 字符串列表，已在 api 层解析） */
   compUsers: ReservePerson[]
+}
+
+/**
+ * 次日预约订单（对应后端 NextDayReservationOrderResp）
+ * 用于首页「预约动态」公开信息滚动展示
+ */
+export interface NextDayReservation {
+  /** 预约人姓名 */
+  name: string
+  /** 联系电话（后端已脱敏，形如 138****1234） */
+  phone: string
+  /** 预约时间 yyyy-MM-dd HH:mm:ss */
+  reservationTime: string
 }
 
 /** 会员信息（对应后端 MinaReservationUserInfoResp） */

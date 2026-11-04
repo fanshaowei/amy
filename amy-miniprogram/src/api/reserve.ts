@@ -4,10 +4,11 @@
  * 后端：MinaAppController
  *  - POST /spas/mina/app/reservation/submit                     提交预约（需登录）
  *  - GET  /spas/mina/app/user/reservation/records               我的预约记录（需登录）
+ *  - GET  /spas/mina/app/reservation/next/day/order             明日预约动态（需登录，首页滚动展示）
  *  - GET  /spas/mina/app/reservation/{orderNum}                 预约详情（按预约单号）
  */
 
-import type { ReservePerson, ReserveRecord } from '@/types'
+import type { NextDayReservation, ReservePerson, ReserveRecord } from '@/types'
 import { cardTypeToIdType } from '@/types'
 import { request, requestPage } from '@/utils/request'
 
@@ -91,14 +92,13 @@ export async function createReserve(payload: CreateReservePayload): Promise<bool
       idNum: payload.idNum,
       guestsNum: 1 + payload.companions.length,
       reservationTime: `${payload.date} ${toHms(payload.time)}`,
-      compUsers: payload.companions.map((item) =>
-        JSON.stringify({
-          name: item.name,
-          idType: item.idType,
-          idNum: item.idNum,
-          phone: item.phone || payload.phone,
-        })
-      ),
+      // 后端 SubmitReservationReq.compUsers 为 List<FollowerReq>（对象数组），
+      // 仅接收 name / idNum / phone 三个字段，且 phone 为必填，故这里直接传对象
+      compUsers: payload.companions.map((item) => ({
+        name: item.name,
+        idNum: item.idNum,
+        phone: item.phone || payload.phone,
+      })),
     },
   })
 }
@@ -114,6 +114,21 @@ export async function getRecords(): Promise<ReserveRecord[]> {
     pageSize: 100,
   })
   return (page.rows || []).map(normalizeRecord)
+}
+
+/**
+ * 次日（明天）预约订单列表，用于首页「预约动态」滚动展示
+ * GET /spas/mina/app/reservation/next/day/order
+ *
+ * 说明：该接口需登录（@MinaApiAuth），未登录时静默失败（skipAuthRedirect），
+ * 不影响首页其他内容展示；手机号后端已脱敏。
+ */
+export async function getNextDayReservations(): Promise<NextDayReservation[]> {
+  const list = await request<NextDayReservation[]>({
+    url: '/spas/mina/app/reservation/next/day/order',
+    skipAuthRedirect: true,
+  })
+  return Array.isArray(list) ? list : []
 }
 
 /**

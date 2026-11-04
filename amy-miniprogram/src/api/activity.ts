@@ -133,11 +133,15 @@ export async function getSlots(projectId: number, date: string): Promise<TimeSlo
   const detail = (info.reservationDetails || []).find((item) => item.reservationDate === date)
   return (detail?.reservationTimeDetails || []).map((item) => {
     const remain = item.remainingReservationCount || 0
+    // 4 = ReservationStatusEnum.CLOSED：后台关闭该时段（已过可预约时间 / 手动设为不可预约），
+    // 与「号被约完」(3) 语义不同，只在文案上区分，两者都不可选
+    const closed = item.reservationStatus === 4
     return {
       time: item.reservationTime,
       remain,
       status: item.reservationStatus,
-      full: item.reservationStatus === 3 || remain <= 0,
+      closed,
+      full: closed || item.reservationStatus === 3 || remain <= 0,
     }
   })
 }
