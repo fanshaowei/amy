@@ -72,7 +72,7 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      * @param req 预约订单入参对象
      * @return 是否成功
      */
-    boolean saveReservationOrder(ReservationOrderReq req);
+    ReservationOrder saveReservationOrder(ReservationOrderReq req);
 
     /**
      * 修改预约订单
@@ -122,5 +122,5 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
 
     void verifyManualGenerate(ReservationOrderManualReq req);
 
-    boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status);
+    boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status,String statusMsg);
 }

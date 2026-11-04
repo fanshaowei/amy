@@ -18,6 +18,7 @@
         <result property="guestsNum" column="guests_num"/>
         <result property="reservationTime" column="reservation_time"/>
         <result property="reservationStatus" column="reservation_status"/>
+        <result property="statusMsg" column="status_msg"/>
         <result property="verifyBy" column="verify_by"/>
         <result property="verifyTime" column="verify_time"/>
         <result property="createTime" column="create_time"/>
@@ -46,6 +47,7 @@
                r.guests_num,
                r.reservation_time,
                r.reservation_status + 0 as reservation_status,
+               r.status_msg,
                r.verify_by,
                r.verify_time,
                r.comp_users,

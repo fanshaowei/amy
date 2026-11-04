@@ -72,7 +72,7 @@ public class ReservationOrderVO {
      * 状态码（0/1/2/3，对应数据库列 {@code reservation_status}）。
      * <p>SQL/XML 把 DB 列直接灌到这里；中文名见 {@link #reservationStatusName}。</p>
      */
-    @Excel(name = "状态", readConverterExp = "0=待核销,1=已完成,2=已过期,3=已取消")
+    @Excel(name = "状态", readConverterExp = "-1=预约失败,0=待核销,1=已完成,2=已过期,3=已取消,4=预约中")
     private Integer reservationStatus;
 
     /**
@@ -80,6 +80,11 @@ public class ReservationOrderVO {
      */
     @Excel(name = "状态名称")
     private String reservationStatusName;
+
+    /**
+     * 预约状态说明（数据库 {@code status_msg} 列）。
+     */
+    private String statusMsg;
 
     /** 核销人员 */
     @Excel(name = "核销人员")

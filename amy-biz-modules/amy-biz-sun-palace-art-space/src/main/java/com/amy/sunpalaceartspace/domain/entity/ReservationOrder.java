@@ -89,9 +89,16 @@ public class ReservationOrder extends BaseEntity {
      * 预约状态码（业务值用 {@link ReservationOrderStatus}）
      * <p>0待核销 1已完成 2已过期 3已取消</p>
      */
-    @Excel(name = "状态", readConverterExp = "0=待核销,1=已完成,2=已过期,3=已取消")
+    @Excel(name = "状态", readConverterExp = "-1=预约失败,0=待核销,1=已完成,2=已过期,3=已取消,4=预约中")
     @TableField("reservation_status")
     private Integer reservationStatus;
+
+    /**
+     * 预约状态说明。
+     */
+    @Excel(name = "状态说明")
+    @TableField("status_msg")
+    private String statusMsg;
 
     /** 核销人员 */
     @Excel(name = "核销人员")

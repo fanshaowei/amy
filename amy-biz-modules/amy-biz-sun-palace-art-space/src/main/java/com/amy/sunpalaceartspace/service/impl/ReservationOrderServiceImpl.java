@@ -109,16 +109,16 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    public boolean saveReservationOrder(ReservationOrderReq req)
+    public ReservationOrder saveReservationOrder(ReservationOrderReq req)
     {
         ReservationOrder order = convertToEntity(req);
-        order.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
         if(Strings.isBlank(req.getReservationNum())) {
             order.setReservationNum(reservationUtil.generateReservationNum(order.getReservationTime()));
         }
         order.setCreateBy(SecurityUtils.getUsername());
         order.setCreateTime(DateUtils.getNowDate());
-        return save(order);
+        save(order);
+        return order;
     }
 
     @Override
@@ -222,12 +222,13 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    public boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status) {
+    public boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status, String statusMsg) {
         ReservationOrder order = getById(orderId);
         if(order == null) {
             throw new ServiceException("订单不存在");
         }
         order.setReservationStatus(status.getStatus());
+        order.setStatusMsg(statusMsg);
         return updateById(order);
     }
 }

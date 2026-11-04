@@ -281,7 +281,8 @@ public class MinaAppService {
 
         boolean verifyFlag = reservationOrderService.updateReservationOrderStatus(
                 reservationOrder.getReservationOrderId(),
-                ReservationOrderStatus.COMPLETED);
+                ReservationOrderStatus.COMPLETED,
+                ReservationOrderStatus.COMPLETED.getName());
         log.info("verifyReservationOrder: {} result: {}", orderNum, verifyFlag);
         return verifyFlag;
     }

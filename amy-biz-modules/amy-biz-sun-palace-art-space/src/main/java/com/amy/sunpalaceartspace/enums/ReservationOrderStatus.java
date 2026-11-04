@@ -18,7 +18,9 @@ public enum ReservationOrderStatus {
     WAIT_VERIFY(0, "待核销"),
     COMPLETED(1, "已完成"),
     EXPIRED(2, "已过期"),
-    CANCELED(3, "已取消");
+    CANCELED(3, "已取消"),
+    ORDERING(4, "预约中"),
+    FAILED(-1, "预约失败");
 
     /** 状态码（数据库实际存储值） */
     private final Integer status;
@@ -26,7 +28,7 @@ public enum ReservationOrderStatus {
     private final String name;
 
     /**
-     * Jackson 序列化：输出状态码（0/1/2/3），便于前端作为唯一标识
+     * Jackson 序列化：输出状态码（-1/0/1/2/3/4），便于前端作为唯一标识
      */
     @JsonValue
     public Integer getStatus() {
@@ -62,7 +64,7 @@ public enum ReservationOrderStatus {
     }
 
     /**
-     * 提供按 code 字符串（"0"/"1"/"2"/"3"）还原的服务端辅助方法
+     * 提供按 code 字符串（如 "-1"/"0"/"1"/"2"/"3"/"4"）还原的服务端辅助方法
      */
     public static ReservationOrderStatus fromCodeString(String code) {
         if (code == null || code.isEmpty()) {

@@ -7,6 +7,7 @@ import com.amy.common.mq.service.AmyMqProducer;
 import com.amy.sunpalaceartspace.domain.bo.ReservationOrderMqSendBO;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
@@ -58,7 +59,7 @@ public class SubmitReservationOrderService {
     private final IProjectReservationConfigService projectReservationConfigService;
 
     @Transactional
-    public String submitReservationOrder(String token, SubmitReservationReq req) {
+    public ReservationOrder submitReservationOrder(String token, SubmitReservationReq req) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         log.info("user:{} submit reservation order request", user.getReservationUserId());
 
@@ -69,13 +70,29 @@ public class SubmitReservationOrderService {
         String reservationNum = reservationUtil.generateReservationNum(req.getReservationTime());
         log.info("generate order number:{} for user:{}", reservationNum, user.getReservationUserId());
 
-        // 削峰，将预订逻辑交由消费者
-        sendReservationOrderMq(req, user, reservationNum);
+        ReservationOrderReq reservationOrderReq = new ReservationOrderReq();
+        BeanUtils.copyProperties(req, reservationOrderReq);
+        reservationOrderReq.setReservationUserId(user.getReservationUserId());
+        reservationOrderReq.setReservationNum(reservationNum);
+        reservationOrderReq.setReservationStatus(ReservationOrderStatus.ORDERING.getStatus());
+        ReservationOrder savedReservationOrder = reservationOrderService.saveReservationOrder(reservationOrderReq);
 
-        return reservationNum;
+        // 削峰，将预订逻辑交由消费者
+        sendReservationOrderMq(savedReservationOrder, user, reservationNum);
+
+        return savedReservationOrder;
     }
 
     private void reservationPreCheck(SubmitReservationReq req, ReservationUser user) {
+        // 检查库存
+        String reservationTimeStr = DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, req.getReservationTime());
+        String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, req.getProjectId(), reservationTimeStr);
+        String stockValue = stringRedisTemplate.opsForValue().get(stockKey);
+        if (stockValue == null || "0".equals(stockValue)) {
+            throw new ServiceException("该时段预约已满，请选择其它时间");
+        }
+
+        // 校验手机号码
         boolean contact = PhoneVerifyUtil.isContact(req.getPhone());
         if(!contact) {
             throw new ServiceException("联系电话格式不正确");
@@ -117,45 +134,6 @@ public class SubmitReservationOrderService {
         validateReservationFrequency(user.getReservationUserId(), req.getIdNum());
     }
 
-    @Transactional
-    public void sendReservationOrderMq(SubmitReservationReq req, ReservationUser user, String reservationNum) {
-        // 构建要发送mq的消息体
-        ReservationOrderMqSendBO bo = ReservationOrderMqSendBO.builder().build();
-        BeanUtils.copyProperties(req, bo);
-        bo.setReservationNum(reservationNum);
-        bo.setReservationUserId(user.getReservationUserId());
-
-        // 保存mq发送记录
-        ReservationMessage reservationMessage = new ReservationMessage();
-        try {
-            reservationMessage.setMsgContent(objectMapper.writeValueAsString(bo));
-        } catch (JsonProcessingException e) {
-            log.error("error occur when set mq message content");
-            throw new RuntimeException(e);
-        }
-        reservationMessage.setRetryCount(0);
-        reservationMessage.setStatus(ReservationMessageStatus.WAITING.getCode());
-        boolean success = reservationMessageService.saveReservationMessage(reservationMessage);
-        if (!success) {
-            log.error("userId:{} sendReservationOrderMq: {} saveReservationMessage fail.", user.getReservationUserId(), reservationMessage);
-            throw new ServiceException("预约失败，请稍后重试");
-        }
-
-        // 发送消息并更新发送状态
-        amyMqProducer.asyncSend(MQ_DESTINATE, bo,
-            (sendResult) -> {
-                log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
-                SendStatus sendStatus = sendResult.getSendStatus();
-                if(SEND_OK.equals(sendStatus)) {
-                    log.info("userId:{} sendReservationOrderMq: {} send success.", user.getReservationUserId(), reservationNum);
-                    reservationMessageService.markSent(reservationMessage.getReservationMessageId());
-                } else {
-                    log.error("userId:{} sendReservationOrderMq: {} send fail, status: {}", user.getReservationUserId(), reservationNum, sendStatus);
-                    reservationMessageService.markFail(reservationMessage.getReservationMessageId());
-                }
-            });
-    }
-
     /**
      * 预约频次校验（微信号=会员ID 维度；同时纳入证件号，防同一人换微信号绕过）：
      * 1) 3 天内已预约过（过期/取消/完成/待核销 任一状态均计数）→ 不可重复预约（3 天内仅能约 1 次）；
@@ -195,72 +173,122 @@ public class SubmitReservationOrderService {
         }
     }
 
+    @Transactional
+    public void sendReservationOrderMq(ReservationOrder savedReservationOrder, ReservationUser user, String reservationNum) {
+        // 构建要发送mq的消息体
+        ReservationOrderMqSendBO bo = ReservationOrderMqSendBO.builder().build();
+        BeanUtils.copyProperties(savedReservationOrder, bo);
+        bo.setReservationNum(reservationNum);
+        bo.setReservationUserId(user.getReservationUserId());
+
+        // 保存mq发送记录
+        ReservationMessage reservationMessage = new ReservationMessage();
+        try {
+            reservationMessage.setMsgContent(objectMapper.writeValueAsString(bo));
+        } catch (JsonProcessingException e) {
+            log.error("error occur when set mq message content");
+            throw new RuntimeException(e);
+        }
+        reservationMessage.setRetryCount(0);
+        reservationMessage.setStatus(ReservationMessageStatus.WAITING.getCode());
+        boolean success = reservationMessageService.saveReservationMessage(reservationMessage);
+        if (!success) {
+            log.error("userId:{} sendReservationOrderMq: {} saveReservationMessage fail.", user.getReservationUserId(), reservationMessage);
+            throw new ServiceException("预约失败，请稍后重试");
+        }
+
+        // 发送消息并更新发送状态
+        amyMqProducer.asyncSend(MQ_DESTINATE, bo,
+                (sendResult) -> {
+                    log.info("sendReservationOrderMq: {} sendResult: {}", bo, sendResult);
+                    SendStatus sendStatus = sendResult.getSendStatus();
+                    if(SEND_OK.equals(sendStatus)) {
+                        log.info("userId:{} sendReservationOrderMq: {} send success.", user.getReservationUserId(), reservationNum);
+                        reservationMessageService.markSent(reservationMessage.getReservationMessageId());
+                    } else {
+                        log.error("userId:{} sendReservationOrderMq: {} send fail, status: {}", user.getReservationUserId(), reservationNum, sendStatus);
+                        reservationMessageService.markFail(reservationMessage.getReservationMessageId());
+                    }
+                });
+    }
+
     /**
      * 由mq消费者执行订单预约逻辑
      *
      * @param bo
      */
     public void reservateOrder(ReservationOrderMqSendBO bo) {
+        Long reservationOrderId = bo.getReservationOrderId();
+        String reservationNum = bo.getReservationNum();
+        Long projectId = bo.getProjectId();
+        Long userId = bo.getReservationUserId();
+
         log.info("start reservateOrder ... ");
         String reservationTimeStr = DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, bo.getReservationTime());
-        String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, bo.getProjectId(), reservationTimeStr);
-        String userKey = String.format(RESERVATION_USER_DONE_KEY, bo.getReservationUserId());
-        String reservationNum = bo.getReservationNum();
+        String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, projectId, reservationTimeStr);
+        String userKey = String.format(RESERVATION_USER_DONE_KEY, userId);
 
         // 原子校验 + 扣减库存（Lua），失败会直接抛异常
-        checkStockAndReservation(bo.getProjectId(), bo.getReservationUserId(), stockKey, userKey, reservationTimeStr, reservationNum);
+        checkStockAndReservation(projectId, userId, stockKey, userKey, reservationTimeStr, reservationNum, reservationOrderId);
 
         // 落单（与 Redis 扣减解耦：若落单失败则回滚 Redis，避免永久占名额/永久锁用户）
-        boolean saved;
+        boolean update;
         try {
             ReservationOrderReq req = new ReservationOrderReq();
             BeanUtils.copyProperties(bo, req);
-            saved = reservationOrderService.saveReservationOrder(req);
+            update = reservationOrderService.updateReservationOrderStatus(reservationOrderId,
+                    ReservationOrderStatus.WAIT_VERIFY, ReservationOrderStatus.WAIT_VERIFY.getName());
         } catch (Exception e) {
             rollbackReservation(stockKey, userKey);
             throw new ServiceException("预约失败，请稍后重试");
         }
-        if (!saved) {
+        if (!update) {
             rollbackReservation(stockKey, userKey);
             throw new ServiceException("预约失败，请稍后重试");
         }
         String afterReserveStock = stringRedisTemplate.opsForValue().get(stockKey);
         log.info("reservateOrder success, projectId:{}, reservationTime:{}, userId:{}, reservationNum:{}, after reserve stock:{}",
-                bo.getProjectId(), reservationTimeStr, bo.getReservationUserId(), reservationNum, afterReserveStock);
+                bo.getProjectId(), reservationTimeStr, userId, reservationNum, afterReserveStock);
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
-        reservationStockService.incrementReservedCount(bo.getProjectId(), reservationTimeStr);
+        reservationStockService.incrementReservedCount(projectId, reservationTimeStr);
     }
 
-    private void checkStockAndReservation(Long projectId, Long userId, String stockKey, String userKey, String reservationTimeStr, String reservationNum) {
-        Object rawResult = null;
+    private void checkStockAndReservation(Long projectId, Long userId, String stockKey, String userKey,
+                                          String reservationTimeStr, String reservationNum, Long reservationOrderId) {
+        Object rawResult;
         try {
             rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, "600");
         } catch (Exception e) {
             log.error("执行redis预约脚本失败, {}", e.getMessage());
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "预约失败");
             throw new ServiceException("系统维护中,请联系管理员.");
         }
         Long result = (rawResult instanceof Number) ? ((Number) rawResult).longValue() : null;
         if (result == null) {
             log.error("reservationId: {} Redis script run fail.", reservationNum);
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "预约失败");
             throw new ServiceException("系统预约失败");
         }
 
         // 时段尚未放号 / 不可预约
         if (result == -1) {
             log.error("projectId: {} reservationTime: {} 时段尚未放号或不可预约.", projectId, reservationTimeStr);
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "该时段尚未放号，暂不可预约");
             throw new ServiceException("该时段尚未放号，暂不可预约");
         }
 
         // 名额已满
         if (result == 0) {
             log.error("projectId: {} reservationTime: {} 预约名额已满.", projectId, reservationTimeStr);
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "预约名额已满");
             throw new ServiceException("预约名额已满");
         }
 
         // 重复预约
         if (result == 2) {
             log.error("projectId: {} reservationTime: {} 用户: {} 已预约.", projectId, reservationTimeStr, userId);
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "不可重复预约");
             throw new ServiceException("您已预约，不可重复预约");
         }
     }

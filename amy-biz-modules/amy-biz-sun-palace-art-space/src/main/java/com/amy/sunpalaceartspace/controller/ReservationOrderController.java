@@ -10,17 +10,18 @@ import com.amy.common.core.web.page.TableSupport;
 import com.amy.common.log.annotation.Log;
 import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
+import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderUpdateStatusReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -84,13 +85,14 @@ public class ReservationOrderController extends BaseController {
     @RequiresPermissions("sunpalaceartspace:reservationOrder:add")
     @Log(title = "手动创建预约订单", businessType = BusinessType.INSERT)
     @PostMapping("/manual/generate")
-    public R<Boolean> add(@Validated @RequestBody ReservationOrderManualReq req) {
+    public R<ReservationOrder> add(@Validated @RequestBody ReservationOrderManualReq req) {
         req.setReservationUserId(99999999L);
         if(req.getCompUsers() != null) {
             req.setGuestsNum(req.getCompUsers().size() + 1);
         } else {
             req.setGuestsNum(1);
         }
+        req.setReservationStatus(ReservationOrderStatus.ORDERING.getStatus());
         reservationOrderService.verifyManualGenerate(req);
 
         ReservationOrderReq orderReq = new ReservationOrderReq();
@@ -122,6 +124,6 @@ public class ReservationOrderController extends BaseController {
     @Log(title = "订单管理-更新状态", businessType = BusinessType.UPDATE)
     @PutMapping("/update/status")
     public void updateOrderStatus(@RequestBody ReservationOrderUpdateStatusReq req){
-        reservationOrderService.updateReservationOrderStatus(req.getOrderId(), req.getStatus());
+        reservationOrderService.updateReservationOrderStatus(req.getOrderId(), req.getStatus(), req.getStatus().getName());
     }
 }

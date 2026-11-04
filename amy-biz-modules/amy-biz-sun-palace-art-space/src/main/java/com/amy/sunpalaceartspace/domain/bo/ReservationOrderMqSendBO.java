@@ -30,6 +30,7 @@ public class ReservationOrderMqSendBO extends AmyMqProducerBO {
     private Date reservationTime;
     private List<FollowerReq> compUsers;
 
+    private Long reservationOrderId;
     private String reservationNum;
     private Long reservationUserId;
 }

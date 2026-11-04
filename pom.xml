@@ -262,7 +262,6 @@
         <module>amy-modules</module>
         <module>amy-api</module>
         <module>amy-common</module>
-        <module>amy-wechat</module>
         <module>amy-biz-modules</module>
     </modules>
     <packaging>pom</packaging>

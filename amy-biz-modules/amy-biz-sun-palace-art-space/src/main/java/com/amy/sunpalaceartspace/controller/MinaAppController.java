@@ -96,7 +96,7 @@ public class MinaAppController extends BaseController {
      */
     @MinaApiAuth
     @PostMapping("/reservation/submit")
-    public R<String> submitReservation(@RequestHeader("Authorization") String token,
+    public R<ReservationOrder> submitReservation(@RequestHeader("Authorization") String token,
             @RequestBody @Validated SubmitReservationReq request) {
         return R.ok(submitReservationOrderService.submitReservationOrder(token, request));
     }
