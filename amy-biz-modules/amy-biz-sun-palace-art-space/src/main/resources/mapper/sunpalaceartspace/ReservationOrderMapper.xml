@@ -75,6 +75,9 @@
         <if test="entity.reservationStatus != null">
             and r.reservation_status = #{entity.reservationStatus}
         </if>
+        <if test="entity.reservationUserId != null">
+            and r.reservation_user_id = #{entity.reservationUserId}
+        </if>
         <!--
             按日期筛选：用裸列 + 左闭右开区间 [当天 00:00:00, 次日 00:00:00)，
             而不是 date(r.reservation_time) = date(#{...}) —— 对列套函数会让索引失效、大表全表扫。
@@ -111,6 +114,12 @@
     <select id="selectReservationOrderById" parameterType="Long" resultMap="ReservationOrderResult">
         <include refid="selectReservationOrderVo"/>
         where r.reservation_order_id = #{reservationOrderId} and r.del_flag = '0'
+    </select>
+
+    <!-- 按预约单号查询（含项目名称），供小程序预约详情接口使用 -->
+    <select id="selectReservationOrderVoByNum" resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        where r.reservation_num = #{orderNum} and r.del_flag = '0'
     </select>
 
     <!-- 按预约时间（日期）统计各时间段的预约订单数 -->

@@ -6,6 +6,7 @@
  *  - GET  /spas/mina/app/user/reservation/records               我的预约记录（需登录）
  *  - GET  /spas/mina/app/reservation/next/day/order             明日预约动态（需登录，首页滚动展示）
  *  - GET  /spas/mina/app/reservation/{orderNum}                 预约详情（按预约单号）
+ *  - POST /spas/mina/app/reservation/cancel/{orderNum}          取消预约（仅待核销状态）
  */
 
 import type { NextDayReservation, ReservePerson, ReserveRecord } from '@/types'
@@ -143,4 +144,15 @@ export async function getRecordDetail(orderNum: string): Promise<ReserveRecord> 
     throw new Error('未找到该预约单')
   }
   return normalizeRecord(raw)
+}
+
+/**
+ * 取消预约（仅订单本人、仅「待核销」状态可取消）
+ * POST /spas/mina/app/reservation/cancel/{orderNum}
+ */
+export async function cancelReserve(orderNum: string): Promise<boolean> {
+  return request<boolean>({
+    url: `/spas/mina/app/reservation/cancel/${encodeURIComponent(orderNum)}`,
+    method: 'POST',
+  })
 }

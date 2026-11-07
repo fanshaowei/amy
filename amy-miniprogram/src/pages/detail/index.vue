@@ -6,7 +6,7 @@ import { cardTypeTitle } from '@/types'
 import { getActivityDetail, getSlots } from '@/api/activity'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
-import { hmsToHm } from '@/utils'
+import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
@@ -168,12 +168,16 @@ async function onSubmit() {
     uni.showToast({ title: '请输入预约人姓名', icon: 'none' })
     return
   }
-  if (!/^1\d{10}$/.test(bookerTel.value)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+  if (!isValidPhone(bookerTel.value)) {
+    uni.showToast({ title: '请输入 11 位正确的手机号', icon: 'none' })
     return
   }
   if (!bookerIdCard.value.trim()) {
     uni.showToast({ title: '请输入证件号', icon: 'none' })
+    return
+  }
+  if (bookerCardType.value === 1 && !isValidIdCard(bookerIdCard.value)) {
+    uni.showToast({ title: '请输入 18 位正确的身份证号', icon: 'none' })
     return
   }
   for (let i = 0; i < companions.value.length; i++) {
@@ -184,6 +188,10 @@ async function onSubmit() {
     }
     if (!c.idNum.trim()) {
       uni.showToast({ title: `请输入随行人${i + 1}证件号`, icon: 'none' })
+      return
+    }
+    if (c.cardType === 1 && !isValidIdCard(c.idNum)) {
+      uni.showToast({ title: `随行人${i + 1}身份证号格式不正确`, icon: 'none' })
       return
     }
   }
@@ -273,7 +281,7 @@ onUnload(() => {
       </view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>预约人证件号</text>
-        <input class="form-item__input" v-model="bookerIdCard" placeholder="请输入预约人证件号" />
+        <input class="form-item__input" v-model="bookerIdCard" :maxlength="bookerCardType === 1 ? 18 : 30" placeholder="请输入预约人证件号" />
       </view>
     </view>
 
@@ -294,7 +302,7 @@ onUnload(() => {
       </view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>证件号</text>
-        <input class="form-item__input" v-model="c.idNum" placeholder="请输入随行人证件号" />
+        <input class="form-item__input" v-model="c.idNum" :maxlength="c.cardType === 1 ? 18 : 30" placeholder="请输入随行人证件号" />
       </view>
     </view>
 

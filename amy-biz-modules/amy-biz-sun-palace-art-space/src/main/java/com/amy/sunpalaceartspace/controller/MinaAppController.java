@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.controller;
 
 import com.amy.common.core.domain.R;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
@@ -27,7 +28,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
-import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,7 +66,7 @@ public class MinaAppController extends BaseController {
      * 小程序首页项目列表信息
      * @return
      */
-    @MinaApiAuth
+    //@MinaApiAuth
     @GetMapping("/homepage/project")
     public R<TableDataInfo> getHomePage() {
         PageDomain pageDomain = TableSupport.buildPageRequest();
@@ -162,17 +162,31 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 获取预约订单信息
+     * 获取预约订单信息（含关联项目名称）
      * @param orderNum
      * @return
      */
     @MinaApiAuth
     @GetMapping("/reservation/{orderNum}")
     public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
-        ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
-        ReservationOrderVO vo = new ReservationOrderVO();
-        BeanUtils.copyProperties(reservationOrder, vo);
+        ReservationOrderVO vo = reservationOrderService.selectReservationOrderVoByNum(orderNum);
+        if (vo == null) {
+            throw new ServiceException("未找到该预约单");
+        }
         return R.ok(vo);
+    }
+
+    /**
+     * 取消预约订单（仅订单本人、仅「待核销」状态可取消）
+     * @param token
+     * @param orderNum
+     * @return
+     */
+    @MinaApiAuth
+    @PostMapping("/reservation/cancel/{orderNum}")
+    public R<Boolean> cancelReservationOrder(@RequestHeader("Authorization") String token,
+            @PathVariable("orderNum") String orderNum) {
+        return R.ok(minaAppService.cancelReservationOrder(token, orderNum));
     }
 
     /**

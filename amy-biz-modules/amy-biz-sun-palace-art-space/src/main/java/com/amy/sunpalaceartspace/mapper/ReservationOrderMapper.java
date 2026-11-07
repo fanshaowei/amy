@@ -53,6 +53,14 @@ public interface ReservationOrderMapper extends BaseMapper<ReservationOrder> {
     ReservationOrderVO selectReservationOrderById(Long reservationOrderId);
 
     /**
+     * 根据预约单号查询预约订单（含项目名称，关联 biz_spas_projects / biz_spas_reservation_user）
+     *
+     * @param orderNum 预约单号
+     * @return 预约订单视图对象；未命中返回 null
+     */
+    ReservationOrderVO selectReservationOrderVoByNum(@Param("orderNum") String orderNum);
+
+    /**
      * 按预约时间（日期）统计各时间段的预约订单数
      *
      * @param req 查询条件：项目ID（可选）、预约时间起止
