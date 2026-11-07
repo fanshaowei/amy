@@ -75,6 +75,9 @@
         <if test="entity.reservationStatus != null">
             and r.reservation_status = #{entity.reservationStatus}
         </if>
+        <if test="entity.reservationUserId != null and entity.reservationUserId != ''">
+            and r.reservation_user_id = #{entity.reservationUserId}
+        </if>
         <!--
             按日期筛选：用裸列 + 左闭右开区间 [当天 00:00:00, 次日 00:00:00)，
             而不是 date(r.reservation_time) = date(#{...}) —— 对列套函数会让索引失效、大表全表扫。
