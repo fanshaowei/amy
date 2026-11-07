@@ -97,6 +97,16 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
+    public ReservationOrderVO selectReservationOrderVoByNum(String orderNum) {
+        ReservationOrderVO vo = baseMapper.selectReservationOrderVoByNum(orderNum);
+        if (vo != null) {
+            vo.fillReservationStatusName();
+            vo.fillCompUsersText();
+        }
+        return vo;
+    }
+
+    @Override
     public long countUserOrders(Long userId, String idNum, List<Integer> statuses, Date since) {
         // 注：del_flag 由 BaseEntity 的 @TableLogic 自动过滤（仅统计未删除订单），无需手动 eq
         return this.count(

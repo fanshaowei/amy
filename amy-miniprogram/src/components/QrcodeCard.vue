@@ -25,7 +25,7 @@ const gridStyle = computed(() => ({
 
 <template>
   <view class="qr-card">
-    <view class="qr-card__code">{{ record.reservationNum }}</view>
+    <!-- <view class="qr-card__code">{{ record.reservationNum }}</view> -->
     <view class="qr-grid" :style="gridStyle">
       <view
         v-for="(c, i) in cells"

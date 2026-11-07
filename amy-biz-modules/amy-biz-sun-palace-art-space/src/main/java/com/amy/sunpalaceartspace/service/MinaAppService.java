@@ -287,6 +287,44 @@ public class MinaAppService {
         return verifyFlag;
     }
 
+    /**
+     * 小程序端取消预约订单（仅订单本人、仅「待核销」状态可取消）
+     *
+     * <p>与「已过期」的处理口径保持一致：只变更订单状态，不回补时段库存
+     * （取消释放的名额不参与当天重新放号）。</p>
+     *
+     * @param token    小程序鉴权 token
+     * @param orderNum 预约单号
+     * @return 是否取消成功
+     */
+    @Transactional
+    public boolean cancelReservationOrder(String token, String orderNum) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+        if (reservationOrder == null) {
+            throw new ServiceException("未找到该预约单");
+        }
+
+        //仅允许订单本人取消
+        if (!Objects.equals(user.getReservationUserId(), reservationOrder.getReservationUserId())) {
+            throw new ServiceException("无权取消该预约单");
+        }
+
+        //校验订单是否待核销状态
+        Integer reservationStatus = reservationOrder.getReservationStatus();
+        if (!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), reservationStatus)) {
+            ReservationOrderStatus statusEnum = ReservationOrderStatus.fromCode(reservationStatus);
+            throw new ServiceException("该订单当前不是待核销状态: " + statusEnum.getName());
+        }
+
+        boolean cancelFlag = reservationOrderService.updateReservationOrderStatus(
+                reservationOrder.getReservationOrderId(),
+                ReservationOrderStatus.CANCELED,
+                ReservationOrderStatus.CANCELED.getName());
+        log.info("cancelReservationOrder: {} user: {} result: {}", orderNum, user.getReservationUserId(), cancelFlag);
+        return cancelFlag;
+    }
+
     @Transactional
     public boolean verifyUser(ReservationUser user, UserIdentityReq req) {
         boolean verify = IdVerifyUtil.verify(req.getIdType(), req.getIdNum());

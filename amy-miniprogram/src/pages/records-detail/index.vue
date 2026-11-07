@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { RESERVE_STATUS } from '@/types'
-import { getRecordDetail } from '@/api/reserve'
+import { getRecordDetail, cancelReserve } from '@/api/reserve'
 import QrcodeCard from '@/components/QrcodeCard.vue'
 import { hmsToHm } from '@/utils'
 
@@ -41,6 +41,34 @@ async function load(orderNum: string) {
   } catch (e: any) {
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   }
+}
+
+/** 是否可取消：仅「待核销」状态 */
+const canCancel = computed(() => record.value?.reservationStatus === 0)
+const cancelling = ref(false)
+
+/** 取消预约：二次确认后调用后端取消接口，成功后刷新详情 */
+function onCancel() {
+  if (!record.value || cancelling.value) return
+  uni.showModal({
+    title: '取消预约',
+    content: '确定要取消该预约吗？取消后不可恢复。',
+    confirmText: '取消预约',
+    confirmColor: '#f53f3f',
+    success: async (res) => {
+      if (!res.confirm) return
+      cancelling.value = true
+      try {
+        await cancelReserve(record.value!.reservationNum)
+        uni.showToast({ title: '已取消预约', icon: 'success' })
+        load(record.value!.reservationNum)
+      } catch (e: any) {
+        uni.showToast({ title: e.message || '取消失败', icon: 'none' })
+      } finally {
+        cancelling.value = false
+      }
+    },
+  })
 }
 
 onLoad((query) => {
@@ -81,7 +109,14 @@ onLoad((query) => {
         </view>
         <view v-for="(p, i) in people" :key="i" class="row">
           <text class="k">{{ i === 0 ? '预约人' : '随行人' }}</text>
-          <text class="v">{{ p.name }} · {{ p.idType }} · {{ p.phone || '-' }}</text>
+          <text class="v">{{ p.name }} · {{ p.idNum }} · {{ p.phone || '-' }}</text>
+        </view>
+      </view>
+
+      <!-- 取消预约：仅「待核销」状态展示 -->
+      <view v-if="canCancel" class="result__actions">
+        <view class="cancel-btn" :class="{ disabled: cancelling }" @tap="onCancel">
+          {{ cancelling ? '取消中...' : '取消预约' }}
         </view>
       </view>
     </view>
@@ -173,5 +208,20 @@ onLoad((query) => {
 .row .v {
   color: #1f2329;
   font-weight: 500;
+}
+.result__actions {
+  padding: 8rpx 32rpx 40rpx;
+}
+.cancel-btn {
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #f53f3f;
+  border: 2rpx solid #f53f3f;
+  border-radius: 48rpx;
+}
+.cancel-btn.disabled {
+  opacity: 0.6;
 }
 </style>

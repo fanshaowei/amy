@@ -116,6 +116,12 @@
         where r.reservation_order_id = #{reservationOrderId} and r.del_flag = '0'
     </select>
 
+    <!-- 按预约单号查询（含项目名称），供小程序预约详情接口使用 -->
+    <select id="selectReservationOrderVoByNum" resultMap="ReservationOrderResult">
+        <include refid="selectReservationOrderVo"/>
+        where r.reservation_num = #{orderNum} and r.del_flag = '0'
+    </select>
+
     <!-- 按预约时间（日期）统计各时间段的预约订单数 -->
     <select id="selectReservationOrderStatisticByDate"
             parameterType="com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria"

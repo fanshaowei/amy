@@ -113,6 +113,27 @@ export function maskIdCard(id: string): string {
   return id.slice(0, 4) + '**********' + id.slice(-4)
 }
 
+/** 校验手机号：11 位，1 开头，第二位为 3-9 */
+export function isValidPhone(tel: string): boolean {
+  return /^1[3-9]\d{9}$/.test((tel || '').trim())
+}
+
+/**
+ * 校验第二代居民身份证号：18 位，前 17 位数字、末位数字或 X，
+ * 并按 GB 11643 加权算法校验末位校验码
+ */
+export function isValidIdCard(id: string): boolean {
+  const idc = (id || '').trim().toUpperCase()
+  if (!/^\d{17}[\dX]$/.test(idc)) return false
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checkCodes = '10X98765432'
+  let sum = 0
+  for (let i = 0; i < 17; i++) {
+    sum += Number(idc[i]) * weights[i]
+  }
+  return checkCodes[sum % 11] === idc[17]
+}
+
 /** 显示姓名（多人时） */
 export function displayNames(persons: ReservePerson[]): string {
   if (!persons || persons.length === 0) return ''

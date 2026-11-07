@@ -57,6 +57,14 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
     ReservationOrder selectReservationOrderByNum(String orderNum);
 
     /**
+     * 根据订单号查询预约详情（VO，含关联项目名称）
+     *
+     * @param orderNum 预约单号
+     * @return 预约订单视图对象；未命中返回 null
+     */
+    ReservationOrderVO selectReservationOrderVoByNum(String orderNum);
+
+    /**
      *
      * @param userId
      * @param idNum
