@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -55,15 +54,6 @@ public class MinaAppService {
     private final AliIdCheckUtil aliIdCheckUtil;
     private final UserIdentityServiceImpl userIdentityServiceImpl;
     private final IReservationStockService reservationStockService;
-
-    /** 库存表 reservation_time 定长 yyyyMMddHHmm */
-    private static final int STOCK_TIME_LENGTH = 12;
-
-    /** 库存表 reservation_time 里的日期前缀长度 yyyyMMdd */
-    private static final int STOCK_DATE_PREFIX_LENGTH = 8;
-
-    /** 日期前缀格式，用于取「今天」下界（与时区分界一致，按服务所在时区算当天） */
-    private static final DateTimeFormatter STOCK_DATE_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -149,10 +139,10 @@ public class MinaAppService {
     /**
      * 小程序预订页：项目预约须知 + 各日期各时段的号源明细。
      *
-     * <p><b>数据源是库存表 {@code biz_spas_reservation_stock}，不再按项目配置实时推算时段。</b>
+     * <p><b>数据源是库存表 {@code biz_spas_reservation_stock}。</b>
      *
-     * <p>统计范围：该项目 <b>今天及以后</b> 的全部库存行。{@code reservation_time} 是定长
-     * {@code yyyyMMddHHmm}，用 8 位日期前缀做 {@code >=} 比较即可（字符串序 == 时间序）。</p>
+     * <p>统计范围：该项目 <b>今天及以后</b> 的全部库存行。{@code reservation_time}
+     * {@code DATETIME}（形如 {@code 2026-09-28 09:30:00}），按「>= 今天 00:00:00」范围查询。</p>
      *
      * @param projectId 项目ID
      */
@@ -167,26 +157,23 @@ public class MinaAppService {
                 .reservationDetails(new LinkedList<>())
                 .build();
 
-        String todayPrefix = LocalDate.now().format(STOCK_DATE_PREFIX_FORMATTER);
-        List<ReservationStock> stocks = reservationStockService.selectByProjectIdAndTimeGe(projectId, todayPrefix);
+        Date todayStart = DateUtils.toDate(LocalDate.now());
+        List<ReservationStock> stocks = reservationStockService.selectByProjectIdAndTimeGe(projectId, todayStart);
         if (stocks.isEmpty()) {
-            log.info("项目当天及以后暂无库存记录: projectId:{} today:{}", projectId, todayPrefix);
+            log.info("项目当天及以后暂无库存记录: projectId:{} today:{}", projectId, todayStart);
             return resp;
         }
 
-        // 按日期分组（TreeMap 保证日期升序）
+        // 按日期分组（TreeMap 保证日期升序）；日期 key 直接从 DATETIME 字段格式化得到 yyyy-MM-dd
         Map<String, List<ReservationStock>> stocksByDate = new TreeMap<>();
         for (ReservationStock stock : stocks) {
-            String reservationTime = stock.getReservationTime();
-            if (reservationTime == null || reservationTime.length() != STOCK_TIME_LENGTH) {
-                log.warn("库存记录 reservation_time 长度非法，已跳过: stockId:{} value:{}",
-                        stock.getReservationStockId(), reservationTime);
+            Date reservationTime = stock.getReservationTime();
+            if (reservationTime == null) {
+                log.warn("库存记录 reservation_time 为空，已跳过: stockId:{}", stock.getReservationStockId());
                 continue;
             }
-            stocksByDate.computeIfAbsent(
-                    reservationTime.substring(0, STOCK_DATE_PREFIX_LENGTH),
-                    key -> new LinkedList<>()
-            ).add(stock);
+            String dateKey = DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, reservationTime);
+            stocksByDate.computeIfAbsent(dateKey, key -> new LinkedList<>()).add(stock);
         }
 
         stocksByDate.forEach((datePrefix, dayStocks) -> {
@@ -195,7 +182,7 @@ public class MinaAppService {
             MinaProjectReservationInfoResp.ReservationDetails reservationDetails =
                     MinaProjectReservationInfoResp.ReservationDetails
                             .builder()
-                            .reservationDate(formatStockDate(datePrefix))
+                            .reservationDate(datePrefix)
                             .reservationTimeDetails(new LinkedList<>())
                             .build();
             dayStocks.forEach(stock ->
@@ -217,8 +204,8 @@ public class MinaAppService {
      * 由前端置灰展示。</p>
      */
     private MinaProjectReservationInfoResp.ReservationTimeDetails toTimeDetail(ReservationStock stock) {
-        String reservationTime = stock.getReservationTime();
-        String slotLabel = reservationTime.substring(8, 10) + ":" + reservationTime.substring(10, 12) + ":00";
+        Date reservationTime = stock.getReservationTime();
+        String slotLabel = DateUtils.parseDateToStr(DateUtils.HH_MM_SS, reservationTime);
 
         // status 为 null 或非「正常可预约」，一律按不可预约处理：宁可置灰，也不能把约不了的时段放给用户点
         if (!ReservationStockStatus.AVAILABLE.getCode().equals(stock.getStatus())) {
@@ -239,11 +226,6 @@ public class MinaAppService {
                 .remainingReservationCount(Math.max(0, released - reserved))
                 .reservationStatus(calculateReservationStatus(released, reserved))
                 .build();
-    }
-
-    /** 库存表日期前缀 yyyyMMdd → 前端日期 yyyy-MM-dd */
-    private static String formatStockDate(String datePrefix) {
-        return datePrefix.substring(0, 4) + "-" + datePrefix.substring(4, 6) + "-" + datePrefix.substring(6, 8);
     }
 
     public MinaReservationUserInfoResp extractReservationUserInfo(String token) {

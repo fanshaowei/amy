@@ -4,14 +4,15 @@ import com.amy.common.core.web.domain.BaseEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.Date;
 
 /**
  * 预约库存对象 biz_spas_reservation_stock
  *
- * @Description 每个项目在每个可预约时段(如 202609280930)的库存记录，记录该时段可预约的数量与状态
+ * @Description 每个项目在每个可预约时段(如 2026-09-28 09:30:00)的库存记录，记录该时段可预约的数量与状态
  * @Author fantasyfan
  * @Date 2026-09-28
  */
@@ -27,8 +28,8 @@ public class ReservationStock extends BaseEntity {
     /** 项目id */
     private Long projectId;
 
-    /** 预约时间,eg: 202609280930 */
-    private String reservationTime;
+    /** 预约时间,eg: 2026-09-28 09:30:00 */
+    private Date reservationTime;
 
     /** 可预约数量 */
     private Integer reservationCount;

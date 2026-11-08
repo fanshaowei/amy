@@ -1,6 +1,9 @@
 package com.amy.sunpalaceartspace.service.impl;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import com.amy.common.core.utils.DateUtils;
@@ -38,7 +41,7 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
 
     @Override
     public IPage<ReservationStock> selectReservationStockPage(Page<ReservationStock> page,
-            Long projectId, String reservationTime, ReservationStockStatus status) {
+            Long projectId, Date reservationTime, ReservationStockStatus status) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(projectId != null, ReservationStock::getProjectId, projectId)
                 .eq(reservationTime != null, ReservationStock::getReservationTime, reservationTime)
@@ -49,7 +52,7 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public ReservationStock selectByProjectAndTime(Long projectId, String reservationTime) {
+    public ReservationStock selectByProjectAndTime(Long projectId, Date reservationTime) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
                 .eq(ReservationStock::getReservationTime, reservationTime)
@@ -66,21 +69,23 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public List<ReservationStock> selectByProjectAndDatePrefix(Long projectId, String datePrefix) {
+    public List<ReservationStock> selectByProjectAndDatePrefix(Long projectId, LocalDate datePrefix) {
+        // reservation_time 已为 DATETIME：按「当天 00:00:00 <= t < 次日 00:00:00」范围查询，可命中 idx_reservation_time
+        Date start = Date.from(datePrefix.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date endExclusive = Date.from(datePrefix.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
-                // likeRight → reservation_time like '20261031%'，前缀匹配可走索引
-                .likeRight(ReservationStock::getReservationTime, datePrefix)
+                .ge(ReservationStock::getReservationTime, start)
+                .lt(ReservationStock::getReservationTime, endExclusive)
                 .orderByAsc(ReservationStock::getReservationTime);
         return list(wrapper);
     }
 
     @Override
-    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, String minDayTime) {
+    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, Date minTime) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
-                // reservation_time 是定长 yyyyMMddHHmm，字符串比较等价于时间先后比较
-                .ge(ReservationStock::getReservationTime, minDayTime)
+                .ge(ReservationStock::getReservationTime, minTime)
                 .orderByAsc(ReservationStock::getReservationTime);
         return list(wrapper);
     }
@@ -107,7 +112,7 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean incrementReservedCount(Long projectId, String reservationTime) {
+    public boolean incrementReservedCount(Long projectId, Date reservationTime) {
         LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
                 .eq(ReservationStock::getReservationTime, reservationTime)

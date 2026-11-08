@@ -56,7 +56,7 @@ public class ReservationUtil {
             result.add(start.format(formatter));
             start = start.plusMinutes(intervalSecond / 60);
             loop++;
-            if(loop > 10) break;
+            if(loop > 20) break;
         }
 
         return result;
