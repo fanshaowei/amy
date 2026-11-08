@@ -130,8 +130,8 @@ public class SubmitReservationOrderService {
             throw new ServiceException("随行人数超过限制，无法进行预约");
         }
 
-        // 预约频次校验（微信号维度）：1月最多2次、取消满2次当月禁约、3天内不可重复预约
-        validateReservationFrequency(user.getReservationUserId(), req.getIdNum());
+        // 预约频次校验（微信号维度）：默认1月最多2次、取消满2次当月禁约、3天内不可重复预约
+        validateReservationFrequency(project, user.getReservationUserId(), req.getIdNum());
     }
 
     /**
@@ -140,7 +140,7 @@ public class SubmitReservationOrderService {
      * 2) 1 个月内预约次数（上述 4 种状态均计数）达 2 次 → 当月次数用尽；
      * 3) 1 个月内取消达 2 次 → 当月禁止再预约。
      */
-    private void validateReservationFrequency(Long userId, String idNum) {
+    private void validateReservationFrequency(Projects project, Long userId, String idNum) {
         Date now = new Date();
         // 当月（自然月）起始：由 now 推导本月 1 号 00:00:00（只读取一次当前时间，避免重复取时钟/时区不一致）
         Date monthStart = DateUtils.toDate(now.toInstant()
@@ -156,20 +156,23 @@ public class SubmitReservationOrderService {
                 ReservationOrderStatus.CANCELED.getStatus());
 
         // 3 天内已预约过 → 不可重复预约
-        if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, DateUtils.addDays(now, -3)) >= 1) {
-            throw new ServiceException("您3天内已预约过，暂不可重复预约");
+        Integer reservationFrequencyDays = project.getReservationFrequencyDays();
+        if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, DateUtils.addDays(now, -reservationFrequencyDays)) >= 1) {
+            throw new ServiceException("您{}天内已预约过，暂不可重复预约", reservationFrequencyDays);
         }
 
         // 当月取消满 2 次 → 当月禁止再预约
+        Integer maxMonthlyCancellationCount = project.getMaxMonthlyCancellationCount();
         if (reservationOrderService.countUserOrders(userId, idNum,
                 Collections.singletonList(ReservationOrderStatus.CANCELED.getStatus()),
-                monthStart) >= 2) {
-            throw new ServiceException("您本月已取消2次，暂不可预约");
+                monthStart) >= maxMonthlyCancellationCount) {
+            throw new ServiceException("您本月已取消{}次，暂不可预约",maxMonthlyCancellationCount);
         }
 
         // 当月预约次数达 2 次 → 当月次数用尽
-        if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, monthStart) >= 2) {
-            throw new ServiceException("您本月预约次数已用完（每月最多2次）");
+        Integer maxMonthlyReservationCount = project.getMaxMonthlyReservationCount();
+        if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, monthStart) >= maxMonthlyReservationCount) {
+            throw new ServiceException("您本月预约次数已用完（每月最多{}次）", maxMonthlyReservationCount);
         }
     }
 
