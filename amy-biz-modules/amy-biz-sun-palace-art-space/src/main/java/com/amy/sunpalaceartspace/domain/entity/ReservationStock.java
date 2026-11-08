@@ -49,9 +49,6 @@ public class ReservationStock extends BaseEntity {
      * 库存状态，取值见 {@link com.amy.sunpalaceartspace.enums.ReservationStockStatus}：
      * 0=已过可预约时间、1=正常可预约、2=手动设置该时段不可预约。
      *
-     * <p>由布尔「有效/失效」扩展为三态。0/2 两种状态<b>不进入 Redis 库存缓存</b>，但仍保留库存行；
-     * 放号与缓存重建逻辑见 {@code ReservationRulesService}。</p>
-     *
      * <p>列存数值码（TINYINT），赋值/比较统一走枚举的 {@code getCode()}，不要直接写布尔或字面量。</p>
      */
     private Integer status;

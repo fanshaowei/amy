@@ -13,13 +13,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 
-import static com.amy.sunpalaceartspace.constant.SpasConstant.*;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_RELEASE_BATCH_STEP;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_STOCK_KEY_PREFIX;
 
 /**
  * 预约放号（库存）规则
@@ -225,51 +225,6 @@ public class ReservationRulesService {
             stringRedisTemplate.delete(stockKey);
         }
         log.info("reconcileStockToRedis done, available:{} excluded:{}", availableStocks.size(), excludedStocks.size());
-    }
-
-    /**
-     * 预约时段配置变更后，把该项目的库存开关对齐到最新配置（由 Service 层在增删改后调用）。
-     * @param projectId 项目ID
-     */
-    public void applyConfigToStock(Long projectId) {
-        /*if (projectId == null) {
-            return;
-        }
-        List<ProjectReservationConfig> configs = projectReservationConfigMapper.selectByProjectId(projectId);
-        // reservation_time 形如 202610310930，按字符串比较即可筛出「今天及以后」
-        String todayPrefix = LocalDate.now().format(STOCK_DATE_FORMATTER);
-        List<ReservationStock> stocks = reservationStockService.selectByProjectIdAndTimeGe(projectId, todayPrefix);
-        for (ReservationStock stock : stocks) {
-            String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX,
-                    stock.getProjectId(), stock.getReservationTime());
-            LocalTime slot = parseSlotFromStockTime(stock.getReservationTime());
-            boolean open = ProjectReservationConfigChecker.isOpen(configs, slot);
-            if (open) {
-                if (!ReservationStockStatus.AVAILABLE.getCode().equals(stock.getStatus())) {
-                    stock.setStatus(ReservationStockStatus.AVAILABLE.getCode());
-                    stock.setUpdateTime(new Date());
-                    stock.setUpdateBy("system");
-                    reservationStockService.updateById(stock);
-                }
-                int available = Math.max(0, nvl(stock.getReleaseCount()) - nvl(stock.getReservedCount()));
-                stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(available));
-            } else {
-                if (!ReservationStockStatus.MANUAL_CLOSED.getCode().equals(stock.getStatus())) {
-                    stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
-                    stock.setUpdateTime(new Date());
-                    stock.setUpdateBy("system");
-                    reservationStockService.updateById(stock);
-                }
-                // 手动关闭时段不入缓存：删除 key，后续抢号按「尚未放号/不可预约」处理
-                stringRedisTemplate.delete(stockKey);
-                log.info("时段已关闭，库存同步为不可用: projectId:{} reservationTime:{}",
-                        projectId, stock.getReservationTime());
-            }
-        }*/
-    }
-
-    private int nvl(Integer value) {
-        return value == null ? 0 : value;
     }
 
     /**
