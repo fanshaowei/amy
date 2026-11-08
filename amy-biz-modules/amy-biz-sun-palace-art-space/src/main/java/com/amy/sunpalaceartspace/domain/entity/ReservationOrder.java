@@ -109,6 +109,11 @@ public class ReservationOrder extends BaseEntity {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date verifyTime;
 
+    /** 取消时间 */
+    @Excel(name = "取消时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date cancelTime;
+
     /**
      * 预约随行人身份信息（JSON 字符串）。
      *

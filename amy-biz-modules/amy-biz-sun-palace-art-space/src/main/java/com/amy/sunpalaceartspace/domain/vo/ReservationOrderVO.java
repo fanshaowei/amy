@@ -95,6 +95,11 @@ public class ReservationOrderVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date verifyTime;
 
+    /** 取消时间 */
+    @Excel(name = "取消时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date cancelTime;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
