@@ -131,7 +131,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 用户实名验证，同时会添加用户信息实名记录
+     * 预约用户实名验证，同时会添加用户信息实名记录
      * @param token
      * @param userIdentityReq
      * @return
@@ -146,7 +146,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 添加随从人
+     * 添加随从人,并返回预约会员的所有相关随行人
      * @param token
      * @param userIdentityReq
      * @return
@@ -159,6 +159,13 @@ public class MinaAppController extends BaseController {
         userIdentityReq.setReservationUserId(user.getReservationUserId());
         user.setIsVerified(true);
         return R.ok(minaAppService.addFollower(user, userIdentityReq));
+    }
+
+    @MinaApiAuth
+    @GetMapping("/user/followers/get")
+    public R<List<UserIdentityVO>> getReservationUserAndFollowers(@RequestHeader("Authorization") String token) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        return R.ok(minaAppService.getUserAndFollowerIdentity(user.getReservationUserId()));
     }
 
     /**

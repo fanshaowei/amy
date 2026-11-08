@@ -7,7 +7,6 @@ import com.amy.common.sensitive.enums.DesensitizedType;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
-import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
@@ -16,11 +15,7 @@ import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
-import com.amy.sunpalaceartspace.enums.GenderEnum;
-import com.amy.sunpalaceartspace.enums.IdType;
-import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
-import com.amy.sunpalaceartspace.enums.ReservationStatusEnum;
-import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
+import com.amy.sunpalaceartspace.enums.*;
 import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
@@ -338,8 +333,8 @@ public class MinaAppService {
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
-        // 实名认证
-        if(!req.getIdType().equals(IdType.ID_CARD)) {
+        // 如果是身份证，实名认证
+        if(req.getIdType().equals(IdType.ID_CARD)){
             AliIdCheckDto.ResultDTO data = verify(req);
             AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
             if (idCardInfor == null) {
@@ -375,18 +370,29 @@ public class MinaAppService {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
 
-        AliIdCheckDto.ResultDTO data = verify(req);
-        AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
-        if (idCardInfor == null) {
-            throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+        // 如果是身份证，实名认证
+        if(req.getIdType().equals(IdType.ID_CARD)){
+            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+            if (idCardInfor == null) {
+                throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+            }
+            int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
+            req.setGender(gender);
         }
 
+        // 更新或添加随行人
         log.info("start to save/update follower info, user:{}", req);
         userIdentityService.updateOrSaveUserIdentityAfterRealVerify(req);
         log.info("save/update follower completed");
 
+        // 查询预约用户的所有随行人并返回
+        return getUserAndFollowerIdentity(user.getReservationUserId());
+    }
+
+    public List<UserIdentityVO> getUserAndFollowerIdentity(Long reservationUserId) {
         UserIdentity userIdentity = new UserIdentity();
-        userIdentity.setReservationUserId(user.getReservationUserId());
+        userIdentity.setReservationUserId(reservationUserId);
         IPage<UserIdentityVO> userIdentityVOIPage = userIdentityService.selectUserIdentityList(new Page<>(1,100), userIdentity);
         if(null == userIdentityVOIPage) {
             return Collections.emptyList();
