@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.amy.sunpalaceartspace.mapper.ReservationStockMapper">
+
+    <!--
+        预约成功后累加已预约数（reserved_count + 1）。
+        当已预约数达到总容量 reservation_count 时记录售罄时间：
+        CASE 保证「仅首次达满写入、已记录则保持原值」，对后续超量预约幂等。
+    -->
+    <update id="incrementReservedCount">
+        UPDATE biz_spas_reservation_stock
+        SET reserved_count = reserved_count + 1,
+            sold_out_time  = CASE
+                                WHEN reserved_count + 1 >= reservation_count THEN NOW()
+                                ELSE sold_out_time
+                            END,
+            update_time = #{updateTime}
+        WHERE project_id = #{projectId}
+          AND reservation_time = #{reservationTime}
+    </update>
+
+</mapper>

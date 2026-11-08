@@ -53,4 +53,7 @@ public class ReservationStock extends BaseEntity {
      * <p>列存数值码（TINYINT），赋值/比较统一走枚举的 {@code getCode()}，不要直接写布尔或字面量。</p>
      */
     private Integer status;
+
+    /** 售罄时间（已预约数达到总容量 reservation_count 的时刻；仅首次达满时记录） */
+    private Date soldOutTime;
 }
