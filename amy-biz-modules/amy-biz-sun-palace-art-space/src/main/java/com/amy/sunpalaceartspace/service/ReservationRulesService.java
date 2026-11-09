@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_RELEASE_BATCH_STEP;
 import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_STOCK_KEY_PREFIX;
@@ -51,7 +52,10 @@ public class ReservationRulesService {
      * @param batch      1=12:00 第一批（每时段 +10）；2=00:00 第二批（补足至满）
      */
     public void releaseStock(Date date, int batch) {
-        List<Projects> projects = projectsService.getBaseMapper().selectList(null);
+        List<Projects> projects = projectsService.getBaseMapper().selectList(null)
+                .stream()
+                .filter(project -> Objects.equals(project.getStatus(), "0"))
+                .toList();
         for (Projects project : projects) {
             /** 如果项目设置的提前几天可预约，那就得提前放几天的号 **/
             Integer advanceReservationDays = project.getAdvanceReservationDays();

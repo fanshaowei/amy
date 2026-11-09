@@ -62,7 +62,10 @@ public class MinaAppService {
         IPage<Projects> projectsIPage = projectsService.selectProjectsList(page, criteria);
 
         IPage<MinaHomePageProjectResp> pageResp = new Page<>();
-        List<MinaHomePageProjectResp> list = projectsIPage.getRecords().stream().map(project -> {
+        List<MinaHomePageProjectResp> list = projectsIPage.getRecords()
+                .stream()
+                .filter(project -> Objects.equals(project.getStatus(), "0"))
+                .map(project -> {
             List<String> reservationDates = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
             // 可预约总数
             Integer totalReservationCount = calculateTotalReservationCount(
