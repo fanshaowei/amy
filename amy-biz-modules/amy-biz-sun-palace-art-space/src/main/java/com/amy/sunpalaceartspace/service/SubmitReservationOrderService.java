@@ -158,7 +158,9 @@ public class SubmitReservationOrderService {
         // 3 天内已预约过 → 不可重复预约
         Integer reservationFrequencyDays = project.getReservationFrequencyDays();
         if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, DateUtils.addDays(now, -reservationFrequencyDays)) >= 1) {
-            throw new ServiceException("您{}天内已预约过，暂不可重复预约", reservationFrequencyDays);
+            String msg = String.format("您%s天内已预约过，暂不可重复预约", reservationFrequencyDays);
+            log.info("userId:{} reservation frequency check fail: {}", userId, msg);
+            throw new ServiceException(msg);
         }
 
         // 当月取消满 2 次 → 当月禁止再预约
@@ -166,13 +168,17 @@ public class SubmitReservationOrderService {
         if (reservationOrderService.countUserOrders(userId, idNum,
                 Collections.singletonList(ReservationOrderStatus.CANCELED.getStatus()),
                 monthStart) >= maxMonthlyCancellationCount) {
-            throw new ServiceException("您本月已取消{}次，暂不可预约",maxMonthlyCancellationCount);
+            String msg = String.format("您本月已取消%s次，暂不可预约", maxMonthlyCancellationCount);
+            log.info("userId:{} monthly cancellation count check fail: {}", userId, msg);
+            throw new ServiceException(msg);
         }
 
         // 当月预约次数达 2 次 → 当月次数用尽
         Integer maxMonthlyReservationCount = project.getMaxMonthlyReservationCount();
         if (reservationOrderService.countUserOrders(userId, idNum, countingStatuses, monthStart) >= maxMonthlyReservationCount) {
-            throw new ServiceException("您本月预约次数已用完（每月最多{}次）", maxMonthlyReservationCount);
+            String msg = String.format("您本月预约次数已用完（每月最多%s次）", maxMonthlyReservationCount);
+            log.info("userId:{} monthly reservation count check fail: {}", userId, msg);
+            throw new ServiceException(msg);
         }
     }
 
@@ -254,7 +260,7 @@ public class SubmitReservationOrderService {
                 bo.getProjectId(), reservationTimeStr, userId, reservationNum, afterReserveStock);
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
-        reservationStockService.incrementReservedCount(projectId, reservationTimeStr);
+        reservationStockService.incrementReservedCount(projectId, bo.getReservationTime());
     }
 
     private void checkStockAndReservation(Long projectId, Long userId, String stockKey, String userKey,

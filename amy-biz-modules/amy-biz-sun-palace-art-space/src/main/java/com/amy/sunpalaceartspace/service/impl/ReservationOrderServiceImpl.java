@@ -239,6 +239,12 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         }
         order.setReservationStatus(status.getStatus());
         order.setStatusMsg(statusMsg);
+        // 取消时记录取消时间（仅 CANCELED 状态写入，其余状态流转保持不变）
+        if (ReservationOrderStatus.CANCELED.equals(status)) {
+            order.setCancelTime(DateUtils.getNowDate());
+        }
+        order.setUpdateTime(DateUtils.getNowDate());
+        order.setUpdateBy(SecurityUtils.getUsername());
         return updateById(order);
     }
 }

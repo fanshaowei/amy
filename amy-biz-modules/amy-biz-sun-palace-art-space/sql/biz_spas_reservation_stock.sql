@@ -1,17 +1,18 @@
 -- 预约库存表
--- 记录每个项目在每个可预约时段(如 202609280930)的库存数量与状态
+-- 记录每个项目在每个可预约时段(如 2026-09-28 09:30:00)的库存数量与状态
 DROP TABLE IF EXISTS `biz_spas_reservation_stock`;
 CREATE TABLE `biz_spas_reservation_stock`
 (
     `reservation_stock_id` BIGINT       NOT NULL AUTO_INCREMENT COMMENT '库存id',
     `project_id`           BIGINT       NOT NULL                COMMENT '项目id',
-    `reservation_time`     VARCHAR(20)  NOT NULL                COMMENT '预约时间,eg:202609280930',
+    `reservation_time`     DATETIME     NOT NULL                COMMENT '预约时间,eg:2026-09-28 09:30:00',
     `reservation_count`    INT          NOT NULL DEFAULT 0      COMMENT '可预约总容量(每时段名额,如20)',
     `release_count`        INT          NOT NULL DEFAULT 0      COMMENT '已放号数量(分批释放累计,0~reservation_count)',
     `reserved_count`       INT          NOT NULL DEFAULT 0      COMMENT '已预约数量',
     `batch1_released`      TINYINT(1)   NOT NULL DEFAULT 0      COMMENT '批次1是否已放号(12:00第一批,每时段+10)',
     `batch2_released`      TINYINT(1)   NOT NULL DEFAULT 0      COMMENT '批次2是否已放号(00:00第二批,补足至满)',
     `status`               TINYINT      NOT NULL DEFAULT 1      COMMENT '库存状态(0=已过可预约时间 1=正常可预约 2=手动设置不可预约)',
+    `sold_out_time`        DATETIME                               COMMENT '售罄时间(已预约数达到总容量的时刻)',
     `del_flag`             CHAR(1)      NOT NULL DEFAULT '0'    COMMENT '删除标志（0代表存在 1代表删除）',
     `create_by`            VARCHAR(64)  DEFAULT ''              COMMENT '创建者',
     `create_time`          DATETIME                               COMMENT '创建时间',

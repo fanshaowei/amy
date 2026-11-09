@@ -1,20 +1,17 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
 import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationStockMapper;
 import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * 预约库存 服务层实现（MyBatis-Plus 模式，单表 CRUD）
@@ -37,19 +34,7 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public IPage<ReservationStock> selectReservationStockPage(Page<ReservationStock> page,
-            Long projectId, String reservationTime, ReservationStockStatus status) {
-        LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(projectId != null, ReservationStock::getProjectId, projectId)
-                .eq(reservationTime != null, ReservationStock::getReservationTime, reservationTime)
-                .eq(status != null, ReservationStock::getStatus, status != null ? status.getCode() : null)
-                .orderByAsc(ReservationStock::getProjectId)
-                .orderByAsc(ReservationStock::getReservationTime);
-        return page(page, wrapper);
-    }
-
-    @Override
-    public ReservationStock selectByProjectAndTime(Long projectId, String reservationTime) {
+    public ReservationStock selectByProjectAndTime(Long projectId, Date reservationTime) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
                 .eq(ReservationStock::getReservationTime, reservationTime)
@@ -58,79 +43,18 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public List<ReservationStock> selectByProjectId(Long projectId) {
+    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, Date minTime) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
-                .orderByAsc(ReservationStock::getReservationTime);
-        return list(wrapper);
-    }
-
-    @Override
-    public List<ReservationStock> selectByProjectAndDatePrefix(Long projectId, String datePrefix) {
-        LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ReservationStock::getProjectId, projectId)
-                // likeRight → reservation_time like '20261031%'，前缀匹配可走索引
-                .likeRight(ReservationStock::getReservationTime, datePrefix)
-                .orderByAsc(ReservationStock::getReservationTime);
-        return list(wrapper);
-    }
-
-    @Override
-    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, String minDayTime) {
-        LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ReservationStock::getProjectId, projectId)
-                // reservation_time 是定长 yyyyMMddHHmm，字符串比较等价于时间先后比较
-                .ge(ReservationStock::getReservationTime, minDayTime)
+                .ge(ReservationStock::getReservationTime, minTime)
                 .orderByAsc(ReservationStock::getReservationTime);
         return list(wrapper);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean deductReservationCount(Long reservationStockId, int delta) {
-        LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(ReservationStock::getReservationStockId, reservationStockId)
-                .setSql("reservation_count = reservation_count - " + delta)
-                .set(ReservationStock::getUpdateTime, DateUtils.getNowDate());
-        return update(wrapper);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean incrementReservationCount(Long reservationStockId, int delta) {
-        LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(ReservationStock::getReservationStockId, reservationStockId)
-                .setSql("reservation_count = reservation_count + " + delta)
-                .set(ReservationStock::getUpdateTime, DateUtils.getNowDate());
-        return update(wrapper);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean incrementReservedCount(Long projectId, String reservationTime) {
-        LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(ReservationStock::getProjectId, projectId)
-                .eq(ReservationStock::getReservationTime, reservationTime)
-                .setSql("reserved_count = reserved_count + 1")
-                .set(ReservationStock::getUpdateTime, DateUtils.getNowDate());
-        return update(wrapper);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean updateStatus(Long reservationStockId, ReservationStockStatus status) {
-        ReservationStock update = new ReservationStock();
-        update.setStatus(status.getCode());
-        update.setUpdateTime(DateUtils.getNowDate());
-        LambdaUpdateWrapper<ReservationStock> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(ReservationStock::getReservationStockId, reservationStockId);
-        return update(update, wrapper);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean removeReservationStockByIds(Long[] reservationStockIds) {
-        return removeByIds(Arrays.asList(reservationStockIds));
+    public boolean incrementReservedCount(Long projectId, Date reservationTime) {
+        return baseMapper.incrementReservedCount(projectId, reservationTime, DateUtils.getNowDate()) > 0;
     }
 
     @Override

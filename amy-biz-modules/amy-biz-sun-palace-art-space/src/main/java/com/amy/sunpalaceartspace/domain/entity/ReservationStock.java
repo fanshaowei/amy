@@ -4,14 +4,15 @@ import com.amy.common.core.web.domain.BaseEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.Date;
 
 /**
  * 预约库存对象 biz_spas_reservation_stock
  *
- * @Description 每个项目在每个可预约时段(如 202609280930)的库存记录，记录该时段可预约的数量与状态
+ * @Description 每个项目在每个可预约时段(如 2026-09-28 09:30:00)的库存记录，记录该时段可预约的数量与状态
  * @Author fantasyfan
  * @Date 2026-09-28
  */
@@ -27,8 +28,8 @@ public class ReservationStock extends BaseEntity {
     /** 项目id */
     private Long projectId;
 
-    /** 预约时间,eg: 202609280930 */
-    private String reservationTime;
+    /** 预约时间,eg: 2026-09-28 09:30:00 */
+    private Date reservationTime;
 
     /** 可预约数量 */
     private Integer reservationCount;
@@ -49,10 +50,10 @@ public class ReservationStock extends BaseEntity {
      * 库存状态，取值见 {@link com.amy.sunpalaceartspace.enums.ReservationStockStatus}：
      * 0=已过可预约时间、1=正常可预约、2=手动设置该时段不可预约。
      *
-     * <p>由布尔「有效/失效」扩展为三态。0/2 两种状态<b>不进入 Redis 库存缓存</b>，但仍保留库存行；
-     * 放号与缓存重建逻辑见 {@code ReservationRulesService}。</p>
-     *
      * <p>列存数值码（TINYINT），赋值/比较统一走枚举的 {@code getCode()}，不要直接写布尔或字面量。</p>
      */
     private Integer status;
+
+    /** 售罄时间（已预约数达到总容量 reservation_count 的时刻；仅首次达满时记录） */
+    private Date soldOutTime;
 }
