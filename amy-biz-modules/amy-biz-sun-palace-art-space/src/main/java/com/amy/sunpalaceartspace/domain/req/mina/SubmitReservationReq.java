@@ -1,5 +1,6 @@
-package com.amy.sunpalaceartspace.domain.req;
+package com.amy.sunpalaceartspace.domain.req.mina;
 
+import com.amy.sunpalaceartspace.domain.req.FollowerReq;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

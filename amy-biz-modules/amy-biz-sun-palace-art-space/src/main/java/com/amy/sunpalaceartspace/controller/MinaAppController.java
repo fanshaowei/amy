@@ -11,10 +11,11 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.*;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
+import com.amy.sunpalaceartspace.domain.req.mina.MinaAppOpenIdLoginReq;
+import com.amy.sunpalaceartspace.domain.req.mina.SubmitReservationReq;
+import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
+import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
+import com.amy.sunpalaceartspace.domain.resp.mina.*;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
@@ -57,9 +58,17 @@ public class MinaAppController extends BaseController {
      * @throws WxErrorException
      */
     @PostMapping("/auth/login")
-    public R<String> login(@Validated @RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
-        String token = minaAppLoginService.generalApiAuthToken(req);
-        return R.ok(token);
+    public R<WechatApiAuthLoginResp> login(@Validated @RequestBody WechatApiAuthLoginReq req) throws WxErrorException {
+        WechatApiAuthLoginResp resp = minaAppLoginService.generalApiAuthToken(req);
+        return R.ok(resp);
+    }
+
+    @MinaApiAuth
+    @PostMapping("/reservation/user/update")
+    public R<ReservationUser> updateReservationUser(@RequestHeader("Authorization") String token,
+            @Validated @RequestBody UpdateReservationUserReq req) {
+        ReservationUser reservationUser = minaAppLoginService.updateReservationUserInfo(token, req);
+        return R.ok(reservationUser);
     }
 
     /**

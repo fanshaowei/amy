@@ -10,7 +10,7 @@ import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
-import com.amy.sunpalaceartspace.domain.req.SubmitReservationReq;
+import com.amy.sunpalaceartspace.domain.req.mina.SubmitReservationReq;
 import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;

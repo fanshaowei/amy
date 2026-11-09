@@ -1,4 +1,4 @@
-package com.amy.sunpalaceartspace.domain.req;
+package com.amy.sunpalaceartspace.domain.req.mina;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

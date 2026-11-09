@@ -12,7 +12,9 @@ import com.amy.sunpalaceartspace.constant.SpasConstant;
 import com.amy.sunpalaceartspace.domain.bo.WechatApiTokenClaimBO;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationUserReq;
-import com.amy.sunpalaceartspace.domain.req.WechatApiAuthLoginReq;
+import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
+import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
+import com.amy.sunpalaceartspace.domain.resp.mina.WechatApiAuthLoginResp;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -41,12 +43,20 @@ public class MinaAppLoginService {
     private final ObjectMapper objectMapper;
     private final IReservationUserService reservationUserService;
 
+    public ReservationUser updateReservationUserInfo(String token, UpdateReservationUserReq req) {
+        ReservationUser reservationUser = getUserByToken(token);
+        reservationUser.setNickname(req.getNickName());
+        reservationUser.setAvatarImgUrl(req.getAvatarImgUrl());
+        reservationUserService.getBaseMapper().updateById(reservationUser);
+        return reservationUser;
+    }
+
     /**
      * 生成 spasToken: token每次生成都会用一个新的UUID
      * @param req
      * @return
      */
-    public String generalApiAuthToken(WechatApiAuthLoginReq req) {
+    public WechatApiAuthLoginResp generalApiAuthToken(WechatApiAuthLoginReq req) {
         WxMaJscode2SessionResult wxMaJscode2SessionResult = null;
         try {
             wxMaJscode2SessionResult = wxMaService.jsCode2SessionInfo(req.getJsCode());
@@ -58,11 +68,17 @@ public class MinaAppLoginService {
         log.info("login openid: {}, sessionKey: {}", openId, sessionKey);
 
         // 创建预约会员记录
-        createReservationUserByWechatInfo(req, openId);
+        boolean firstTimeLogin = reservationUserService.checkReservationUserByOpenId(openId);
+        if(!firstTimeLogin) {
+            createReservationUserByWechatInfo(req, openId);
+        }
         // 生成 spasToken
         String spasToken = generalJwt();
         saveMinaUserLoginCache(spasToken, openId, sessionKey);
-        return spasToken;
+        return WechatApiAuthLoginResp.builder()
+                .fistTimeLogin(firstTimeLogin)
+                .token(spasToken)
+                .build();
     }
 
     /**
@@ -130,7 +146,7 @@ public class MinaAppLoginService {
     }
 
     private void saveMinaUserLoginCache(String spasToken, String openId, String sessionKey) {
-        redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken), openId, 2L, TimeUnit.HOURS);
+        redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken), openId, 24L, TimeUnit.HOURS);
         redisService.setCacheObject(String.format(SpasConstant.CASH_WX_OPEN_ID_SESSION_KEY, openId), sessionKey);
     }
 
