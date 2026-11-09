@@ -32,7 +32,7 @@ export interface ProjectRecord {
     /** 预约须知（富文本 HTML） */
     reservationNotes?: string;
     sort?: number;
-    /** 状态（0展示 1隐藏） */
+    /** 状态（0=停用/隐藏 1=正常/展示） */
     status?: string;
     createBy?: string;
     createTime?: string

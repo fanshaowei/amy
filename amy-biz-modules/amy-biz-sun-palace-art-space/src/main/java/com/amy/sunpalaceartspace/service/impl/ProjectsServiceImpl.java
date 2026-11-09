@@ -6,6 +6,7 @@ import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
+import com.amy.sunpalaceartspace.enums.ProjectStatus;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
@@ -58,7 +59,7 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     public boolean saveProjects(Projects projects) {
         if (projects.getStatus() == null)
         {
-            projects.setStatus("0");
+            projects.setStatus(ProjectStatus.NORMAL.getCode());
         }
         projects.setCreateTime(DateUtils.getNowDate());
         boolean ok = save(projects);

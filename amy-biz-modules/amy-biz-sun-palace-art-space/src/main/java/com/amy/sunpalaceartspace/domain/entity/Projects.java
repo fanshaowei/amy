@@ -85,8 +85,10 @@ public class Projects extends BaseEntity {
     @Excel(name = "排序", cellType = ColumnType.NUMERIC)
     private Integer sort;
 
-    /** 状态（0正常/启用 1停用） */
-    @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
+    /**
+     * 状态（0=停用, 1=正常）。取值含义见 {@link com.amy.sunpalaceartspace.enums.ProjectStatus}。
+     */
+    @Excel(name = "状态", readConverterExp = "0=停用,1=正常")
     @TableField("status")
     private String status;
 

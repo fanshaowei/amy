@@ -5,6 +5,7 @@ import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
 import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
+import com.amy.sunpalaceartspace.enums.ProjectStatus;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
@@ -54,7 +55,7 @@ public class ReservationRulesService {
     public void releaseStock(Date date, int batch) {
         List<Projects> projects = projectsService.getBaseMapper().selectList(null)
                 .stream()
-                .filter(project -> Objects.equals(project.getStatus(), "0"))
+                .filter(project -> Objects.equals(project.getStatus(), ProjectStatus.NORMAL.getCode()))
                 .toList();
         for (Projects project : projects) {
             /** 如果项目设置的提前几天可预约，那就得提前放几天的号 **/

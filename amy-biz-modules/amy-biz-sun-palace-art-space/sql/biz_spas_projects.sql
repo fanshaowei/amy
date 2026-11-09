@@ -17,7 +17,7 @@ create table biz_spas_projects (
   traveler_count             int(4)          default null                 comment '随行人数',
   reservation_notes          text                                         comment '预约须知（富文本）',
   sort                       int(4)          default 0                    comment '排序',
-  status                     char(1)         default '0'                 comment '状态（0正常/启用 1停用）',
+  status                     char(1)         default '1'                 comment '状态（0停用 1正常）',
   max_monthly_reservation_count int(4)       default null                 comment '每人每个月最多预约数量',
   max_monthly_cancellation_count int(4)      default null                 comment '每月取消几次不能预约',
   reservation_frequency_days  int(4)          default null                 comment '多少天内只能预约1次',

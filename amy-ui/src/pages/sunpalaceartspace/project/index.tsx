@@ -84,7 +84,7 @@ const toFormValues = (record?: ProjectRecord): ProjectFormValues | undefined => 
     cutOffTime: toDayjs(record.cutOffTime),
     reservationStartTime: toDayjs(record.reservationStartTime),
     reservationEndTime: toDayjs(record.reservationEndTime)
-} : {projectName: '', coverArtUrl: '', status: '0', sort: 0, reservationNotes: ''};
+} : {projectName: '', coverArtUrl: '', status: '1', sort: 0, reservationNotes: ''};
 
 /** 卡片标题前的彩色图标徽标，用于区分各个分区 */
 const SectionBadge = ({icon, color, bg}: { icon: React.ReactNode; color: string; bg: string }) => <span style={{
@@ -148,7 +148,7 @@ export default function ProjectPage() {
         try {
             const result = await listProjects({pageNum: 1, pageSize: STAT_PAGE_SIZE});
             const rows = result.data?.rows ?? [];
-            const shown = rows.filter(row => row.status === '0').length;
+            const shown = rows.filter(row => row.status === '1').length;
             setStats({total: rows.length, shown, hidden: rows.length - shown});
             setUpdatedAt(`${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`);
         } catch {
@@ -369,7 +369,7 @@ export default function ProjectPage() {
                             </Col>
                             <Col span={24}>
                                 <ProFormRadio.Group name="status" label="展示状态"
-                                                    options={[{label: '展示', value: '0'}, {label: '隐藏', value: '1'}]}/>
+                                                    options={[{label: '展示', value: '1'}, {label: '隐藏', value: '0'}]}/>
                             </Col>
                         </Row>
                     </Col>

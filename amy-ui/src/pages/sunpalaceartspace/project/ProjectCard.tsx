@@ -42,7 +42,7 @@ export interface ProjectCardProps {
 
 /** 项目管理卡片：封面 + 标题 + 规则摘要 + 操作区 */
 export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete, onRefresh}: ProjectCardProps) {
-    const visible = project.status === '0';
+    const visible = project.status === '1';
 
     return (
         <Card
