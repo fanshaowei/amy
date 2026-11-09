@@ -20,6 +20,7 @@ import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
@@ -239,8 +240,11 @@ public class MinaAppService {
                 .nickname(userInfo.getNickname())
                 .phone(null != userIdentityVO ? userIdentityVO.getPhone() : userInfo.getPhone())
                 .idNum(null != userIdentityVO ? userIdentityVO.getIdNum() : userInfo.getIdNum())
+                .name(null != userIdentityVO ? userIdentityVO.getName() : null)
+                .idType(null != userIdentityVO ? userIdentityVO.getIdType() : null)
                 .avatarImgUrl(userInfo.getAvatarImgUrl())
                 .isVerified(userInfo.getIsVerified())
+                .openId((String) openId)
                 .build();
     }
 
@@ -380,6 +384,95 @@ public class MinaAppService {
             return Collections.emptyList();
         }
         return userIdentityVOIPage.getRecords();
+    }
+
+    /**
+     * 小程序端修改随行人信息
+     *
+     * <p>仅允许修改本人名下、且 {@code is_follower=true} 的记录；修改证件号时做格式校验
+     * 与全局查重（排除本记录），身份证走阿里实名核验并回填性别。</p>
+     *
+     * @param user 当前登录会员
+     * @param req  随行人信息（userIdentityId 必填）
+     * @return 修改后该会员的所有随行人列表
+     */
+    @Transactional
+    public List<UserIdentityVO> updateFollower(ReservationUser user, UserIdentityReq req) {
+        if (req.getUserIdentityId() == null) {
+            throw new ServiceException("缺少随行人记录ID");
+        }
+        UserIdentity identity = userIdentityService.getById(req.getUserIdentityId());
+        if (identity == null) {
+            throw new ServiceException("随行人信息不存在或已删除");
+        }
+        // 仅允许维护本人名下的随行人记录
+        if (!Objects.equals(identity.getReservationUserId(), user.getReservationUserId())) {
+            throw new ServiceException("无权修改该随行人信息");
+        }
+        if (!Boolean.TRUE.equals(identity.getIsFollower())) {
+            throw new ServiceException("该记录不是随行人，无法通过此接口修改");
+        }
+
+        boolean verify = IdVerifyUtil.verify(req.getIdType(), req.getIdNum());
+        if (!verify) {
+            throw new ServiceException("证件号码格式不正确，请检查后重新输入");
+        }
+        // 证件号查重：排除本记录自身
+        boolean duplicated = userIdentityService.count(
+                new LambdaQueryWrapper<UserIdentity>()
+                        .eq(UserIdentity::getIdNum, req.getIdNum())
+                        .ne(UserIdentity::getUserIdentityId, req.getUserIdentityId())) > 0;
+        if (duplicated) {
+            throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
+        }
+
+        // 如果是身份证，实名认证
+        if (req.getIdType().equals(IdType.ID_CARD)) {
+            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
+            if (idCardInfor == null) {
+                throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
+            }
+            int gender = GenderEnum.getCodeFromDesc(idCardInfor.getSex());
+            req.setGender(gender);
+        }
+
+        // 维持原归属与随行人标记，避免调用方篡改归属关系
+        req.setReservationUserId(identity.getReservationUserId());
+        req.setIsFollower(true);
+        log.info("start to update follower info, user:{}, identityId:{}", user.getReservationUserId(), req.getUserIdentityId());
+        userIdentityService.updateUserIdentity(req);
+        log.info("update follower completed");
+
+        return getUserAndFollowerIdentity(user.getReservationUserId());
+    }
+
+    /**
+     * 小程序端删除随行人（软删除，{@link com.amy.common.core.web.domain.BaseEntity} del_flag 置 1）
+     *
+     * @param user           当前登录会员
+     * @param userIdentityId 随行人记录ID
+     * @return 删除后该会员的所有随行人列表
+     */
+    @Transactional
+    public List<UserIdentityVO> deleteFollower(ReservationUser user, Long userIdentityId) {
+        UserIdentity identity = userIdentityService.getById(userIdentityId);
+        if (identity == null) {
+            throw new ServiceException("随行人信息不存在或已删除");
+        }
+        // 仅允许删除本人名下的随行人记录
+        if (!Objects.equals(identity.getReservationUserId(), user.getReservationUserId())) {
+            throw new ServiceException("无权删除该随行人信息");
+        }
+        if (!Boolean.TRUE.equals(identity.getIsFollower())) {
+            throw new ServiceException("该记录不是随行人，无法通过此接口删除");
+        }
+
+        log.info("start to delete follower, user:{}, identityId:{}", user.getReservationUserId(), userIdentityId);
+        userIdentityService.removeUserIdentityByIds(new Long[]{userIdentityId});
+        log.info("delete follower completed");
+
+        return getUserAndFollowerIdentity(user.getReservationUserId());
     }
 
     private AliIdCheckDto.ResultDTO verify(UserIdentityReq req) {

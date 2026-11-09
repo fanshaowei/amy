@@ -12,17 +12,17 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-/** 简单解析须知文本，支持 ## 标题 */
-const blocks = computed(() => {
-  return props.content
-    .split('\n')
-    .filter((l) => l.trim() !== '')
-    .map((line) => {
-      if (line.startsWith('## ')) {
-        return { type: 'h', text: line.replace('## ', '') }
-      }
-      return { type: 'p', text: line }
-    })
+/**
+ * 预约须知为后台富文本编辑器产出的 HTML，直接交给 rich-text 渲染。
+ * 处理两点：
+ * 1. 空内容兜底（rich-text 传空串时小程序端会告警）；
+ * 2. 图片可能超出弹窗宽度，统一注入 max-width 自适应样式（已有 style 的追加，没有的补上）。
+ */
+const nodes = computed(() => {
+  const html = props.content || '<p></p>'
+  return html
+    .replace(/<img([^>]*?)style="([^"]*?)"/gi, '<img$1style="$2;max-width:100%;height:auto"')
+    .replace(/<img(?![^>]*?style=)/gi, '<img style="max-width:100%;height:auto"')
 })
 </script>
 
@@ -34,10 +34,7 @@ const blocks = computed(() => {
         <text class="sheet__close" @tap="emit('close')">×</text>
       </view>
       <scroll-view class="notice" scroll-y>
-        <template v-for="(b, i) in blocks" :key="i">
-          <view v-if="b.type === 'h'" class="notice__h">{{ b.text }}</view>
-          <view v-else class="notice__p">{{ b.text }}</view>
-        </template>
+        <rich-text class="notice__rich" :nodes="nodes"></rich-text>
         <view class="notice__hint">— 请仔细阅读以上须知 —</view>
       </scroll-view>
       <view class="sheet__btn" @tap="emit('confirm')">我已阅读</view>
@@ -90,14 +87,11 @@ const blocks = computed(() => {
   color: #1f2329;
   line-height: 1.85;
 }
-.notice__h {
-  font-size: 28rpx;
-  font-weight: 600;
-  margin: 20rpx 0 10rpx;
-  color: #1f2329;
-}
-.notice__p {
-  margin-bottom: 8rpx;
+/* 富文本内图片自适应宽度（rich-text 内联样式随节点下发，这里兜底容器表现） */
+.notice__rich {
+  display: block;
+  width: 100%;
+  word-break: break-all;
 }
 .notice__hint {
   color: #86909c;

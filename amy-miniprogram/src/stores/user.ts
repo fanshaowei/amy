@@ -59,6 +59,29 @@ export const useUserStore = defineStore('user', {
       return user
     },
 
+    /**
+     * 静默续登：按本地缓存的 openId 换发新 token（token 过期场景）
+     * 失败时抛错，由调用方决定是否回退到微信授权登录
+     */
+    async loginByOpenId(openId: string) {
+      const token = await userApi.loginByOpenId(openId)
+      setToken(token)
+      this.token = token
+      try {
+        const user = await userApi.getProfile()
+        this.user = user
+        this.loggedIn = true
+        uni.setStorageSync(STORAGE_KEY, user)
+        return user
+      } catch (e) {
+        // 新 token 拉不到会员信息：清掉 token，但保留 reservation_user（openId 还可继续用）
+        clearToken()
+        this.token = ''
+        this.loggedIn = false
+        throw e
+      }
+    },
+
     /** 刷新会员信息 */
     async fetchProfile() {
       if (!this.token) return null

@@ -2,15 +2,59 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
+import type { User } from '@/types'
 
 const userStore = useUserStore()
+
+/** 本地用户缓存 key（与 stores/user.ts 保持一致） */
+const STORAGE_KEY = 'reservation_user'
 
 const nickname = ref('')
 const avatarUrl = ref('')
 const loading = ref(false)
+/** 正在按缓存 openId 静默续登 */
+const silentLoading = ref(false)
 const redirect = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
+
+/** 登录成功后回跳来源页 */
+function goBack() {
+  if (redirect.value) {
+    uni.redirectTo({ url: redirect.value })
+  } else {
+    uni.navigateBack()
+  }
+}
+
+/**
+ * 静默续登：本地缓存过 reservation_user（含 openId）时，先用 openId 去后端换新 token，
+ * 免去 token 过期后再次弹微信授权；失败则停留在本页走正常授权登录
+ */
+async function trySilentLogin() {
+  let cached: User | null = null
+  try {
+    cached = (uni.getStorageSync(STORAGE_KEY) as User) || null
+  } catch (e) {
+    cached = null
+  }
+  const openId = cached?.openId
+  if (!openId) return
+
+  silentLoading.value = true
+  uni.showLoading({ title: '自动登录中...', mask: true })
+  try {
+    await userStore.loginByOpenId(openId)
+    uni.hideLoading()
+    uni.showToast({ title: '登录成功', icon: 'success' })
+    setTimeout(goBack, 600)
+  } catch (e) {
+    // openId 失效 / 账号异常 / 网络异常：静默回退到微信授权登录
+    uni.hideLoading()
+  } finally {
+    silentLoading.value = false
+  }
+}
 
 /** 调起微信登录拿 code（仅小程序端有效） */
 async function fetchWxCode(): Promise<string> {
@@ -38,7 +82,7 @@ function onChooseAvatar(e: any) {
 }
 
 async function onLogin() {
-  if (loading.value) return
+  if (loading.value || silentLoading.value) return
   loading.value = true
   try {
     const jsCode = await fetchWxCode()
@@ -48,14 +92,7 @@ async function onLogin() {
       avatarImgUrl: avatarUrl.value,
     })
     uni.showToast({ title: '登录成功', icon: 'success' })
-
-    setTimeout(() => {
-      if (redirect.value) {
-        uni.redirectTo({ url: redirect.value })
-      } else {
-        uni.navigateBack()
-      }
-    }, 600)
+    setTimeout(goBack, 600)
   } catch (e: any) {
     uni.showToast({ title: e.message || '登录失败', icon: 'none' })
   } finally {
@@ -65,6 +102,8 @@ async function onLogin() {
 
 onLoad((query) => {
   redirect.value = query?.redirect || ''
+  // 进入登录页先尝试用缓存 openId 静默换 token（token 过期是常见场景）
+  trySilentLogin()
 })
 </script>
 
@@ -72,7 +111,7 @@ onLoad((query) => {
   <view class="login">
     <view class="login__logo">🎫</view>
     <view class="login__title">预约门票</view>
-    <view class="login__sub">请完成微信授权登录</view>
+    <view class="login__sub">{{ silentLoading ? '正在自动登录...' : '请完成微信授权登录' }}</view>
 
     <view class="login__avatar">
       <!-- #ifdef MP-WEIXIN -->
@@ -93,8 +132,8 @@ onLoad((query) => {
       </view>
     </view>
 
-    <view class="login__btn" :class="{ disabled: loading }" @tap="onLogin">
-      {{ loading ? '登录中...' : '授权登录' }}
+    <view class="login__btn" :class="{ disabled: loading || silentLoading }" @tap="onLogin">
+      {{ loading || silentLoading ? '登录中...' : '授权登录' }}
     </view>
     <view class="login__tip">登录即表示同意《用户协议》和《隐私政策》</view>
   </view>

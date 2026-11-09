@@ -33,6 +33,15 @@ public class MinaReservationUserInfoResp {
     /** 是否已验证 */
     private Boolean isVerified;
 
-    /** 身份证号 */
+    /** 证件号码 */
     private String idNum;
+
+    /** 实名姓名（未实名时为空） */
+    private String name;
+
+    /** 证件类型（与 IdType 枚举一致：1身份证 2护照 3港澳证件 4台湾通行证 5军官证） */
+    private Integer idType;
+
+    /** 微信 openId（小程序本地缓存，用于 token 过期后静默续登） */
+    private String openId;
 }

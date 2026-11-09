@@ -18,6 +18,9 @@ const meta = computed(() => {
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 
+/** 是否已实名（未登录视为未实名） */
+const isVerified = computed(() => !!userStore.user?.isVerified)
+
 function onCardClick() {
   if (userStore.loggedIn) {
     uni.navigateTo({ url: '/pages/edit/index' })
@@ -36,6 +39,24 @@ function goScan() {
 
 function goAbout() {
   uni.navigateTo({ url: '/pages/about/index' })
+}
+
+function goVerify() {
+  uni.navigateTo({ url: '/pages/verify/index' })
+}
+
+/** 退出登录：清除 token 与 reservation_user 缓存 */
+function onLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确定要退出当前账号吗？',
+    confirmColor: '#f53f3f',
+    success: (res) => {
+      if (!res.confirm) return
+      userStore.logout()
+      uni.showToast({ title: '已退出登录', icon: 'none' })
+    },
+  })
 }
 
 onShow(async () => {
@@ -71,6 +92,12 @@ onShow(async () => {
         <text class="menu-item__text">预约记录</text>
         <text class="menu-item__arrow">›</text>
       </view>
+      <view class="menu-item" @tap="goVerify">
+        <text class="menu-item__icon">✚</text>
+        <text class="menu-item__text">实名认证</text>
+        <text class="menu-item__status" :class="{ ok: isVerified }">{{ isVerified ? '已实名' : '未实名' }}</text>
+        <text class="menu-item__arrow">›</text>
+      </view>
       <view v-if="userStore.isVerifier" class="menu-item" @tap="goScan">
         <text class="menu-item__icon">⌖</text>
         <text class="menu-item__text">核销</text>
@@ -82,6 +109,8 @@ onShow(async () => {
         <text class="menu-item__arrow">›</text>
       </view>
     </view>
+
+    <view v-if="userStore.loggedIn" class="logout-btn" @tap="onLogout">退出登录</view>
   </view>
 </template>
 
@@ -155,6 +184,24 @@ onShow(async () => {
 }
 .menu-item__text {
   flex: 1;
+}
+.menu-item__status {
+  font-size: 24rpx;
+  color: #f53f3f;
+  margin-right: 8rpx;
+}
+.menu-item__status.ok {
+  color: #00b42a;
+}
+.logout-btn {
+  margin: 48rpx 24rpx 60rpx;
+  background: #fff;
+  color: #f53f3f;
+  padding: 28rpx;
+  border-radius: 56rpx;
+  text-align: center;
+  font-size: 30rpx;
+  box-shadow: 0 4rpx 24rpx rgba(31, 35, 41, 0.04);
 }
 .menu-item__arrow {
   color: #c9cdd4;

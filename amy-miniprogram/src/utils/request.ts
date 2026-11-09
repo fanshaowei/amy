@@ -18,7 +18,7 @@ export const TOKEN_KEY = 'spas_token'
  * - 正式环境：需替换为 HTTPS 域名，并在微信公众平台「开发管理 - 服务器域名」中配置为 request 合法域名
  * - 若网关路由为该模块配置了前缀 / StripPrefix，请在此处同步调整
  */
-export const BASE_URL = 'http://localhost:18080'
+export const BASE_URL = "http://amy.we-link.com.cn"//'http://localhost:18080'
 
 /** 后端 R 的成功码 */
 const SUCCESS_CODE = 200
