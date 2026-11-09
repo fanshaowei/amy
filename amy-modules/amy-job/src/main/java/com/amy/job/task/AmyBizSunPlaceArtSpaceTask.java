@@ -36,4 +36,11 @@ public class AmyBizSunPlaceArtSpaceTask {
     public void releaseBatch2() {
         remoteReservationStockService.releaseBatch2(SecurityConstants.INNER);
     }
+
+    /**
+     * 更新库存过期
+     */
+    public void updateStockExpire() {
+        remoteReservationStockService.updateExpireStock(SecurityConstants.INNER);
+    }
 }

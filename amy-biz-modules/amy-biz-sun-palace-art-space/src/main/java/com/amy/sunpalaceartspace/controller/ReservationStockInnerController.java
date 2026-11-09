@@ -40,4 +40,12 @@ public class ReservationStockInnerController
         reservationStockTask.releaseBatch2();
         return R.ok(true);
     }
+
+    @InnerAuth
+    @PostMapping("/updateExpireStock")
+    public R<Boolean> updateExpireStock()
+    {
+        reservationStockTask.updateExpireStock();
+        return R.ok(true);
+    }
 }

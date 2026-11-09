@@ -39,16 +39,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         from biz_spas_projects
     </sql>
 
-    <!--
-        创建时间范围：来自 params.beginTime / params.endTime（BaseEntity.params），值为 yyyy-MM-dd。
-
-        【不要用 date_format(create_time,...) 比较】
-        历史写法是 date_format(create_time,'%Y%m%d') &gt;= date_format(#{...},'%Y%m%d')，有两个问题：
-          ① 对列套函数 → 无法使用 create_time 的 B+ 树做 range scan，只能全表扫；
-          ② 前端导出传的是 ISO-8601（2026-10-09T16:00:00.000Z），MySQL 的 date_format 会丢弃
-             Z 时区标记，按本地时间解析成 2026-10-09，导致结果整体偏移一天。
-        改为「裸列 + 左闭右闭区间」，时间值的格式由 DateRangeParamUtils 在 Java 侧归一化。
-    -->
     <sql id="projectsCreateTimeRange">
         <if test="entity.params != null and entity.params.beginTime != null and entity.params.beginTime != ''">
             and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')

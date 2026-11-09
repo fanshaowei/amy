@@ -1,12 +1,8 @@
 package com.amy.sunpalaceartspace.domain.entity;
 
-import java.util.Date;
-import java.util.List;
-
 import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
 import com.amy.common.core.web.domain.BaseEntity;
-import com.amy.sunpalaceartspace.config.StringListJsonTypeHandler;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -18,6 +14,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.Date;
 
 /**
  * 预约订单对象 biz_spas_reservation_order
@@ -116,17 +114,6 @@ public class ReservationOrder extends BaseEntity {
 
     /**
      * 预约随行人身份信息（JSON 字符串）。
-     *
-     * <p>类型 {@code String}，直接对应 {@code comp_users} VARCHAR(2000) 列存储的 JSON 字符串。
-     * 内容为由 {@code com.amy.sunpalaceartspace.domain.req.FollowerReq} 列表序列化而成的 JSON 数组
-     * （如 {@code [{"name":"张三","idNum":"110101199001011234"}]}）。</p>
-     *
-     * <p>不再使用 {@link StringListJsonTypeHandler}：实体字段即为原始 JSON 字符串，由 MyBatis 默认
-     * StringTypeHandler 直接读写。如需在 VO 中反序列化为列表，由
-     * {@code ReservationOrderMapper.xml} 的 VO resultMap 单独指定 typeHandler 处理。</p>
-     *
-     * <p>仅保存随行人"快照信息"，不与 {@code biz_spas_user_identity} 表建立 FK，
-     * 避免随行人后续修改/删除时影响历史预约单的可追溯性。</p>
      */
     @Excel(name = "随行人信息")
     @TableField(value = "comp_users")

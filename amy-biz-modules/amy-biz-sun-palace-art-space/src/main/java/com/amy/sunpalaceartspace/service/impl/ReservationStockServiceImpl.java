@@ -1,12 +1,16 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.utils.DateUtils;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
 import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationStockMapper;
+import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +23,12 @@ import java.util.List;
  * @author fantasyfan
  * @date 2026-09-28
  */
+@Slf4j
+@RequiredArgsConstructor
 @Service
 public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMapper, ReservationStock>
         implements IReservationStockService {
+    private final IProjectsService projectsService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -69,5 +76,12 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
         LambdaQueryWrapper<ReservationStock> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.ne(ReservationStock::getStatus, excludeStatus.getCode());
         return list(queryWrapper);
+    }
+
+    @Override
+    public int setReservationStockExpireByProjectCutOffTime(){
+        int update = this.baseMapper.updateReservationStockExpireByProjectCutOffTime();
+        log.info("stock expire update count: {}", update);
+        return update;
     }
 }

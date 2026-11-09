@@ -1,7 +1,7 @@
 package com.amy.sunpalaceartspace.timetask;
 
-import com.amy.common.core.utils.DateUtils;
 import com.amy.sunpalaceartspace.common.SpasLock;
+import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.amy.sunpalaceartspace.service.ReservationRulesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +28,7 @@ import static com.amy.sunpalaceartspace.constant.SpasConstant.SAPS_RELEASE_LOCK;
 public class ReservationStockTask {
     private final ReservationRulesService reservationRulesService;
     private final SpasLock spasLock;
+    private final IReservationStockService reservationStockService;
 
     /**
      * 每天 12:00 释放“第二天”第一批名额（每时段 +10，共 60）。
@@ -43,5 +44,12 @@ public class ReservationStockTask {
     public void releaseBatch2() {
         spasLock.run(() -> reservationRulesService.releaseStock(new Date(), 2),
                 SAPS_RELEASE_LOCK, "releaseBatch2");
+    }
+
+    public void updateExpireStock() {
+        log.info("Start to updateExpireStock");
+        spasLock.run(reservationStockService::setReservationStockExpireByProjectCutOffTime,
+                "updateExpireStock", "updateExpireStock");
+        log.info("Finish updating expire stock");
     }
 }

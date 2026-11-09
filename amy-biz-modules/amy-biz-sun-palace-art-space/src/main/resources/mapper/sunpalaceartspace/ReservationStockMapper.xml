@@ -21,4 +21,17 @@
           AND reservation_time = #{reservationTime}
     </update>
 
+    <!--将当天，对应项目截止预约时间之前的库存，设置为过期不可预约（手动设置为不可预约的不用更新）-->
+    <update id="updateReservationStockExpireByProjectCutOffTime">
+    UPDATE biz_spas_reservation_stock as stock
+    SET status = 0,
+        update_time = NOW(),
+        update_by = 'system'
+    WHERE reservation_time &lt;= (
+        select
+            str_to_date(CONCAT(CURRENT_DATE(), ' ', cut_off_time),'%Y-%m-%d %H:%i:%s')
+        from biz_spas_projects as project where project.project_id = stock.project_id)
+    AND status = 1
+    </update>
+
 </mapper>

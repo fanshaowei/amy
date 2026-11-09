@@ -29,4 +29,7 @@ public interface RemoteReservationStockService
      */
     @PostMapping("/inner/reservationStock/releaseBatch2")
     R<Boolean> releaseBatch2(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
+
+    @PostMapping("/inner/reservationStock/updateExpireStock")
+    R<Boolean> updateExpireStock(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 }

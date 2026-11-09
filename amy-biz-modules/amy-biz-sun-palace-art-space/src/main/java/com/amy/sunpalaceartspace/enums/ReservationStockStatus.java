@@ -21,10 +21,6 @@ public enum ReservationStockStatus {
 
     /**
      * 2：该时段被 {@code projectReservationConfig} 手动设置为「不可预约」（休息/维护/包场等）。
-     *
-     * <p>与 {@link #EXPIRED} 的区别：这是<b>人工配置</b>导致的关闭，放号时由
-     * {@code ReservationRulesService#release()} 检测并写入；库存表<b>保留一条记录</b>便于追溯，
-     * 但不放号、不写入 Redis 缓存。</p>
      */
     MANUAL_CLOSED(2, "手动设置不可预约");
 

@@ -25,4 +25,6 @@ public interface ReservationStockMapper extends BaseMapper<ReservationStock> {
     int incrementReservedCount(@Param("projectId") Long projectId,
                                @Param("reservationTime") Date reservationTime,
                                @Param("updateTime") Date updateTime);
+
+    int updateReservationStockExpireByProjectCutOffTime();
 }

@@ -70,4 +70,9 @@ public interface IReservationStockService extends IService<ReservationStock> {
      * @return 库存列表
      */
     List<ReservationStock> selectAllExcludeStatus(ReservationStockStatus excludeStatus);
+
+    /**
+     * 根据项目的截止预约时间，将当天之前的库存设置为过期不可预约
+     */
+    int setReservationStockExpireByProjectCutOffTime();
 }
