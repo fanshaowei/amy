@@ -1,24 +1,16 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import type { Activity, TimeSlot } from '@/types'
+import type { Activity, TimeSlot, UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
 import { getActivityDetail, getSlots } from '@/api/activity'
+import { getFollowers } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
 import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
-import CardPicker from '@/components/CardPicker.vue'
-
-/** 随行人表单（不含本人） */
-interface CompanionForm {
-  name: string
-  /** 证件类型 1身份证 2护照 3港澳通行证 4台湾通行证 5军官证 */
-  cardType: number
-  idNum: string
-}
 
 const userStore = useUserStore()
 const reserveStore = useReserveStore()
@@ -29,8 +21,7 @@ const activity = ref<Activity | null>(null)
 /* 弹窗状态 */
 const noticeShow = ref(false)
 const datePickerShow = ref(false)
-const cardPickerShow = ref(false)
-const cardPickerTarget = ref<'booker' | number>('booker')
+const followerPickerShow = ref(false)
 
 /* 时间选择 */
 const dates = ref<string[]>([])
@@ -38,26 +29,22 @@ const slots = ref<TimeSlot[]>([])
 const selectedDate = ref('')
 const selectedTime = ref('')
 
-/* 主预约人表单 */
+/* 主预约人信息（由实名信息自动带出，不可编辑） */
 const bookerName = ref('')
 const bookerTel = ref('')
 const bookerCardType = ref(1)
 const bookerIdCard = ref('')
 
-/* 随行人 */
-const companions = ref<CompanionForm[]>([])
+/* 随行人：全部已保存的随行人 + 本次带入的随行人 */
+const allFollowers = ref<UserIdentityRow[]>([])
+const companions = ref<UserIdentityRow[]>([])
+/** 随行人选择弹窗中勾选的记录ID */
+const checkedFollowerIds = ref<number[]>([])
 
 const submitting = ref(false)
 
 /** 可携带随行人数（后端 Projects.travelerCount） */
 const maxCompanions = computed(() => activity.value?.travelerCount || 0)
-
-/** 证件选择器当前选中的值 */
-const cardPickerSelected = computed(() => {
-  if (cardPickerTarget.value === 'booker') return bookerCardType.value
-  const idx = cardPickerTarget.value as number
-  return companions.value[idx]?.cardType || 1
-})
 
 const dateLabel = computed(() =>
   selectedDate.value && selectedTime.value
@@ -85,6 +72,51 @@ async function loadSlots() {
     slots.value = await getSlots(activityId.value, selectedDate.value)
   } catch (e) {
     uni.showToast({ title: '时段加载失败', icon: 'none' })
+  }
+}
+
+/**
+ * 拉取实名信息与随行人列表并自动带出：
+ *  - 预约人信息来自 /user/followers/get 中 isFollower=false 的身份记录（/user/info 仅用于实名状态判断与兜底）
+ *  - 随行人来自 /user/followers/get 中 isFollower=true 的记录，超过可携带人数时弹窗让用户勾选
+ */
+async function loadIdentity() {
+  try {
+    const user = await userStore.fetchProfile()
+    if (!user?.isVerified) {
+      // 未实名 → 先去实名认证，完成后回跳本页
+      uni.redirectTo({
+        url: `/pages/verify/index?redirect=/pages/detail/index?id=${activityId.value}`,
+      })
+      return
+    }
+    bookerName.value = user.name || ''
+    bookerTel.value = user.phone || ''
+    bookerIdCard.value = user.idNum || ''
+    bookerCardType.value = user.idType || 1
+
+    const list = await getFollowers()
+    allFollowers.value = list.filter((item) => item.isFollower)
+
+    // 预约人信息以 followers/get 返回的 isFollower=false 身份记录为准（含证件类型），
+    // /user/info 仅作为兜底
+    const myIdentity = list.find((item) => !item.isFollower)
+    if (myIdentity) {
+      bookerName.value = myIdentity.name || bookerName.value
+      bookerTel.value = myIdentity.phone || bookerTel.value
+      bookerIdCard.value = myIdentity.idNum || bookerIdCard.value
+      bookerCardType.value = myIdentity.idType || bookerCardType.value
+    }
+
+    const limit = maxCompanions.value
+    companions.value = allFollowers.value.slice(0, limit)
+    checkedFollowerIds.value = companions.value.map((c) => c.userIdentityId)
+    // 保存的随行人超过可携带数量 → 让用户选择带入哪些
+    if (limit > 0 && allFollowers.value.length > limit) {
+      followerPickerShow.value = true
+    }
+  } catch (e: any) {
+    uni.showToast({ title: e?.message || '实名信息加载失败', icon: 'none' })
   }
 }
 
@@ -119,37 +151,38 @@ function onDateConfirm() {
   datePickerShow.value = false
 }
 
-function openCardPicker(target: 'booker' | number) {
-  cardPickerTarget.value = target
-  cardPickerShow.value = true
+/* ===== 随行人选择 ===== */
+function openFollowerPicker() {
+  checkedFollowerIds.value = companions.value.map((c) => c.userIdentityId)
+  followerPickerShow.value = true
 }
 
-function onCardSelect(id: number) {
-  if (cardPickerTarget.value === 'booker') {
-    bookerCardType.value = id
-  } else {
-    const idx = cardPickerTarget.value as number
-    if (companions.value[idx]) {
-      companions.value[idx].cardType = id
-    }
-  }
-  cardPickerShow.value = false
-}
-
-function addCompanion() {
-  if (companions.value.length >= maxCompanions.value) {
-    uni.showToast({ title: `最多${maxCompanions.value}位随行人`, icon: 'none' })
+function onToggleFollower(item: UserIdentityRow) {
+  const idx = checkedFollowerIds.value.indexOf(item.userIdentityId)
+  if (idx >= 0) {
+    checkedFollowerIds.value.splice(idx, 1)
     return
   }
-  companions.value.push({
-    name: '',
-    cardType: 1,
-    idNum: '',
-  })
+  if (checkedFollowerIds.value.length >= maxCompanions.value) {
+    uni.showToast({ title: `最多携带${maxCompanions.value}位随行人`, icon: 'none' })
+    return
+  }
+  checkedFollowerIds.value.push(item.userIdentityId)
 }
 
-function removeCompanion(idx: number) {
-  companions.value.splice(idx, 1)
+function onFollowerPickerConfirm() {
+  companions.value = allFollowers.value.filter((item) =>
+    checkedFollowerIds.value.includes(item.userIdentityId)
+  )
+  followerPickerShow.value = false
+}
+
+function removeCompanion(item: UserIdentityRow) {
+  companions.value = companions.value.filter((c) => c.userIdentityId !== item.userIdentityId)
+}
+
+function goAddFollower() {
+  uni.navigateTo({ url: '/pages/verify/index' })
 }
 
 function onTimeout() {
@@ -164,33 +197,25 @@ async function onSubmit() {
     uni.showToast({ title: '请选择预约日期', icon: 'none' })
     return
   }
-  if (!bookerName.value.trim()) {
-    uni.showToast({ title: '请输入预约人姓名', icon: 'none' })
+  if (!bookerName.value.trim() || !bookerIdCard.value.trim()) {
+    uni.showToast({ title: '实名信息不完整，请先完成实名认证', icon: 'none' })
     return
   }
   if (!isValidPhone(bookerTel.value)) {
-    uni.showToast({ title: '请输入 11 位正确的手机号', icon: 'none' })
-    return
-  }
-  if (!bookerIdCard.value.trim()) {
-    uni.showToast({ title: '请输入证件号', icon: 'none' })
+    uni.showToast({ title: '实名手机号不正确，请先到「实名认证」中修正', icon: 'none' })
     return
   }
   if (bookerCardType.value === 1 && !isValidIdCard(bookerIdCard.value)) {
-    uni.showToast({ title: '请输入 18 位正确的身份证号', icon: 'none' })
+    uni.showToast({ title: '实名证件号格式不正确，请先到「实名认证」中修正', icon: 'none' })
     return
   }
   for (let i = 0; i < companions.value.length; i++) {
     const c = companions.value[i]
-    if (!c.name.trim()) {
-      uni.showToast({ title: `请输入随行人${i + 1}姓名`, icon: 'none' })
+    if (!c.name.trim() || !c.idNum.trim()) {
+      uni.showToast({ title: `随行人${i + 1}信息不完整，请到「实名认证」中维护`, icon: 'none' })
       return
     }
-    if (!c.idNum.trim()) {
-      uni.showToast({ title: `请输入随行人${i + 1}证件号`, icon: 'none' })
-      return
-    }
-    if (c.cardType === 1 && !isValidIdCard(c.idNum)) {
+    if (c.idType === 1 && !isValidIdCard(c.idNum)) {
       uni.showToast({ title: `随行人${i + 1}身份证号格式不正确`, icon: 'none' })
       return
     }
@@ -207,12 +232,12 @@ async function onSubmit() {
       phone: bookerTel.value,
       cardType: bookerCardType.value,
       idNum: bookerIdCard.value.trim(),
-      // 随行人对应后端 FollowerReq（name/idNum/phone），手机号缺省复用预约人手机号
+      // 随行人取自已保存的身份记录，对应后端 FollowerReq（name/idNum/phone）
       companions: companions.value.map((c) => ({
         name: c.name.trim(),
-        idType: c.cardType,
+        idType: c.idType,
         idNum: c.idNum.trim(),
-        phone: bookerTel.value,
+        phone: c.phone || bookerTel.value,
       })),
     })
     uni.showToast({ title: '预约成功', icon: 'success' })
@@ -237,6 +262,7 @@ onLoad((query) => {
   }
 
   loadActivity(id)
+  loadIdentity()
   // 进入后延迟弹出须知
   setTimeout(openNotice, 300)
 })
@@ -264,54 +290,86 @@ onUnload(() => {
       </view>
     </view>
 
+    <!-- 预约人信息：由实名认证自动带出，不可编辑 -->
     <view class="section">
-      <view class="section__hd">基本信息</view>
-      <view class="form-item">
-        <text class="form-item__lbl"><text class="req">*</text>预约人姓名</text>
-        <input class="form-item__input" v-model="bookerName" placeholder="请输入预约人姓名" />
-      </view>
-      <view class="form-item">
-        <text class="form-item__lbl"><text class="req">*</text>预约人手机</text>
-        <input class="form-item__input" v-model="bookerTel" type="number" maxlength="11" placeholder="请输入预约人手机号" />
-      </view>
-      <view class="form-item" @tap="openCardPicker('booker')">
-        <text class="form-item__lbl"><text class="req">*</text>证件类型</text>
-        <text class="form-item__val">{{ cardTypeTitle(bookerCardType) }}</text>
-        <text class="arrow">›</text>
-      </view>
-      <view class="form-item">
-        <text class="form-item__lbl"><text class="req">*</text>预约人证件号</text>
-        <input class="form-item__input" v-model="bookerIdCard" :maxlength="bookerCardType === 1 ? 18 : 30" placeholder="请输入预约人证件号" />
-      </view>
-    </view>
-
-    <!-- 随行人 -->
-    <view v-for="(c, idx) in companions" :key="idx" class="section">
       <view class="section__hd section__hd--row">
-        <text>随行人{{ idx + 1 }}</text>
-        <text class="del" @tap="removeCompanion(idx)">删除</text>
+        <text>预约人信息</text>
+        <text class="auto-tag">已从实名信息带出</text>
       </view>
       <view class="form-item">
-        <text class="form-item__lbl"><text class="req">*</text>姓名</text>
-        <input class="form-item__input" v-model="c.name" placeholder="请输入随行人姓名" />
-      </view>
-      <view class="form-item" @tap="openCardPicker(idx)">
-        <text class="form-item__lbl"><text class="req">*</text>证件类型</text>
-        <text class="form-item__val">{{ cardTypeTitle(c.cardType) }}</text>
-        <text class="arrow">›</text>
+        <text class="form-item__lbl">预约人姓名</text>
+        <text class="form-item__val">{{ bookerName || '-' }}</text>
       </view>
       <view class="form-item">
-        <text class="form-item__lbl"><text class="req">*</text>证件号</text>
-        <input class="form-item__input" v-model="c.idNum" :maxlength="c.cardType === 1 ? 18 : 30" placeholder="请输入随行人证件号" />
+        <text class="form-item__lbl">预约人手机</text>
+        <text class="form-item__val">{{ bookerTel || '-' }}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-item__lbl">证件类型</text>
+        <text class="form-item__val">{{ cardTypeTitle(bookerCardType) }}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-item__lbl">预约人证件号</text>
+        <text class="form-item__val">{{ bookerIdCard || '-' }}</text>
       </view>
     </view>
 
-    <view v-if="companions.length < maxCompanions" class="add-btn" @tap="addCompanion">
-      ⊕ 添加随行人 ({{ companions.length }}/{{ maxCompanions }})
+    <!-- 随行人：由已保存的随行人列表勾选带入 -->
+    <view class="section">
+      <view class="section__hd section__hd--row">
+        <text>随行人信息</text>
+        <text class="pick" @tap="openFollowerPicker">选择随行人</text>
+      </view>
+      <view v-if="!companions.length" class="tip tip--empty">
+        {{ maxCompanions > 0 ? '暂未携带随行人，可从已保存的随行人中选择' : '该项目不可携带随行人' }}
+      </view>
+      <view v-for="c in companions" :key="c.userIdentityId" class="follower">
+        <view class="follower__info">
+          <view class="follower__name">
+            {{ c.name }}
+            <text class="follower__type">{{ cardTypeTitle(c.idType) }}</text>
+          </view>
+          <view class="follower__meta">{{ c.idNum }}</view>
+        </view>
+        <text class="follower__del" @tap="removeCompanion(c)">移除</text>
+      </view>
+      <view class="follower-tip">
+        <text>已选 {{ companions.length }}/{{ maxCompanions }} 位随行人</text>
+        <text class="link" @tap="goAddFollower">去添加/管理随行人 ›</text>
+      </view>
     </view>
 
     <view class="submit-btn" :class="{ disabled: submitting }" @tap="onSubmit">
       {{ submitting ? '提交中...' : '提交' }}
+    </view>
+
+    <!-- 随行人选择弹窗 -->
+    <view v-if="followerPickerShow" class="modal-mask" @tap="followerPickerShow = false">
+      <view class="sheet" @tap.stop>
+        <view class="sheet__title">
+          <text>选择随行人（最多{{ maxCompanions }}位）</text>
+          <text class="sheet__close" @tap="followerPickerShow = false">×</text>
+        </view>
+        <view class="sheet__body">
+          <view
+            v-for="item in allFollowers"
+            :key="item.userIdentityId"
+            class="pick-item"
+            :class="{ selected: checkedFollowerIds.includes(item.userIdentityId) }"
+            @tap="onToggleFollower(item)"
+          >
+            <view class="pick-item__info">
+              <view class="pick-item__name">
+                {{ item.name }}
+                <text class="pick-item__type">{{ cardTypeTitle(item.idType) }}</text>
+              </view>
+              <view class="pick-item__meta">{{ item.idNum }}</view>
+            </view>
+            <text class="pick-item__check">{{ checkedFollowerIds.includes(item.userIdentityId) ? '✓' : '' }}</text>
+          </view>
+          <view class="sheet__confirm" @tap="onFollowerPickerConfirm">确定</view>
+        </view>
+      </view>
     </view>
 
     <!-- 弹窗 -->
@@ -332,12 +390,6 @@ onUnload(() => {
       @pick-time="onPickTime"
       @confirm="onDateConfirm"
       @close="datePickerShow = false"
-    />
-    <CardPicker
-      :show="cardPickerShow"
-      :selected="cardPickerSelected"
-      @select="onCardSelect"
-      @close="cardPickerShow = false"
     />
   </view>
 </template>
@@ -379,9 +431,17 @@ onUnload(() => {
   align-items: center;
   justify-content: space-between;
 }
-.section__hd .del {
+.auto-tag {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #00b42a;
+  background: rgba(0, 180, 42, 0.08);
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+}
+.section__hd .pick {
   font-size: 26rpx;
-  color: #f53f3f;
+  color: #3b7dff;
   font-weight: 400;
 }
 .form-item {
@@ -410,24 +470,59 @@ onUnload(() => {
 .form-item__val.placeholder {
   color: #c9cdd4;
 }
-.form-item__input {
-  flex: 1;
-  text-align: right;
-  font-size: 28rpx;
-  color: #1f2329;
-}
 .arrow {
   color: #c9cdd4;
   font-size: 28rpx;
 }
-.add-btn {
-  margin: 24rpx;
-  padding: 20rpx;
-  border: 1px dashed #c9cdd4;
-  border-radius: 48rpx;
-  text-align: center;
-  color: #3b7dff;
+.tip {
+  padding: 24rpx 32rpx;
   font-size: 26rpx;
+  color: #86909c;
+}
+.follower {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 32rpx;
+  border-top: 1px solid #f2f3f5;
+}
+.follower__info {
+  flex: 1;
+  min-width: 0;
+}
+.follower__name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2329;
+}
+.follower__type {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #3b7dff;
+  background: rgba(59, 125, 255, 0.08);
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  margin-left: 16rpx;
+}
+.follower__meta {
+  font-size: 24rpx;
+  color: #86909c;
+  margin-top: 8rpx;
+}
+.follower__del {
+  font-size: 26rpx;
+  color: #f53f3f;
+}
+.follower-tip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 32rpx 28rpx;
+  font-size: 24rpx;
+  color: #86909c;
+  border-top: 1px solid #f2f3f5;
+}
+.follower-tip .link {
+  color: #3b7dff;
 }
 .submit-btn {
   margin: 32rpx 24rpx 40rpx;
@@ -442,5 +537,92 @@ onUnload(() => {
 }
 .submit-btn.disabled {
   opacity: 0.6;
+}
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.sheet {
+  background: #fff;
+  border-radius: 40rpx 40rpx 0 0;
+  max-height: 75vh;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.sheet__title {
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 32rpx 0 16rpx;
+  position: relative;
+}
+.sheet__close {
+  position: absolute;
+  right: 32rpx;
+  top: 32rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #86909c;
+  font-size: 40rpx;
+}
+.sheet__body {
+  padding: 0 32rpx calc(32rpx + env(safe-area-inset-bottom));
+}
+.pick-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1px solid #f2f3f5;
+}
+.pick-item__info {
+  flex: 1;
+  min-width: 0;
+}
+.pick-item__name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2329;
+}
+.pick-item__type {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #3b7dff;
+  background: rgba(59, 125, 255, 0.08);
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  margin-left: 16rpx;
+}
+.pick-item__meta {
+  font-size: 24rpx;
+  color: #86909c;
+  margin-top: 6rpx;
+}
+.pick-item__check {
+  width: 48rpx;
+  text-align: center;
+  font-size: 34rpx;
+  color: #3b7dff;
+  font-weight: 600;
+}
+.pick-item.selected .pick-item__name {
+  color: #3b7dff;
+}
+.sheet__confirm {
+  margin-top: 32rpx;
+  background: linear-gradient(90deg, #3b7dff, #5b95ff);
+  color: #fff;
+  padding: 24rpx;
+  border-radius: 56rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 500;
 }
 </style>

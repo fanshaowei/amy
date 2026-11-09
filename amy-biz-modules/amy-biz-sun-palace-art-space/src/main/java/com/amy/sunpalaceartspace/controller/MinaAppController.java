@@ -63,6 +63,20 @@ public class MinaAppController extends BaseController {
     }
 
     /**
+     * 根据 openId 重新生成鉴权 token（静默续登）
+     *
+     * <p>小程序本地存在 {@code reservation_user} 缓存（含 openId）但 token 已过期时调用，
+     * 免去再次弹微信授权。openId 不存在或账号状态异常时返回业务错误。</p>
+     *
+     * @param req openId
+     * @return 新的 token
+     */
+    @PostMapping("/auth/login/openid")
+    public R<String> loginByOpenId(@Validated @RequestBody MinaAppOpenIdLoginReq req) {
+        return R.ok(minaAppLoginService.generalApiAuthTokenByOpenId(req.getOpenId()));
+    }
+
+    /**
      * 小程序首页项目列表信息
      * @return
      */
@@ -166,6 +180,34 @@ public class MinaAppController extends BaseController {
     public R<List<UserIdentityVO>> getReservationUserAndFollowers(@RequestHeader("Authorization") String token) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         return R.ok(minaAppService.getUserAndFollowerIdentity(user.getReservationUserId()));
+    }
+
+    /**
+     * 修改随行人信息（仅本人名下的随行人记录，userIdentityId 必填）
+     * @param token
+     * @param userIdentityReq
+     * @return 修改后的所有随行人列表
+     */
+    @MinaApiAuth
+    @PostMapping("/user/follower/update")
+    public R<List<UserIdentityVO>> updateFollower(@RequestHeader("Authorization") String token,
+                                                  @RequestBody @Validated UserIdentityReq userIdentityReq) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        return R.ok(minaAppService.updateFollower(user, userIdentityReq));
+    }
+
+    /**
+     * 删除随行人（软删除，仅本人名下的随行人记录）
+     * @param token
+     * @param userIdentityId
+     * @return 删除后的所有随行人列表
+     */
+    @MinaApiAuth
+    @PostMapping("/user/follower/delete/{userIdentityId}")
+    public R<List<UserIdentityVO>> deleteFollower(@RequestHeader("Authorization") String token,
+                                                  @PathVariable("userIdentityId") @NotNull Long userIdentityId) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        return R.ok(minaAppService.deleteFollower(user, userIdentityId));
     }
 
     /**

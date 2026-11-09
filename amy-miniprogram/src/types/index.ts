@@ -212,6 +212,34 @@ export interface User {
   phone: string
   /** 1用户 2核销员 */
   type: UserType
+  /** 是否已实名 */
+  isVerified?: boolean
+  /** 证件号码（实名后返回） */
+  idNum?: string
+  /** 实名姓名（实名后返回） */
+  name?: string
+  /** 证件类型 1身份证 2护照 3港澳通行证 4台湾通行证 5军官证 */
+  idType?: number
+  /** 微信 openId（本地缓存，token 过期后用于静默续登） */
+  openId?: string
+}
+
+/** 随行人/实名身份记录（对应后端 UserIdentityVO） */
+export interface UserIdentity {
+  /** 记录ID（修改/删除时使用） */
+  userIdentityId: number
+  /** 所属会员ID */
+  reservationUserId: number
+  name: string
+  /** 证件类型 1身份证 2护照 3港澳通行证 4台湾通行证 5军官证 */
+  idType: number
+  idNum: string
+  /** 性别 0女 1男 */
+  gender?: number
+  phone: string
+  /** 是否随行人 */
+  isFollower: boolean
+  createTime?: string
 }
 
 /** 分页结果（对应后端 TableDataInfo） */
