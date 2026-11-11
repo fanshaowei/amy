@@ -97,7 +97,12 @@ export default function LoginPage() {
       history.push(searchParams.get('redirect') || '/');
       return true;
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '登录失败，请稍后重试');
+      // 全局 errorHandler 已把后端中文 msg 写回 error.message 并弹过提示（backendNotified），
+      // 这里避免重复弹窗；其它错误（网络异常、响应拦截器 401 等）仍由本页兜底提示。
+      const err = error as Error & { backendNotified?: boolean };
+      if (!err.backendNotified) {
+        message.error(err.message || '登录失败，请稍后重试');
+      }
       if (captchaEnabled) await loadCaptcha();
       return false;
     }

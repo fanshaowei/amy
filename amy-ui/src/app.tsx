@@ -78,6 +78,35 @@ function serializeParams(params: Record<string, unknown>): string {
     return parts.join('&');
 }
 
+/**
+ * 从请求错误对象里提取后端返回的业务消息。
+ *
+ * 后端 GlobalExceptionHandler 把 ServiceException 映射成 HTTP 600(BUSINESS_ERROR)，
+ * axios 会直接 reject 且绕过响应拦截器：error.message 只是英文
+ * "Request failed with status code 600"，真正的中文提示在 response.data.msg。
+ * 响应体可能是对象，也可能是未被解析的 JSON 字符串，这里都兼容。
+ */
+function extractBackendMessage(error: unknown): string | undefined {
+    const e = error as { response?: { data?: unknown }; data?: unknown } | null;
+    for (const raw of [e?.response?.data, e?.data]) {
+        if (!raw) continue;
+        let body: unknown = raw;
+        if (typeof raw === 'string') {
+            try {
+                body = JSON.parse(raw);
+            } catch {
+                continue;
+            }
+        }
+        if (body && typeof body === 'object') {
+            const msg = (body as { msg?: unknown; message?: unknown }).msg
+                ?? (body as { message?: unknown }).message;
+            if (typeof msg === 'string' && msg.trim()) return msg;
+        }
+    }
+    return undefined;
+}
+
 export const request: RequestConfig = {
     baseURL: API_BASE_URL,
     timeout: 10000,
@@ -122,13 +151,21 @@ export const request: RequestConfig = {
             }
         },
         errorHandler: (error) => {
-            // 业务异常：后端以 HttpStatus.BUSINESS_ERROR(500) 返回 {code,msg} 结构，
-            // 会被 umi 默认 validateStatus 当作 HTTP 错误、绕过响应拦截器，故在此补提示。
-            const data = (error as { data?: { code?: number; msg?: string } })?.data
-                ?? (error as { response?: { data?: { code?: number; msg?: string } } })?.response?.data;
-            if (data && typeof data.msg === 'string' && data.msg) {
-                antdMessage.error(data.msg);
+            // 业务异常：后端以 HTTP 600(BUSINESS_ERROR) 返回 {code,msg}，axios 视为请求失败、
+            // 绕过响应拦截器。这里补提示，并把中文 msg 写回 error.message，
+            // 否则调用方 catch 里只会看到 "Request failed with status code 600"。
+            const backendMsg = extractBackendMessage(error);
+            if (backendMsg) {
+                (error as Error).message = backendMsg;
+                // 标记已由全局弹出，避免登录页等调用方再弹一次同样的提示
+                (error as Error & { backendNotified?: boolean }).backendNotified = true;
+                antdMessage.error(backendMsg);
             } else if (error.name !== 'RuoYiBusinessError') {
+                // 后端没给 msg 时，也别把 axios 的英文状态文案漏到页面上
+                const status = (error as { response?: { status?: number } })?.response?.status;
+                if (status && /^Request failed with status code \d+$/.test(error.message)) {
+                    (error as Error).message = `请求失败（HTTP ${status}）`;
+                }
                 console.error(error);
             }
             throw error;
