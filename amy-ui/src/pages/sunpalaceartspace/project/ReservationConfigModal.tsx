@@ -1,8 +1,9 @@
-import {FieldTimeOutlined, InfoCircleOutlined, PlusOutlined} from '@ant-design/icons';
-import {App, Button, Empty, Popconfirm, Space, Spin, Switch, Table, Tag, TimePicker, Tooltip, Typography} from 'antd';
+import {FieldTimeOutlined, InfoCircleOutlined, PlusOutlined, ReloadOutlined} from '@ant-design/icons';
+import {App, Button, Empty, Popconfirm, Space, Spin, Switch, Table, Tag, TimePicker, Typography} from 'antd';
 import type {ColumnsType} from 'antd/es/table';
 import dayjs, {Dayjs} from 'dayjs';
 import {useCallback, useEffect, useState} from 'react';
+import {useAccess} from '@umijs/max';
 import {PermissionButton} from '@/components/PermissionButton';
 import {
     addReservationConfig,
@@ -49,6 +50,9 @@ interface Props {
 
 export function ReservationConfigModal({open, project, onClose}: Props) {
     const {message} = App.useApp();
+    const access = useAccess();
+    /** 「是否可预约」开关对应后端 PUT /update/reservation/enabled 的 :edit 权限 */
+    const canEditConfig = access.hasPermission('sunpalaceartspace:reservationConfig:edit');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
@@ -86,7 +90,8 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
 
     /** 切换某个时段是否可预约（乐观更新，失败回滚） */
     const toggleEnabled = async (row: ReservationConfigRecord, enabled: boolean) => {
-        if (!row.configId) return;
+        // 双保险：即使绕过 UI 触发，也不会发出注定被后端 403 拦截的请求
+        if (!row.configId || !canEditConfig) return;
         setTogglingIds(prev => new Set(prev).add(row.configId!));
         const prevRows = rows;
         setRows(list => list.map(item => item.configId === row.configId ? {...item, reservationEnabled: enabled} : item));
@@ -153,13 +158,16 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
         }
     };
 
+    /** align 同时作用于表头 th 与单元格 td，整表统一居中 */
     const columns: ColumnsType<ReservationConfigRecord> = [{
         title: '时间段',
         width: 160,
+        align: 'center',
         render: (_, row) => <Typography.Text code>{`${row.startTime || '--'} ~ ${row.endTime || '--'}`}</Typography.Text>
     }, {
         title: '状态',
         width: 110,
+        align: 'center',
         render: (_, row) => row.reservationEnabled
             ? <Tag color="success" bordered={false} style={{margin: 0}}>可预约</Tag>
             : <Tag color="default" bordered={false} style={{margin: 0}}>不可预约</Tag>
@@ -167,13 +175,12 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
         title: '是否可预约',
         width: 110,
         align: 'center',
-        render: (_, row) => <Tooltip title={row.reservationEnabled ? '关闭后该时段不可预约' : '开启后恢复该时段预约'}>
-            <Switch
-                checked={row.reservationEnabled}
-                loading={row.configId != null && togglingIds.has(row.configId)}
-                onChange={checked => void toggleEnabled(row, checked)}
-            />
-        </Tooltip>
+        // 表头始终显示；无 :edit 权限时只隐藏开关（与 PermissionButton 的 return null 语义一致），不显示禁用态与权限提示
+        render: (_, row) => canEditConfig ? <Switch
+            checked={row.reservationEnabled}
+            loading={row.configId != null && togglingIds.has(row.configId)}
+            onChange={checked => void toggleEnabled(row, checked)}
+        /> : null
     }, {
         title: '操作',
         width: 90,
@@ -196,7 +203,7 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
                     共 {rows.length} 个时段，配置对项目每天生效
                 </Typography.Text>
             </Space>
-            <Button icon={<PlusOutlined/>} onClick={loadConfigs}>刷新</Button>
+            <Button type="text" icon={<ReloadOutlined/>} title="刷新" aria-label="刷新" onClick={loadConfigs}/>
         </div>
 
         <Spin spinning={loading}>
