@@ -32,6 +32,9 @@ import com.amy.system.service.ISysConfigService;
 @RequestMapping("/config")
 public class SysConfigController extends BaseController
 {
+    /** 系统整体样式在 sys_config 中的配置键 */
+    private static final String STYLE_CONFIG_KEY = "sys.style.settings";
+
     @Autowired
     private ISysConfigService configService;
 
@@ -73,6 +76,25 @@ public class SysConfigController extends BaseController
     public AjaxResult getConfigKey(@PathVariable String configKey)
     {
         return success(configService.selectConfigByKey(configKey));
+    }
+
+    /**
+     * 获取系统整体样式（公开只读，仅需登录）
+     *
+     * 主题样式是所有登录用户共享的外观配置，不应要求「参数设置」管理权限 system:config:list。
+     * 前端 getInitialState / 登录流程会读取它；若走 /config/list，普通账号会因缺少该权限
+     * 收到 403「没有访问权限，请联系管理员授权」。
+     * 路径用两段 (/public/style) 避免与 /{configId} 单段路径变量冲突。
+     */
+    @GetMapping(value = "/public/style")
+    public AjaxResult getStyleSettings()
+    {
+        // 必须用两参重载把配置值放进 data 字段。
+        // selectConfigByKey 返回 String，若写成 success(value) 会命中更具体的
+        // success(String message) 重载，把样式 JSON 当成提示语塞进 msg、data 为空，
+        // 前端按标准 AjaxResult 读 data 拿到 undefined → 主题回退默认值（保存后刷新失效）。
+        String style = configService.selectConfigByKey(STYLE_CONFIG_KEY);
+        return AjaxResult.success("操作成功", style);
     }
 
     /**

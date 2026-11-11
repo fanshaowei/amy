@@ -2,6 +2,7 @@ import {DeleteOutlined, DownloadOutlined, EditOutlined, PlusOutlined, UserAddOut
 import {
     ModalForm,
     PageContainer,
+    ProForm,
     ProFormDependency,
     ProFormDigit,
     ProFormRadio,
@@ -12,7 +13,7 @@ import {
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Drawer, Space, Switch} from 'antd';
+import {App, Drawer, Form, Space, Switch} from 'antd';
 import {useRef, useState} from 'react';
 import {PermissionButton} from '@/components/PermissionButton';
 import {useDict} from '@/hooks/useDict';
@@ -26,11 +27,52 @@ import type {TreeOption, UserRecord} from '@/services/system/user';
 import {downloadFileWithQuery} from '@/utils/download';
 import {pruneQueryParams} from '@/utils/exportParams';
 
+/**
+ * 提交前补齐「半选」的父节点（等价于 RuoYi Vue 的 getHalfCheckedKeys 合并）。
+ *
+ * antd TreeSelect 在父子联动（treeCheckStrictly=false）下勾选子节点时，父节点只是
+ * halfChecked（放在 halfCheckedKeys 里），不会进入 onChange 的 value / checkedKeys；
+ * showCheckedStrategy='SHOW_ALL' 的 formatStrategyValues 只是 return values，
+ * 只过滤、不补齐父节点。于是 menuIds 只有「叶子 + 其后代」，缺父目录。
+ * 而后端 getRouters 用 getChildPerms 从 parentId=0 开始拼树，缺父目录时拼不出任何
+ * 根节点 → 返回空数组 → 侧边栏空白。
+ *
+ * 这里直接用已知的菜单/部门树结构反推所有选中项的祖先链，不依赖组件内部 API。
+ */
+function withAncestorIds(ids: React.Key[] | undefined, tree: TreeOption[]): number[] {
+    const parentOf = new Map<number, number>();
+    const walk = (nodes: TreeOption[], parentId?: number) => {
+        nodes.forEach((node) => {
+            const id = Number(node.id);
+            if (parentId !== undefined) parentOf.set(id, parentId);
+            if (node.children?.length) walk(node.children, id);
+        });
+    };
+    walk(tree);
+
+    const selected = (ids || []).map(Number);
+    const result = new Set(selected);
+    selected.forEach((id) => {
+        let parent = parentOf.get(id);
+        const seen = new Set<number>([id]);
+        while (parent !== undefined && !seen.has(parent)) {
+            seen.add(parent);
+            result.add(parent);
+            parent = parentOf.get(parent);
+        }
+    });
+    return Array.from(result);
+}
+
 export default function RolePage() {
     const {message, modal} = App.useApp();
     const actionRef = useRef<ActionType>();
     const authActionRef = useRef<ActionType>();
     const selectActionRef = useRef<ActionType>();
+    // 角色表单实例：用于实时监听「父子联动」开关，驱动菜单树的 checkStrictly
+    const [roleForm] = ProForm.useForm<RoleRecord>();
+    // 联动(true) => 树父子联动（勾子节点自动连带父目录）；独立(false) => 严格模式（仅保存显式勾选节点）
+    const menuLinkage = Form.useWatch('menuCheckStrictly', roleForm);
     /** 最近一次列表查询参数（已剔除分页），导出时原样复用，保证「查到什么就导出什么」 */
     const lastQueryRef = useRef<Record<string, unknown>>({});
     const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
@@ -178,9 +220,14 @@ export default function RolePage() {
         />
 
         <ModalForm<RoleRecord> title={editing?.roleId ? '修改角色' : '添加角色'} open={formOpen} initialValues={editing}
+                               form={roleForm}
                                modalProps={{destroyOnHidden: true, onCancel: () => setFormOpen(false)}}
                                onFinish={async (values) => {
-                                   const data = {...editing, ...values};
+                                   const data = {
+                                       ...editing,
+                                       ...values,
+                                       menuIds: withAncestorIds(values.menuIds, menuTree)
+                                   };
                                    if (editing?.roleId) await updateRole(data); else await addRole(data);
                                    message.success(editing?.roleId ? '修改成功' : '新增成功');
                                    setFormOpen(false);
@@ -196,6 +243,10 @@ export default function RolePage() {
                 treeCheckable: true,
                 treeDefaultExpandAll: true,
                 showCheckedStrategy: 'SHOW_ALL',
+                // 父子联动：联动(true) => 勾子节点自动连带父目录（treeCheckStrictly=false）；
+                // 独立(false) => 仅保存显式勾选的节点（treeCheckStrictly=true）。
+                // menuLinkage 为 undefined 时按联动处理，避免丢失父目录。
+                treeCheckStrictly: menuLinkage === false,
                 fieldNames: {label: 'label', value: 'id'}
             }}/>
             <ProFormRadio.Group name="menuCheckStrictly" label="父子联动"
@@ -205,8 +256,8 @@ export default function RolePage() {
 
         <ModalForm<RoleRecord> title="分配数据权限" open={dataScopeOpen} initialValues={editing}
                                modalProps={{destroyOnHidden: true, onCancel: () => setDataScopeOpen(false)}}
-                               onFinish={async (values) => {
-                                   await updateDataScope({...editing, ...values});
+                onFinish={async (values) => {
+                    await updateDataScope({...editing, ...values, deptIds: withAncestorIds(values.deptIds, deptTree)});
                                    message.success('修改成功');
                                    setDataScopeOpen(false);
                                    actionRef.current?.reload();

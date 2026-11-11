@@ -6,7 +6,7 @@ import {
     type ReactNode,
 } from 'react';
 import { App, ConfigProvider, theme } from 'antd';
-import { addConfig, listConfigs, updateConfig } from '@/services/system/config';
+import { addConfig, getStyleSettings, listConfigs, updateConfig } from '@/services/system/config';
 
 /**
  * 系统整体样式配置。
@@ -127,15 +127,22 @@ function parseStyle(value: unknown): SystemStyle {
 
 /**
  * 从 sys_config 读取系统样式。
- * 用 listConfigs 按 config_key 过滤（like 精确命中），而不是 /configKey/{key} 路径变量——
- * 后者 key 含点号（sys.style.settings），在 Spring 路径变量里可能被后缀匹配截断。
- * 未配置 / 无权限 / 网络异常时回退默认值，保证页面与主题永远可用。
+ * 走公开只读接口 /system/config/public/style（仅需登录）：不能用 /config/list，
+ * 它带 @RequiresPermissions("system:config:list")，普通账号登录时会 403 并弹出
+ * 「没有访问权限，请联系管理员授权」；也不能用 /configKey/{key} 路径变量——
+ * key 含点号（sys.style.settings）可能被后缀匹配截断。
+ * 未配置 / 网络异常时回退默认值，保证页面与主题永远可用。
+ * 注意：保存样式仍走 listConfigs/updateConfig（属管理操作，本来就要求相应权限）。
  */
 export async function fetchSystemStyle(): Promise<SystemStyle> {
     try {
-        const list = await listConfigs({ configKey: STYLE_CONFIG_KEY, pageSize: 10, pageNum: 1 });
-        const row = list.rows.find((r) => r.configKey === STYLE_CONFIG_KEY);
-        if (row?.configValue) return parseStyle(row.configValue);
+        const result = await getStyleSettings();
+        // 标准结构：AjaxResult.success(msg, data) → 配置值在 data。
+        // 兼容兜底：旧版服务 / 服务未重启时，success(String) 重载会把值放进 msg，
+        // 此时 data 为空；优先读 data，其次 msg。普通提示语（如"操作成功"）不是 JSON，
+        // parseStyle 会解析失败并回退默认值，不会误伤。
+        const raw = result?.data ?? result?.msg;
+        if (typeof raw === 'string' && raw) return parseStyle(raw);
     } catch {
         // 忽略：使用默认样式
     }

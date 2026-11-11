@@ -21,7 +21,12 @@ export interface AmyInitialState {
 
 export async function getInitialState(): Promise<AmyInitialState> {
     if (!getToken()) {
-        return {roles: [], permissions: [], routes: [], systemStyle: DEFAULT_SYSTEM_STYLE};
+        // 登录页也要还原系统主题：/system/config/public/style 已加入网关白名单，
+        // 无需 token 即可只读获取。接口不可用时 fetchSystemStyle 内部会回退默认值并吞掉异常，
+        // 不会阻断登录页加载。
+        const style = await fetchSystemStyle();
+        setSystemStyleExternal(style);
+        return {roles: [], permissions: [], routes: [], systemStyle: style};
     }
 
     try {
@@ -147,11 +152,10 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => {
     rightContentRender: () => <AvatarDropdown currentUser={initialState?.currentUser}/>,
     menuDataRender: (menuData) => {
         const backend = initialState?.routes;
-        const source = backend && backend.length ? backend : mapStaticRoutesToSidebar(menuData as unknown as BackendRoute[]);
-        // 后端把 sys_menu.visible='1' 映射为 RouterVo.hidden=true（SysMenuServiceImpl.buildMenus）；
-        // 参考 ruoyi-ui（permission.GenerateRoutes/SidebarItem.vue）的做法，
-        // 递归过滤 hidden 项，避免侧边栏仍然展示标记为隐藏的菜单及其子菜单。
-        return filterHiddenRoutes(source).map((item) => toProLayoutMenu(item, '/'));
+        // 菜单严格以「后端 getRouters 返回」为准：无权限账号后端返回空数组，侧边栏即空白。
+        // 不再 fallback 到静态路由（mapStaticRoutesToSidebar），否则无权限账号会看到全部业务菜单。
+        // 对齐 RuoYi 原版行为：菜单完全由后端动态路由驱动。
+        return filterHiddenRoutes(backend || []).map((item) => toProLayoutMenu(item, '/'));
     },
     /**
      * 这里不覆写 menuItemRender / subMenuItemRender，沿用 Ant Design Pro 官方实现。
@@ -173,23 +177,6 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => {
     }
     };
 };
-
-/** 把 config.ts 里的静态路由转成 pro-layout 的菜单数据格式 */
-function mapStaticRoutesToSidebar(routes: BackendRoute[]): BackendRoute[] {
-    return filterHiddenRoutes(
-        routes
-            .filter((r) => r.path !== '/login' && r.path !== '/403' && r.path !== '*' && r.path !== '/')
-            .map((r) => ({
-                name: r.name || r.meta?.title,
-                path: r.path,
-                component: r.component,
-                redirect: r.redirect,
-                hidden: r.hidden,
-                meta: r.meta ? {...r.meta, icon: r.meta?.icon} : undefined,
-                children: r.children ? mapStaticRoutesToSidebar(r.children) : undefined
-            }))
-    );
-}
 
 /**
  * 递归移除 hidden === true 的菜单项。
