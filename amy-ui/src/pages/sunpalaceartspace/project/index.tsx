@@ -22,7 +22,7 @@ import {
     ProTable
 } from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Col, Empty, Row, Skeleton, Space, Typography} from 'antd';
+import {App, Col, Empty, Modal, Row, Skeleton, Space, Typography} from 'antd';
 import dayjs, {Dayjs} from 'dayjs';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
@@ -42,6 +42,7 @@ import type {StatFilterItem} from '../StatFilterBar';
 import styles from '../spas.less';
 import {CoverUpload} from './CoverUpload';
 import ProjectCard from './ProjectCard';
+import ReservationConfigModal from './ReservationConfigModal';
 
 /** 表单值类型：时间字段使用 dayjs 对象，提交时再转回 HH:mm:ss 字符串 */
 interface ProjectFormValues extends Omit<ProjectRecord, 'cutOffTime' | 'reservationStartTime' | 'reservationEndTime'> {
@@ -140,6 +141,8 @@ export default function ProjectPage() {
     const [selected, setSelected] = useState<React.Key[]>([]);
     const [editing, setEditing] = useState<ProjectRecord>();
     const [open, setOpen] = useState(false);
+    /** 「时段配置」弹窗当前操作的项目 */
+    const [configProject, setConfigProject] = useState<ProjectRecord>();
     const [stats, setStats] = useState<{ total?: number; shown?: number; hidden?: number }>({});
     const [updatedAt, setUpdatedAt] = useState('');
 
@@ -282,6 +285,7 @@ export default function ProjectPage() {
                                     selected={selectedKeys.has(row.projectId!)}
                                     onSelectChange={checked => toggle(row, checked)}
                                     onEdit={() => void openForm(row)}
+                                    onConfig={() => setConfigProject(row)}
                                     onRefresh={() => modal.confirm({
                                         title: `确认重新放号项目「${row.projectName}」？`,
                                         content: '重新放号可能会导致已预约数据有问题，不可恢复。',
@@ -507,5 +511,19 @@ export default function ProjectPage() {
                                  rules={[{required: true, message: '预约须知不能为空'}]}/>
             </ProCard>
         </ModalForm>
+        <Modal
+            open={configProject != null}
+            title={`时段配置${configProject ? ` · ${configProject.projectName}` : ''}`}
+            width={640}
+            onCancel={() => setConfigProject(undefined)}
+            footer={null}
+            destroyOnHidden
+        >
+            {configProject && <ReservationConfigModal
+                open={configProject != null}
+                project={configProject}
+                onClose={() => setConfigProject(undefined)}
+            />}
+        </Modal>
     </PageContainer>;
 }

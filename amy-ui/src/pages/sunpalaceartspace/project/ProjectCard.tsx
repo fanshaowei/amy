@@ -38,10 +38,12 @@ export interface ProjectCardProps {
     onEdit: () => void;
     onDelete: () => void;
     onRefresh: () => void;
+    /** 打开「时段配置」弹窗 */
+    onConfig: () => void;
 }
 
 /** 项目管理卡片：封面 + 标题 + 规则摘要 + 操作区 */
-export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete, onRefresh}: ProjectCardProps) {
+export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete, onRefresh, onConfig}: ProjectCardProps) {
     const visible = project.status === '1';
 
     return (
@@ -109,6 +111,10 @@ export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete
                             <PermissionButton type="text" size="small" icon={<ReloadOutlined/>} aria-label="重新放号"
                                               permission="sunpalaceartspace:project:edit" onClick={onRefresh}/>
                         </Tooltip> */}
+                        <Tooltip title="时段配置">
+                            <PermissionButton type="text" size="small" icon={<FieldTimeOutlined/>} aria-label="时段配置"
+                                              permission="sunpalaceartspace:reservationConfig:list" onClick={onConfig}/>
+                        </Tooltip>
                         <Tooltip title="编辑项目">
                             <PermissionButton type="text" size="small" icon={<EditOutlined/>} aria-label="编辑项目"
                                               permission="sunpalaceartspace:project:edit" onClick={onEdit}/>
