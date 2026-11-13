@@ -221,7 +221,7 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
         }}
     >
         <NoticeBar>
-            手动添加的订单直接为「待核销」，<b>不会发送 MQ、不会扣减时段库存</b>，也不绑定会员；请自行确认该时段名额后再提交。
+            手动添加的订单直接为「待核销」，<b>不会扣减时段库存</b>，也不绑定会员；请自行确认该时段名额后再提交。
         </NoticeBar>
 
         {/* ===== 分区一：预约信息 ===== */}
