@@ -9,13 +9,14 @@ import {
     IdcardOutlined,
     PhoneOutlined,
     PlusOutlined,
+    QrcodeOutlined,
     StopOutlined,
     TeamOutlined,
     UserOutlined
 } from '@ant-design/icons';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Button, Modal, Space, Tag, Typography} from 'antd';
+import {App, Button, Modal, Space, Tag, Tooltip, Typography} from 'antd';
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
@@ -25,6 +26,7 @@ import {pruneQueryParams} from '@/utils/exportParams';
 import {cancelOrder, deleteOrders, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import {ManualOrderModal} from './ManualOrderModal';
+import {OrderQrcodeModal} from './OrderQrcodeModal';
 import {StatFilterBar} from '../StatFilterBar';
 import type {StatFilterItem} from '../StatFilterBar';
 import styles from '../spas.less';
@@ -133,6 +135,8 @@ export default function OrderPage() {
     const [orderNum, setOrderNum] = useState('');
     const [updatedAt, setUpdatedAt] = useState('');
     const [manualOpen, setManualOpen] = useState(false);
+    /** 当前查看二维码的订单（null = 弹窗关闭） */
+    const [qrOrder, setQrOrder] = useState<ReservationOrderRecord | null>(null);
 
     /** 各状态订单数量统计（pageSize=1 只取 total） */
     const loadCounts = useCallback(() => {
@@ -214,12 +218,20 @@ export default function OrderPage() {
     }, {
         title: '订单号',
         dataIndex: 'reservationNum',
-        width: 180,
+        width: 250,
         render: (_, row) => row.reservationNum
-            ? <Typography.Text className={styles.mono}
-                               copyable={{text: row.reservationNum, tooltips: ['复制订单号', '已复制']}}>
-                {row.reservationNum}
-            </Typography.Text>
+            ? <div style={{display: 'flex', alignItems: 'center', gap: 2, minWidth: 0}}>
+                <Typography.Text className={styles.mono}
+                                 ellipsis={{tooltip: row.reservationNum}}
+                                 copyable={{text: row.reservationNum, tooltips: ['复制订单号', '已复制']}}
+                                 style={{flex: 1, minWidth: 0}}>
+                    {row.reservationNum}
+                </Typography.Text>
+                <Tooltip title="生成二维码">
+                    <Button type="text" size="small" icon={<QrcodeOutlined/>}
+                            aria-label="生成二维码" onClick={() => setQrOrder(row)}/>
+                </Tooltip>
+            </div>
             : '-'
     }, {
         title: '预约项目',
@@ -338,7 +350,7 @@ export default function OrderPage() {
                     rowKey="reservationOrderId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1530}}
+                    scroll={{x: 1600}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 状态筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{reservationStatus: activeStatus || undefined}}
@@ -448,5 +460,6 @@ export default function OrderPage() {
                 loadCounts();
             }}
         />
+        <OrderQrcodeModal open={!!qrOrder} order={qrOrder} onClose={() => setQrOrder(null)}/>
     </PageContainer>;
 }
