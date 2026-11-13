@@ -3,7 +3,6 @@ package com.amy.sunpalaceartspace.controller;
 import com.amy.common.core.domain.R;
 import com.amy.common.core.utils.poi.ExcelUtil;
 import com.amy.common.core.web.controller.BaseController;
-import com.amy.common.core.web.domain.AjaxResult;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
@@ -12,6 +11,7 @@ import com.amy.common.log.enums.BusinessType;
 import com.amy.common.security.annotation.RequiresPermissions;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.vo.ManualOrderProjectOptionsVO;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -105,5 +105,14 @@ public class ProjectsController extends BaseController
     public R<Boolean> remove(@PathVariable Long[] projectIds)
     {
         return R.ok(projectsService.removeProjectsByIds(projectIds));
+    }
+
+    /**
+     * 手动添加表单的初始化数据：可选项目 + 每个项目已启用的可预约时段。
+     */
+    @GetMapping("/manual/generate/order/options")
+    public R<ManualOrderProjectOptionsVO> manualGenerateOrderProjectOptions() {
+        ManualOrderProjectOptionsVO vo = projectsService.getManualGenerateOrderProjectOption();
+        return R.ok(vo);
     }
 }

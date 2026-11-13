@@ -8,6 +8,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -128,7 +129,28 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      */
     List<ReservationOrderVO> selectNextDayReservationOrder();
 
-    void verifyManualGenerate(ReservationOrderManualReq req);
+    /**
+     * 后台手动添加预约订单的入参校验。
+     *
+     * <p>校验姓名/电话/证件类型/证件号/预约时间，并把证件类型解析成枚举返回，
+     * 由调用方把中文名写回请求对象，保证与小程序端入库口径一致。</p>
+     *
+     * @return 规范化后的证件类型（非 null）
+     */
+    IdType verifyManualGenerate(ReservationOrderManualReq req);
 
     boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status,String statusMsg);
+
+    /**
+     * 后台取消预约订单（仅「待核销」状态可取消）。
+     *
+     * <p>与小程序端取消口径保持一致：只变更订单状态并记录取消时间，
+     * 不回补时段库存（取消释放的名额不参与当天重新放号）。</p>
+     *
+     * @param reservationOrderId 预约订单ID
+     * @return 是否取消成功
+     */
+    boolean cancelReservationOrder(Long reservationOrderId);
+
+    ReservationOrder manualGenerateOrder(ReservationOrderManualReq req);
 }

@@ -1,6 +1,8 @@
 package com.amy.sunpalaceartspace.service;
 
 import java.util.List;
+
+import com.amy.sunpalaceartspace.domain.vo.ManualOrderProjectOptionsVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
@@ -58,4 +60,6 @@ public interface IProjectsService extends IService<Projects>
     boolean removeProjectsByIds(Long[] projectIds);
 
     Projects selectProjectById(Long projectId);
+
+    ManualOrderProjectOptionsVO getManualGenerateOrderProjectOption();
 }

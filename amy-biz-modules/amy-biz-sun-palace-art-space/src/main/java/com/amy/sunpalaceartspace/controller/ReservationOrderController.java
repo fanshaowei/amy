@@ -1,7 +1,6 @@
 package com.amy.sunpalaceartspace.controller;
 
 import com.amy.common.core.domain.R;
-import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.poi.ExcelUtil;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
@@ -15,14 +14,12 @@ import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderUpdateStatusReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
-import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
+import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +41,7 @@ public class ReservationOrderController extends BaseController {
     private IReservationOrderService reservationOrderService;
 
     @Autowired
-    private ReservationUtil reservationUtil;
+    private IProjectsService projectsService;
 
     /**
      * 查询预约订单列表（MP IPage 分页）
@@ -80,24 +77,13 @@ public class ReservationOrderController extends BaseController {
     }
 
     /**
-     * 手动新增预约订单
+     * 后台手动添加预约订单（线下 / 电话补录）
      */
     @RequiresPermissions("sunpalaceartspace:reservationOrder:add")
     @Log(title = "手动创建预约订单", businessType = BusinessType.INSERT)
     @PostMapping("/manual/generate")
-    public R<ReservationOrder> add(@Validated @RequestBody ReservationOrderManualReq req) {
-        req.setReservationUserId(99999999L);
-        if(req.getCompUsers() != null) {
-            req.setGuestsNum(req.getCompUsers().size() + 1);
-        } else {
-            req.setGuestsNum(1);
-        }
-        req.setReservationStatus(ReservationOrderStatus.ORDERING.getStatus());
-        reservationOrderService.verifyManualGenerate(req);
-
-        ReservationOrderReq orderReq = new ReservationOrderReq();
-        BeanUtils.copyProperties(req, orderReq);
-        return R.ok(reservationOrderService.saveReservationOrder(orderReq));
+    public R<ReservationOrder> manualGenerateOrder(@Validated @RequestBody ReservationOrderManualReq req) {
+        return R.ok(reservationOrderService.manualGenerateOrder(req));
     }
 
     /**
@@ -121,6 +107,17 @@ public class ReservationOrderController extends BaseController {
         return R.ok(reservationOrderService.removeReservationOrderByIds(reservationOrderIds));
     }
 
+    /**
+     * 后台取消预约订单（仅「待核销」状态可取消，业务校验在 Service 层）
+     */
+    @RequiresPermissions("sunpalaceartspace:reservationOrder:cancel")
+    @Log(title = "预约订单管理-取消预约", businessType = BusinessType.UPDATE)
+    @PutMapping("/cancel/{reservationOrderId}")
+    public R<Boolean> cancel(@PathVariable("reservationOrderId") Long reservationOrderId) {
+        return R.ok(reservationOrderService.cancelReservationOrder(reservationOrderId));
+    }
+
+    @RequiresPermissions("sunpalaceartspace:reservationOrder:edit")
     @Log(title = "订单管理-更新状态", businessType = BusinessType.UPDATE)
     @PutMapping("/update/status")
     public void updateOrderStatus(@RequestBody ReservationOrderUpdateStatusReq req){

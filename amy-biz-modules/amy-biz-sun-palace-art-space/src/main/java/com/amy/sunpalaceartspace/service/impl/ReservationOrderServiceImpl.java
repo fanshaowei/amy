@@ -4,7 +4,10 @@ import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
+import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.req.FollowerReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
@@ -12,13 +15,12 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.IdType;
+import com.amy.sunpalaceartspace.enums.ProjectStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
+import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
-import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
-import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;
-import com.amy.sunpalaceartspace.utils.ReservationUtil;
+import com.amy.sunpalaceartspace.utils.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -27,13 +29,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 预约订单 服务层实现（MyBatis-Plus 模式）
@@ -48,6 +53,8 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
 
     private final ReservationUtil reservationUtil;
     private final ObjectMapper objectMapper;
+    private final IProjectsService projectsService;
+    private final AliIdCheckUtil aliIdCheckUtil;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -193,6 +200,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setGuestsNum(req.getGuestsNum());
         order.setReservationTime(req.getReservationTime());
         order.setReservationStatus(req.getReservationStatus());
+        order.setStatusMsg(req.getStatusMsg());
 
         // 随行人身份信息：序列化为 JSON 字符串后直接存入 comp_users 列（实体字段类型为 String）
         String compUsersJson = null;
@@ -207,28 +215,31 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         return order;
     }
 
-    public void verifyManualGenerate(ReservationOrderManualReq req) {
-        if(null == req.getProjectId()) {
+    @Override
+    public IdType verifyManualGenerate(ReservationOrderManualReq req) {
+        if (req.getProjectId() == null) {
             throw new ServiceException("项目ID不能为空");
         }
-        if(null == req.getName() || req.getName().isBlank()) {
+        if (Strings.isBlank(req.getName())) {
             throw new ServiceException("姓名不能为空");
         }
-        if(Strings.isBlank(req.getPhone())){
+        if (Strings.isBlank(req.getPhone())) {
             throw new ServiceException("手机号不能为空");
         }
-        boolean contact = PhoneVerifyUtil.isContact(req.getPhone());
-        if(!contact) {
+        if (!PhoneVerifyUtil.isContact(req.getPhone())) {
             throw new ServiceException("联系电话格式不正确");
         }
-        if(Strings.isBlank(req.getIdNum())){
-            throw new ServiceException("身份证号不能为空");
+        if (Strings.isBlank(req.getIdNum())) {
+            throw new ServiceException("证件号码不能为空");
         }
-
-        IdVerifyUtil.verify(IdType.fromType(Integer.valueOf(req.getIdType())), req.getIdNum());
-        if(null == req.getReservationTime()) {
+        if (req.getReservationTime() == null) {
             throw new ServiceException("预约时间不能为空");
         }
+
+        IdType idType = IdType.deserialize(req.getIdType());
+        IdVerifyUtil.verifyOrThrow(idType.getType(), req.getIdNum());
+
+        return idType;
     }
 
     @Override
@@ -246,5 +257,60 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setUpdateTime(DateUtils.getNowDate());
         order.setUpdateBy(SecurityUtils.getUsername());
         return updateById(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancelReservationOrder(Long reservationOrderId) {
+        ReservationOrder order = getById(reservationOrderId);
+        if (order == null) {
+            throw new ServiceException("订单不存在");
+        }
+        // 仅「待核销」可取消：已完成 / 已过期 / 已取消 / 预约中 / 预约失败都不允许，避免状态被随意回退
+        if (!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), order.getReservationStatus())) {
+            ReservationOrderStatus current = Arrays.stream(ReservationOrderStatus.values())
+                    .filter(s -> Objects.equals(s.getStatus(), order.getReservationStatus()))
+                    .findFirst().orElse(null);
+            throw new ServiceException("仅待核销订单可取消，当前状态："
+                    + (current == null ? "未知" : current.getName()));
+        }
+        // 与小程序端 cancelReservationOrder 口径一致：只改状态（内部会写 cancel_time / update_by），
+        // 不回补时段库存，取消释放的名额不参与当天重新放号。
+        return updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.CANCELED,
+                ReservationOrderStatus.CANCELED.getName());
+    }
+
+    @Override
+    public ReservationOrder manualGenerateOrder(ReservationOrderManualReq req) {
+        Projects project = projectsService.getById(req.getProjectId());
+        if (project == null || !ProjectStatus.NORMAL.getCode().equals(project.getStatus())) {
+            throw new ServiceException("预约项目不存在或已停用");
+        }
+        List<FollowerReq> compUsers = req.getCompUsers();
+        Integer travelerCount = project.getTravelerCount();
+        if (compUsers != null && travelerCount != null && compUsers.size() > travelerCount) {
+            throw new ServiceException("随行人数不能超过" + travelerCount + "人");
+        }
+
+        // 后台补录不绑定会员：写死哨兵 ID 会让所有手动订单在预约频次校验里被算成同一个人
+        req.setReservationUserId(null);
+        req.setGuestsNum(compUsers == null ? 1 : compUsers.size() + 1);
+        // 直接待核销：小程序端的「预约中」(4) 依赖 MQ 消费者流转，后台接口不发 MQ 会永远卡在 4
+        req.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
+
+        IdType idType = this.verifyManualGenerate(req);
+        if(idType.equals(IdType.ID_CARD)) {
+            AliIdCheckDto aliIdCheckDto = aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
+            if (aliIdCheckDto == null) {
+                throw new ServiceException("身份核验服务异常，请稍后重试");
+            }
+        }
+        // 与小程序端一致：证件类型统一以中文名入库
+        req.setIdType(idType.getName());
+
+        ReservationOrderReq orderReq = new ReservationOrderReq();
+        BeanUtils.copyProperties(req, orderReq);
+        orderReq.setStatusMsg("后台手动添加");
+        return this.saveReservationOrder(orderReq);
     }
 }

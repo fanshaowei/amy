@@ -78,6 +78,9 @@ public class ReservationOrderReq {
      */
     private Integer reservationStatus;
 
+    /** 预约状态说明（后台手动添加时写入「后台手动添加」，普通新增/修改不传则为 null，不会覆盖原值） */
+    private String statusMsg;
+
     /**
      * 预约随行人身份信息（数组列表字符串）。
      *

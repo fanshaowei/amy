@@ -45,9 +45,63 @@ export interface CompUser {
     phone?: string;
 }
 
+/** 手动添加表单：可选项目及其时段 */
+export interface ManualOrderProjectOption {
+    projectId: number;
+    projectName: string;
+    /** 允许的最大随行人数（不含预约人本人） */
+    travelerCount?: number;
+    reservationStartTime?: string;
+    reservationEndTime?: string;
+    /** 已启用的可预约时段（HH:mm:ss）；为空表示项目未配置时段，可手动输入 */
+    timeSlots: string[];
+}
+
+export interface ManualOrderOptions {
+    projects: ManualOrderProjectOption[];
+}
+
+/** 随行人提交项（对应后端 FollowerReq：三个字段都必填） */
+export interface ManualOrderFollower {
+    name: string;
+    idNum: string;
+    phone: string;
+}
+
+/** 后台手动添加预约订单入参（对应 ReservationOrderManualReq） */
+export interface ManualOrderPayload {
+    projectId: number;
+    name: string;
+    phone: string;
+    /** 证件类型中文名，与小程序端口径一致 */
+    idType: string;
+    idNum: string;
+    /** yyyy-MM-dd HH:mm:ss */
+    reservationTime: string;
+    compUsers?: ManualOrderFollower[];
+}
+
 export const listOrders = (params: Record<string, unknown>) =>
     request<SpasTableResponse<ReservationOrderRecord>>('/spas/reservation/order/list', {params});
 export const getOrder = (reservationOrderId: number) =>
     request<RuoYiResponse<ReservationOrderRecord>>(`/spas/reservation/order/${reservationOrderId}`);
 export const deleteOrders = (orderIds: React.Key[]) =>
     request(`/spas/reservation/order/${orderIds.join(',')}`, {method: 'DELETE'});
+
+/** 取消预约订单：后端仅允许「待核销」状态取消，并记录取消时间（不回补时段库存） */
+export const cancelOrder = (reservationOrderId: number) =>
+    request<RuoYiResponse<boolean>>(`/spas/reservation/order/cancel/${reservationOrderId}`, {method: 'PUT'});
+
+/** 手动添加表单初始化数据（权限 sunpalaceartspace:reservationOrder:add） */
+export const getManualOrderOptions = () =>
+    request<RuoYiResponse<ManualOrderOptions>>('/spas/project/manual/generate/order/options');
+
+/**
+ * 手动添加预约订单：后端直接落「待核销」，不发 MQ、不扣减时段库存，
+ * 也不绑定会员（reservation_user_id 为空）。
+ */
+export const addManualOrder = (data: ManualOrderPayload) =>
+    request<RuoYiResponse<ReservationOrderRecord>>('/spas/reservation/order/manual/generate', {
+        method: 'POST',
+        data
+    });

@@ -8,6 +8,8 @@ import {
     HistoryOutlined,
     IdcardOutlined,
     PhoneOutlined,
+    PlusOutlined,
+    StopOutlined,
     TeamOutlined,
     UserOutlined
 } from '@ant-design/icons';
@@ -20,8 +22,9 @@ import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
 import {pruneQueryParams} from '@/utils/exportParams';
-import {deleteOrders, listOrders} from '@/services/sunpalaceartspace/order';
+import {cancelOrder, deleteOrders, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
+import {ManualOrderModal} from './ManualOrderModal';
 import {StatFilterBar} from '../StatFilterBar';
 import type {StatFilterItem} from '../StatFilterBar';
 import styles from '../spas.less';
@@ -129,6 +132,7 @@ export default function OrderPage() {
     const [persons, setPersons] = useState<PersonRow[]>([]);
     const [orderNum, setOrderNum] = useState('');
     const [updatedAt, setUpdatedAt] = useState('');
+    const [manualOpen, setManualOpen] = useState(false);
 
     /** 各状态订单数量统计（pageSize=1 只取 total） */
     const loadCounts = useCallback(() => {
@@ -176,6 +180,23 @@ export default function OrderPage() {
             onOk: async () => {
                 await deleteOrders(orderIds);
                 message.success('删除成功');
+                tableRef.current?.reload();
+                loadCounts();
+            }
+        });
+    };
+
+    /** 取消预约：仅「待核销」展示入口，后端仍会再校验一次状态，避免并发下重复取消 */
+    const confirmCancel = (row: ReservationOrderRecord) => {
+        if (!row.reservationOrderId) return;
+        modal.confirm({
+            title: `确认取消预约「${row.reservationNum || row.reservationOrderId}」？`,
+            content: '取消后订单状态变为「已取消」，且不会回补该时段的预约名额。',
+            okText: '确认取消',
+            okButtonProps: {danger: true},
+            onOk: async () => {
+                await cancelOrder(row.reservationOrderId!);
+                message.success('取消成功');
                 tableRef.current?.reload();
                 loadCounts();
             }
@@ -267,11 +288,17 @@ export default function OrderPage() {
         title: '操作',
         valueType: 'option',
         fixed: 'right',
-        width: 150,
+        width: 220,
         render: (_, row) => [
             <PermissionButton key="persons" type="link" size="small" icon={<TeamOutlined/>}
                               permission="sunpalaceartspace:reservationOrder:query"
                               onClick={() => openPersons(row)}>人员</PermissionButton>,
+            // 只有「待核销」订单可取消；无 :cancel 权限时 PermissionButton 直接隐藏
+            ...(row.reservationStatus === 0 ? [
+                <PermissionButton key="cancel" type="link" size="small" icon={<StopOutlined/>}
+                                  permission="sunpalaceartspace:reservationOrder:cancel"
+                                  onClick={() => confirmCancel(row)}>取消</PermissionButton>
+            ] : []),
             <PermissionButton key="delete" type="link" size="small" danger icon={<DeleteOutlined/>}
                               permission="sunpalaceartspace:reservationOrder:remove"
                               onClick={() => confirmDelete([row.reservationOrderId!],
@@ -311,7 +338,7 @@ export default function OrderPage() {
                     rowKey="reservationOrderId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1460}}
+                    scroll={{x: 1530}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 状态筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{reservationStatus: activeStatus || undefined}}
@@ -337,6 +364,9 @@ export default function OrderPage() {
                         };
                     }}
                     toolBarRender={() => [
+                        <PermissionButton key="add" type="primary" icon={<PlusOutlined/>}
+                                          permission="sunpalaceartspace:reservationOrder:add"
+                                          onClick={() => setManualOpen(true)}>手动添加</PermissionButton>,
                         <PermissionButton key="export" icon={<ExportOutlined/>}
                                           permission="sunpalaceartspace:reservationOrder:export"
                                           onClick={() => {
@@ -409,5 +439,14 @@ export default function OrderPage() {
                 {!persons.length ? <div className={styles.cellSub}>无人员信息</div> : null}
             </div>
         </Modal>
+        <ManualOrderModal
+            open={manualOpen}
+            onClose={() => setManualOpen(false)}
+            onSuccess={() => {
+                setManualOpen(false);
+                tableRef.current?.reload();
+                loadCounts();
+            }}
+        />
     </PageContainer>;
 }

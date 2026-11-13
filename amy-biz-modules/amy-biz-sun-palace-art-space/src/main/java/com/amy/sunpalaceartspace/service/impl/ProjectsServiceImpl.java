@@ -4,9 +4,11 @@ import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
+import com.amy.sunpalaceartspace.domain.vo.ManualOrderProjectOptionsVO;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
 import com.amy.sunpalaceartspace.enums.ProjectStatus;
+import com.amy.sunpalaceartspace.service.IProjectReservationConfigService;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
@@ -16,8 +18,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 
@@ -179,6 +183,44 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
         LambdaQueryWrapper<Projects> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(Projects::getProjectId, projectId);
         return this.baseMapper.selectOne(lambdaQueryWrapper);
+    }
+
+    @Override
+    public ManualOrderProjectOptionsVO getManualGenerateOrderProjectOption() {
+        List<Projects> projects = this.lambdaQuery()
+                .eq(Projects::getStatus, ProjectStatus.NORMAL.getCode())
+                .orderByAsc(Projects::getSort)
+                .list();
+
+        List<ManualOrderProjectOptionsVO.ProjectOption> options = new ArrayList<>(projects.size());
+        for (Projects project : projects) {
+            ManualOrderProjectOptionsVO.ProjectOption option = new ManualOrderProjectOptionsVO.ProjectOption();
+            option.setProjectId(project.getProjectId());
+            option.setProjectName(project.getProjectName());
+            option.setTravelerCount(project.getTravelerCount());
+            option.setReservationStartTime(project.getReservationStartTime());
+            option.setReservationEndTime(project.getReservationEndTime());
+            option.setTimeSlots(loadTimeSlots(project.getProjectId()));
+            options.add(option);
+        }
+
+        ManualOrderProjectOptionsVO vo = new ManualOrderProjectOptionsVO();
+        vo.setProjects(options);
+        return vo;
+    }
+
+    private List<String> loadTimeSlots(Long projectId) {
+        LambdaQueryWrapper<ProjectReservationConfig> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(ProjectReservationConfig::getProjectId, projectId)
+                .eq(ProjectReservationConfig::getReservationEnabled, Boolean.TRUE)
+                .orderByAsc(ProjectReservationConfig::getStartTime);
+
+        return projectReservationConfigMapper.selectList(lambdaQueryWrapper)
+                .stream()
+                .map(ProjectReservationConfig::getStartTime)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
     }
 
 }

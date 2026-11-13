@@ -1,20 +1,5 @@
 package com.amy.sunpalaceartspace.service.impl;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
@@ -23,9 +8,8 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigGroupVO;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigVO;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
-import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IProjectReservationConfigService;
-import com.amy.sunpalaceartspace.service.ReservationRulesService;
+import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -35,6 +19,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 项目预约时段配置 服务层实现（MyBatis-Plus 模式，列表走自定义 XML）
@@ -53,9 +43,6 @@ public class ProjectReservationConfigServiceImpl
         extends ServiceImpl<ProjectReservationConfigMapper, ProjectReservationConfig>
         implements IProjectReservationConfigService
 {
-    /** 放号规则服务：配置变更后同步该日库存开关 */
-    private final ReservationRulesService reservationRulesService;
-
     /**
      * 项目服务：分组查询时补齐项目名称。
      *
