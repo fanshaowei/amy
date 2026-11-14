@@ -300,10 +300,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
 
         IdType idType = this.verifyManualGenerate(req);
         if(idType.equals(IdType.ID_CARD)) {
-            AliIdCheckDto aliIdCheckDto = aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
-            if (aliIdCheckDto == null) {
-                throw new ServiceException("身份核验服务异常，请稍后重试");
-            }
+            aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
         }
         // 与小程序端一致：证件类型统一以中文名入库
         req.setIdType(idType.getName());

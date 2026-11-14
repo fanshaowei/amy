@@ -179,6 +179,8 @@ public class ReservationRulesService {
             stock.setBatch1Released(false);
             stock.setBatch2Released(false);
             stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
+            stock.setUpdateTime(new Date());
+            stock.setUpdateBy("system");
             stock.setCreateTime(new Date());
             stock.setCreateBy("system");
             reservationStockService.saveReservationStock(stock);
