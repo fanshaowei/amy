@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
+import { uploadAvatar } from '@/api/user'
 import type { User } from '@/types'
 
 const userStore = useUserStore()
@@ -12,8 +13,8 @@ const STORAGE_KEY = 'reservation_user'
 const nickname = ref('')
 const avatarUrl = ref('')
 const loading = ref(false)
-/** 正在按缓存 openId 静默续登 */
-const silentLoading = ref(false)
+/** 本次会话已上传到后端的头像持久化地址（换头像后重置，避免重复上传） */
+const uploadedAvatarUrl = ref('')
 const redirect = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
@@ -24,35 +25,6 @@ function goBack() {
     uni.redirectTo({ url: redirect.value })
   } else {
     uni.navigateBack()
-  }
-}
-
-/**
- * 静默续登：本地缓存过 reservation_user（含 openId）时，先用 openId 去后端换新 token，
- * 免去 token 过期后再次弹微信授权；失败则停留在本页走正常授权登录
- */
-async function trySilentLogin() {
-  let cached: User | null = null
-  try {
-    cached = (uni.getStorageSync(STORAGE_KEY) as User) || null
-  } catch (e) {
-    cached = null
-  }
-  const openId = cached?.openId
-  if (!openId) return
-
-  silentLoading.value = true
-  uni.showLoading({ title: '自动登录中...', mask: true })
-  try {
-    await userStore.loginByOpenId(openId)
-    uni.hideLoading()
-    uni.showToast({ title: '登录成功', icon: 'success' })
-    setTimeout(goBack, 600)
-  } catch (e) {
-    // openId 失效 / 账号异常 / 网络异常：静默回退到微信授权登录
-    uni.hideLoading()
-  } finally {
-    silentLoading.value = false
   }
 }
 
@@ -75,21 +47,43 @@ async function fetchWxCode(): Promise<string> {
   })
 }
 
-/** 选择微信头像（open-type="chooseAvatar"） */
+/** 选择微信头像（open-type="chooseAvatar"），拿到的是临时路径 */
 function onChooseAvatar(e: any) {
   const url = e?.detail?.avatarUrl
-  if (url) avatarUrl.value = url
+  if (!url) return
+  avatarUrl.value = url
+  // 换了头像，上次上传的持久地址作废，登录时需按新路径重新上传
+  uploadedAvatarUrl.value = ''
+}
+
+/**
+ * 确保头像已上传为持久化地址：
+ * chooseAvatar 给的临时路径只在本次会话有效，直接落库必然失效，
+ * 必须先调 /spas/mina/app/user/avatar/upload 换成后端文件服务的 URL。
+ * 未选头像返回空串（后端首次登录也允许为空）。
+ */
+async function ensureAvatarUploaded(): Promise<string> {
+  if (!avatarUrl.value) return ''
+  if (uploadedAvatarUrl.value) return uploadedAvatarUrl.value
+  const url = await uploadAvatar(avatarUrl.value)
+  uploadedAvatarUrl.value = url
+  return url
 }
 
 async function onLogin() {
-  if (loading.value || silentLoading.value) return
+  if (loading.value) return
   loading.value = true
   try {
+    // 1. 先上传头像换取持久化地址（失败则阻断登录，避免临时地址落库）
+    const avatarImgUrl = await ensureAvatarUploaded()
+    // 2. 取微信登录凭证
     const jsCode = await fetchWxCode()
+    // 3. 携带持久化头像地址一起授权登录（后端首次登录写入会员表；
+    //    老会员由 stores/user.ts 比对后走 /reservation/user/update 同步）
     await userStore.login({
       jsCode,
       nickName: nickname.value.trim() || '微信用户',
-      avatarImgUrl: avatarUrl.value,
+      avatarImgUrl,
     })
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(goBack, 600)
@@ -102,8 +96,13 @@ async function onLogin() {
 
 onLoad((query) => {
   redirect.value = query?.redirect || ''
-  // 进入登录页先尝试用缓存 openId 静默换 token（token 过期是常见场景）
-  trySilentLogin()
+  // 预填缓存昵称，避免默认值「微信用户」在老会员重新授权时覆盖原昵称
+  try {
+    const cached = uni.getStorageSync(STORAGE_KEY) as User | null
+    if (cached?.nickname) nickname.value = cached.nickname
+  } catch (e) {
+    /* ignore */
+  }
 })
 </script>
 
@@ -111,7 +110,7 @@ onLoad((query) => {
   <view class="login">
     <view class="login__logo">🎫</view>
     <view class="login__title">预约门票</view>
-    <view class="login__sub">{{ silentLoading ? '正在自动登录...' : '请完成微信授权登录' }}</view>
+    <view class="login__sub">请完成微信授权登录</view>
 
     <view class="login__avatar">
       <!-- #ifdef MP-WEIXIN -->
@@ -132,8 +131,8 @@ onLoad((query) => {
       </view>
     </view>
 
-    <view class="login__btn" :class="{ disabled: loading || silentLoading }" @tap="onLogin">
-      {{ loading || silentLoading ? '登录中...' : '授权登录' }}
+    <view class="login__btn" :class="{ disabled: loading }" @tap="onLogin">
+      {{ loading ? '登录中...' : '授权登录' }}
     </view>
     <view class="login__tip">登录即表示同意《用户协议》和《隐私政策》</view>
   </view>

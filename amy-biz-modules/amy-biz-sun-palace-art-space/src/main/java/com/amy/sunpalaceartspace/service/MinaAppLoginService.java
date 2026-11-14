@@ -84,14 +84,17 @@ public class MinaAppLoginService {
         String sessionKey = wxMaJscode2SessionResult.getSessionKey();
         log.info("login openid: {}, sessionKey: {}", openId, sessionKey);
 
-        // 创建预约会员记录
-        boolean firstTimeLogin = reservationUserService.checkReservationUserByOpenId(openId);
-        if(!firstTimeLogin) {
+        // 首次登录（库里无该 openId 会员）时创建会员记录并写入本次提交的昵称/头像
+        boolean userExists = reservationUserService.checkReservationUserByOpenId(openId);
+        boolean firstTimeLogin = !userExists;
+        if (firstTimeLogin) {
             createReservationUserByWechatInfo(req, openId);
         }
         // 生成 spasToken
         String spasToken = generalJwt();
         saveMinaUserLoginCache(spasToken, openId, sessionKey);
+        // fistTimeLogin=true 表示首次登录（本次已创建会员）；
+        // false 表示老会员，头像等资料变更由小程序端调 /reservation/user/update 同步
         return WechatApiAuthLoginResp.builder()
                 .fistTimeLogin(firstTimeLogin)
                 .token(spasToken)
