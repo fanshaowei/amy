@@ -240,15 +240,14 @@ public class MinaAppController extends BaseController {
 
     /**
      * 核销预约订单
-     * @param token
      * @param orderNum
      * @return
      */
     @MinaApiAuth
     @PostMapping("/reservation/verify/{orderNum}/{verifyCode}")
-    public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
-            @PathVariable("orderNum") String orderNum, @PathVariable("verifyCode") String verifyCode) {
-        return R.ok(minaAppService.verifyReservationOrder(token, orderNum, verifyCode));
+    public R<Boolean> verifyReservationOrder(@PathVariable("orderNum") String orderNum,
+                                             @PathVariable("verifyCode") String verifyCode) {
+        return R.ok(minaAppService.verifyReservationOrder(orderNum, verifyCode));
     }
 
     /**

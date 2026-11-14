@@ -269,14 +269,16 @@ public class MinaAppService {
     }
 
     @Transactional
-    public boolean verifyReservationOrder(String token, String orderNum, String verifyCode) {
-        Boolean verifyCodeAvailable = redisService.hasKey(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
-        if(!verifyCodeAvailable) {
-            throw new ServiceException("无效核销码");
-        }
-
-        ReservationUser verifyUser = minaAppLoginService.getUserByToken(token);
+    public boolean verifyReservationOrder(String orderNum, String verifyCode) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+        Integer orderSource = reservationOrder.getOrderSource();
+        // 小程序订单的核销码有效期验证
+        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
+            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
+            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
+                throw new ServiceException("无效核销码");
+            }
+        }
 
         //校验订单是否待核销状态
         Integer reservationStatus = reservationOrder.getReservationStatus();
