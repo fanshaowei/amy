@@ -9,6 +9,8 @@ import {renderIcon} from '@/components/IconSelect';
 import type {BackendRoute, CurrentUser} from '@/types/api';
 import {getRouters, getUserInfo} from '@/services/auth';
 import {clearSession, getToken} from '@/utils/auth';
+// 品牌标识：与小程序首页 Hero 右侧「日轮 + 孔雀翎」纹章同源的矢量徽记
+import logoUrl from '@/assets/images/logo.png';
 
 export interface AmyInitialState {
     currentUser?: CurrentUser;
@@ -179,7 +181,9 @@ export const layout: RunTimeLayoutConfig = ({initialState}) => {
     const theme = getSystemStyle();
     return {
     title: '太阳宫艺术空间',
-    logo: false,
+    // 原为 false（Umi 默认蓝色 Logo）。改成与小程序一致的「日轮孔雀翎」圆形徽记，
+    // 自带深靛底 + 暖金环，浅色 / realDark 侧边栏都能看清；圆形底避免方形白边。
+    logo: <img src={logoUrl} alt="太阳宫艺术空间" style={{width: 34, height: 34, borderRadius: '50%'}}/>,
     fixedHeader: true,
     fixSiderbar: true,
     layout: theme.layout,

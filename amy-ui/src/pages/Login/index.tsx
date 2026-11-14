@@ -9,6 +9,8 @@ import type { LoginParams, LoginResult } from '@/types/api';
 import { setExpiresIn, setToken } from '@/utils/auth';
 import { decrypt, encrypt } from '@/utils/encryption';
 import { fetchSystemStyle, setSystemStyleExternal } from '@/theme/SystemStyle';
+// 与侧边栏、小程序首页 Hero 同一枚「日轮 + 孔雀翎」矢量徽记
+import logoUrl from '@/assets/images/logo.png';
 import styles from './index.less';
 
 interface LoginFormValues extends LoginParams {
@@ -127,6 +129,7 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <LoginForm<LoginFormValues>
+          logo={<img src={logoUrl} alt="太阳宫艺术空间"/>}
           title="预约管理系统"
           initialValues={initialValues}
           onFinish={handleSubmit}

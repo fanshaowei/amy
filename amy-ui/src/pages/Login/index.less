@@ -31,6 +31,26 @@
     margin-bottom: 36px;
   }
 
+  // 标题前的品牌徽记：组件默认 44px，圆形比 33px 方块字高出一圈、顶部会探出约 5px，
+  // 看着像「高出一个头」。收到 34px（与侧边栏 logo 同尺寸）+ 下压 2px，
+  // 让圆的上下缘与文字墨迹齐平；align-self:center 固定垂直基准，避免依赖组件默认对齐。
+  // 徽记本身是圆形透明 PNG，用 drop-shadow 跟随轮廓而非方形投影
+  :global(.ant-pro-form-login-logo) {
+    width: 34px;
+    height: 34px;
+    align-self: center;
+    transform: translateY(2px);
+    margin-inline-end: 12px;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      filter: drop-shadow(0 2px 5px rgba(16, 31, 63, 0.2));
+    }
+  }
+
   // 抵消 LoginForm 组件自带的 flex:1（会撑满整行导致内部 margin auto 居中），
   // 让父容器的 flex-end 右对齐真正生效；并加白色卡片背景突出
   :global(.ant-pro-form-login-container) {

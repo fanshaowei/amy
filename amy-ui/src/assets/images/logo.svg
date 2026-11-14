@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-labelledby="t">
+  <title id="t">太阳宫艺术空间 · 日轮孔雀翎徽记</title>
+  <defs>
+    <linearGradient id="sp-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#25447E"/>
+      <stop offset="0.52" stop-color="#173262"/>
+      <stop offset="1" stop-color="#0D1D40"/>
+    </linearGradient>
+    <linearGradient id="sp-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F8E1AE"/>
+      <stop offset="0.48" stop-color="#E8BC72"/>
+      <stop offset="1" stop-color="#C4974C"/>
+    </linearGradient>
+    <radialGradient id="sp-sun" cx="0.34" cy="0.3" r="0.78">
+      <stop offset="0" stop-color="#FFF9E5"/>
+      <stop offset="0.42" stop-color="#F0C87E"/>
+      <stop offset="1" stop-color="#D79F4C"/>
+    </radialGradient>
+    <linearGradient id="sp-vane" x1="0.12" y1="0" x2="0.88" y2="1">
+      <stop offset="0" stop-color="#6FDACB"/>
+      <stop offset="0.42" stop-color="#2B9DB6"/>
+      <stop offset="1" stop-color="#3B5FC9"/>
+    </linearGradient>
+    <radialGradient id="sp-eye" cx="0.4" cy="0.32" r="0.76">
+      <stop offset="0" stop-color="#7AD9CF"/>
+      <stop offset="0.55" stop-color="#2E74A8"/>
+      <stop offset="1" stop-color="#29407F"/>
+    </radialGradient>
+    <linearGradient id="sp-stem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D6AE66" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#D6AE66" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="sp-aura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F6DCA3" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#58CFC0" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#58CFC0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="sp-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+
+    <!-- 单支孔雀翎羽：以底部 (120, 225.6) 为旋转轴，三支旋转成扇形 -->
+    <g id="sp-feather">
+      <path d="M120 67.2 C145 67.2 154.8 92 154.8 126 C154.8 160 140 182.4 120 182.4 C100 182.4 85.2 160 85.2 126 C85.2 92 95 67.2 120 67.2 Z"
+            fill="url(#sp-vane)" stroke="#EAF7F4" stroke-opacity="0.72" stroke-width="2.6"/>
+      <ellipse cx="120" cy="126" rx="25.2" ry="30" fill="url(#sp-eye)" stroke="url(#sp-gold)" stroke-width="4.4"/>
+      <circle cx="120" cy="127.8" r="9" fill="#1E2F66" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="1.6"/>
+      <rect x="117.8" y="172.8" width="4.4" height="52.8" rx="2.2" fill="url(#sp-stem)"/>
+    </g>
+  </defs>
+
+  <!-- 深靛圆底：与小程序 Hero 同一色系，保证浅色/深色侧边栏都清晰 -->
+  <circle cx="120" cy="120" r="118" fill="url(#sp-bg)"/>
+  <circle cx="120" cy="120" r="116.5" fill="none" stroke="url(#sp-gold)" stroke-opacity="0.85" stroke-width="2.6"/>
+
+  <!-- 柔光底层 -->
+  <circle cx="120" cy="120" r="112" fill="url(#sp-aura)"/>
+
+  <!-- 双层日环 -->
+  <circle cx="120" cy="120" r="110" fill="none" stroke="url(#sp-gold)" stroke-opacity="0.68" stroke-width="2.6"/>
+  <circle cx="120" cy="120" r="86" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.4" stroke-dasharray="7 9"/>
+  <circle cx="120" cy="10" r="6.2" fill="#E8C27F"/>
+
+  <!-- 三支孔雀翎羽 -->
+  <g transform="rotate(-34 120 225.6)"><use href="#sp-feather" xlink:href="#sp-feather"/></g>
+  <g transform="rotate(0 120 225.6)"><use href="#sp-feather" xlink:href="#sp-feather"/></g>
+  <g transform="rotate(34 120 225.6)"><use href="#sp-feather" xlink:href="#sp-feather"/></g>
+
+  <!-- 暖金日轮 + 玻璃白月牙：压在翎羽之上，缩小后仍能一眼识别 -->
+  <circle cx="158" cy="70" r="33" fill="#F0C87E" opacity="0.5" filter="url(#sp-glow)"/>
+  <circle cx="158" cy="70" r="33" fill="url(#sp-sun)" stroke="#FFF4D2" stroke-opacity="0.55" stroke-width="2"/>
+  <path d="M158 30 A40 40 0 0 0 158 110" fill="none" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- 洱海水光星点 -->
+  <circle cx="39.6" cy="78" r="6" fill="#FFFFFF"/>
+  <circle cx="210" cy="145.2" r="6" fill="#FFFFFF"/>
+  <circle cx="61.7" cy="197.5" r="4.1" fill="#FFFFFF"/>
+</svg>
