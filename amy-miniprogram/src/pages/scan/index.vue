@@ -12,6 +12,8 @@ const userStore = useUserStore()
 const view = ref<'scan' | 'result'>('scan')
 const record = ref<ReserveRecord | null>(null)
 const confirming = ref(false)
+/** 本次扫码解析出的核销码（旧格式二维码为空，核销时兜底用查询返回的） */
+const scannedVerifyCode = ref('')
 
 /** 预约状态（后端：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
@@ -27,7 +29,9 @@ function doScan() {
   uni.scanCode({
     scanType: ['qrCode'],
     success: async (res) => {
-      await handleOrderCode(res.result)
+      const parsed = parseQrContent(res.result)
+      scannedVerifyCode.value = parsed.verifyCode
+      await handleOrderCode(parsed.orderNum)
     },
     fail: () => {
       // 取消扫码
@@ -35,7 +39,25 @@ function doScan() {
   })
 }
 
-/** 按预约单号查询（二维码内容即预约单号） */
+/**
+ * 解析二维码内容：
+ *  - 新格式：JSON {"orderNum":"...","verifyCode":"..."}
+ *  - 兼容旧格式：内容即预约单号（verifyCode 从查询结果取）
+ */
+function parseQrContent(raw: string): { orderNum: string; verifyCode: string } {
+  const content = (raw || '').trim()
+  try {
+    const obj = JSON.parse(content)
+    if (obj && typeof obj.orderNum === 'string' && obj.orderNum) {
+      return { orderNum: obj.orderNum, verifyCode: typeof obj.verifyCode === 'string' ? obj.verifyCode : '' }
+    }
+  } catch (e) {
+    // 非 JSON：按旧格式处理
+  }
+  return { orderNum: content, verifyCode: '' }
+}
+
+/** 扫码后按预约单号查询（二维码内容携带预约单号） */
 async function handleOrderCode(orderNum: string) {
   const num = (orderNum || '').trim()
   if (!num) return
@@ -54,7 +76,9 @@ async function onConfirm() {
   if (!record.value) return
   confirming.value = true
   try {
-    await confirm(record.value.reservationNum)
+    // 优先用扫码得到的核销码，兜底用查询返回的
+    const code = scannedVerifyCode.value || record.value.verifyCode
+    await confirm(record.value.reservationNum, code)
     uni.showToast({ title: '核销成功', icon: 'success' })
     record.value = await queryOrder(record.value.reservationNum)
   } catch (e: any) {
@@ -67,6 +91,7 @@ async function onConfirm() {
 function rescan() {
   view.value = 'scan'
   record.value = null
+  scannedVerifyCode.value = ''
 }
 
 onShow(() => {
