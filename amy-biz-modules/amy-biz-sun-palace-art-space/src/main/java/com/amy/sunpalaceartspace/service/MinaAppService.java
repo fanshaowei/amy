@@ -261,7 +261,7 @@ public class MinaAppService {
         Object verifyCode = redisService.getCacheObject(key);
         if(null == verifyCode) {
             verifyCode = UUID.randomUUID().toString();
-            redisService.setCacheObject(key, verifyCode, 5L, TimeUnit.MINUTES);
+            redisService.setCacheObject(key, verifyCode, 1L, TimeUnit.MINUTES);
         }
         vo.setVerifyCode(verifyCode.toString());
 
