@@ -2,6 +2,7 @@ import {DownloadOutlined, InfoCircleOutlined, QrcodeOutlined} from '@ant-design/
 import {App, Button, Col, Divider, Modal, QRCode, Row, Space, Typography, theme} from 'antd';
 import {useRef} from 'react';
 import type {ReactNode} from 'react';
+import {getOrderSourceName} from '@/services/sunpalaceartspace/order';
 import type {ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import styles from '../spas.less';
 
@@ -114,6 +115,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                 <InfoRow label="当前状态">
                     {order?.reservationStatusName || STATUS_TEXT[order?.reservationStatus ?? -1] || '未知状态'}
                 </InfoRow>
+                <InfoRow label="订单来源">{getOrderSourceName(order?.orderSource, order?.orderSourceName)}</InfoRow>
             </Col>
         </Row>
         <div style={{

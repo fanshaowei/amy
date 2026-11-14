@@ -22,6 +22,7 @@
         <result property="verifyBy" column="verify_by"/>
         <result property="verifyTime" column="verify_time"/>
         <result property="cancelTime" column="cancel_time"/>
+        <result property="orderSource" column="order_source"/>
         <result property="createTime" column="create_time"/>
         <!-- comp_users 是 List<String>，列存 JSON 数组字符串，必须带 typeHandler 才能正确映射到 VO 字段 -->
         <result property="compUsers" column="comp_users"
@@ -52,6 +53,7 @@
                r.verify_by,
                r.verify_time,
                r.cancel_time,
+               r.order_source,
                r.comp_users,
                r.create_time
         from biz_spas_reservation_order r

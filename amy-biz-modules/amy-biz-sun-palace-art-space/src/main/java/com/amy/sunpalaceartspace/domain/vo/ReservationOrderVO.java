@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
+import com.amy.sunpalaceartspace.enums.OrderSource;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -100,6 +101,13 @@ public class ReservationOrderVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date cancelTime;
 
+    /** 订单来源码（1小程序预约 2后台手动添加，见 {@link OrderSource}） */
+    @Excel(name = "订单来源", readConverterExp = "1=小程序预约,2=后台手动添加")
+    private Integer orderSource;
+
+    /** 订单来源中文名（由 {@link #fillOrderSourceName()} 装配，不参与 Excel 导出） */
+    private String orderSourceName;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
@@ -135,6 +143,15 @@ public class ReservationOrderVO {
     public void fillReservationStatusName() {
         ReservationOrderStatus s = ReservationOrderStatus.fromCode(this.reservationStatus);
         this.reservationStatusName = s == null ? null : s.getName();
+    }
+
+    /**
+     * 通过来源码把 {@link #orderSource} 解析成枚举并写入 {@link #orderSourceName}。
+     * <p>与状态中文名一样，供 Service 在装配 VO 时调用。</p>
+     */
+    public void fillOrderSourceName() {
+        OrderSource source = OrderSource.fromCode(this.orderSource);
+        this.orderSourceName = source == null ? null : source.getName();
     }
 
     /**

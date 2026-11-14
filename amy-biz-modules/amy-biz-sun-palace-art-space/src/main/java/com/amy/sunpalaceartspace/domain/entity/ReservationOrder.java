@@ -118,4 +118,12 @@ public class ReservationOrder extends BaseEntity {
     @Excel(name = "随行人信息")
     @TableField(value = "comp_users")
     private String compUsers;
+
+    /**
+     * 订单来源（业务值用 {@link com.amy.sunpalaceartspace.enums.OrderSource}）
+     * <p>1小程序预约 2后台手动添加；由服务端创建订单时写入，不接收前端传值。</p>
+     */
+    @Excel(name = "订单来源", readConverterExp = "1=小程序预约,2=后台手动添加")
+    @TableField("order_source")
+    private Integer orderSource;
 }

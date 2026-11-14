@@ -28,12 +28,31 @@ export interface ReservationOrderRecord {
     reservationStatus?: number;
     /** 状态中文名 */
     reservationStatusName?: string;
+    /** 订单来源码：1小程序预约 2后台手动添加 */
+    orderSource?: number;
+    /** 订单来源中文名（后端 OrderSource 枚举装配） */
+    orderSourceName?: string;
     verifyBy?: string;
     verifyTime?: string;
     createTime?: string;
     /** 随行人信息，每个元素为 UserIdentity JSON 字符串 */
     compUsers?: string[];
 }
+
+/** 订单来源码 -> 中文名（与后端 OrderSource 枚举保持一致） */
+export const ORDER_SOURCE_TEXT: Record<number, string> = {
+    1: '小程序预约',
+    // 与后端 OrderSource.MANUAL 的 name 保持一致
+    2: '手动添加'
+};
+
+/**
+ * 取订单来源展示文案：按来源码取前端统一文案（与后端 OrderSource 枚举保持一致），
+ * 后端新增了前端还不认识的来源码时才回退到 VO 的中文名，最后兜底「未知来源」。
+ * 这样即使后端仍是旧编译产物、返回的 name 还是旧名，页面文案也能稳定统一。
+ */
+export const getOrderSourceName = (code?: number, name?: string): string =>
+    (code != null ? ORDER_SOURCE_TEXT[code] : undefined) || name || '未知来源';
 
 /** 随行人身份信息（UserIdentity JSON 反序列化） */
 export interface CompUser {
