@@ -35,4 +35,12 @@ const info = computed(() => RESERVE_STATUS[props.status] || { text: '未知', ty
   background: #fff1f0;
   color: #f53f3f;
 }
+.badge--fail {
+  background: #fff1f0;
+  color: #f53f3f;
+}
+.badge--booking {
+  background: #eaf2ff;
+  color: #3b7dff;
+}
 </style>

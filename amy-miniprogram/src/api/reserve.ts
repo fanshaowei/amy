@@ -72,6 +72,7 @@ function normalizeRecord(raw: RawReserveRecord): ReserveRecord {
   return {
     ...raw,
     reservationStatusName: raw.reservationStatusName || '',
+    statusMsg: raw.statusMsg || '',
     compUsers: parseCompUsers(raw.compUsers),
   }
 }

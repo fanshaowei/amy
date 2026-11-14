@@ -46,15 +46,17 @@ export function cardTypeToIdType(id: CardType | number): string {
 
 /**
  * 预约订单状态（与后端 ReservationOrderStatus 一致）
- * 0待核销 1已完成 2已过期 3已取消
+ * -1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中
  */
-export type ReserveStatus = 0 | 1 | 2 | 3
+export type ReserveStatus = -1 | 0 | 1 | 2 | 3 | 4
 
 export const RESERVE_STATUS: Record<number, { text: string; type: string }> = {
+  [-1]: { text: '预约失败', type: 'fail' },
   0: { text: '待核销', type: 'pending' },
   1: { text: '已完成', type: 'done' },
   2: { text: '已过期', type: 'expired' },
   3: { text: '已取消', type: 'cancel' },
+  4: { text: '预约中', type: 'booking' },
 }
 
 /**
@@ -179,16 +181,19 @@ export interface ReserveRecord {
   guestsNum: number
   /** 预约时间 yyyy-MM-dd HH:mm:ss */
   reservationTime: string
-  /** 状态 0待核销 1已完成 2已过期 3已取消 */
+  /** 状态 -1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中 */
   reservationStatus: number
   reservationStatusName: string
+  /** 预约状态说明（状态流转时写入的原因/补充说明，可为空） */
+  statusMsg?: string
   /** 核销人 */
   verifyBy: string
   /** 核销时间 */
   verifyTime: string
   createTime: string
   /** 随行人员（后端为 JSON 字符串列表，已在 api 层解析） */
-  compUsers: ReservePerson[]
+  compUsers: ReservePerson[],
+  verifyCode: string
 }
 
 /**

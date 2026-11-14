@@ -4,7 +4,8 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import type { Activity, TimeSlot, UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
 import { getActivityDetail, getSlots } from '@/api/activity'
-import { getFollowers } from '@/api/user'
+import { getFollowers, addFollower } from '@/api/user'
+import type { UserIdentityPayload } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
 import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
@@ -12,6 +13,7 @@ import { showError } from '@/utils/request'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
+import CardPicker from '@/components/CardPicker.vue'
 
 const userStore = useUserStore()
 const reserveStore = useReserveStore()
@@ -182,8 +184,123 @@ function removeCompanion(item: UserIdentityRow) {
   companions.value = companions.value.filter((c) => c.userIdentityId !== item.userIdentityId)
 }
 
-function goAddFollower() {
-  uni.navigateTo({ url: '/pages/verify/index' })
+/* ===== 添加随行人弹层（本页直接添加，不再跳转实名认证页） ===== */
+const followerFormShow = ref(false)
+const followerForm = ref<UserIdentityPayload>({ name: '', idType: 1, idNum: '', phone: '' })
+const followerErrors = ref({ phone: '', idNum: '' })
+const followerSubmitting = ref(false)
+const cardPickerShow = ref(false)
+
+/** 仅保留数字，最长 11 位 */
+function keepDigits(v: string, max = 11): string {
+  return (v || '').replace(/\D/g, '').slice(0, max)
+}
+
+/** 证件号输入过滤：身份证仅数字与 X（转大写）18 位，其他证件去空白 30 位 */
+function filterIdNum(v: string, idType: number): string {
+  const s = v || ''
+  return idType === 1
+    ? s.toUpperCase().replace(/[^0-9X]/g, '').slice(0, 18)
+    : s.replace(/\s/g, '').slice(0, 30)
+}
+
+/** 校验手机号：返回错误文案，空串表示通过 */
+function checkPhone(phone: string): string {
+  if (!phone) return '请输入手机号码'
+  if (!isValidPhone(phone)) return '手机号格式不正确：应为 1 开头的 11 位数字'
+  return ''
+}
+
+/** 校验证件号：身份证按校验位算法验证，其他证件做长度校验 */
+function checkIdNum(idNum: string, idType: number): string {
+  if (!idNum) return '请输入证件号码'
+  if (idType === 1 && !isValidIdCard(idNum)) {
+    return '身份证号格式不正确：18 位且校验位需相符'
+  }
+  if (idType !== 1 && idNum.length < 5) {
+    return '证件号码过短，请核对后重新输入'
+  }
+  return ''
+}
+
+function openAddFollower() {
+  followerForm.value = { name: '', idType: 1, idNum: '', phone: '' }
+  followerErrors.value = { phone: '', idNum: '' }
+  followerFormShow.value = true
+}
+
+function onFollowerPhoneInput(e: any) {
+  followerForm.value.phone = keepDigits(e?.detail?.value ?? '')
+  followerErrors.value.phone = ''
+}
+function onFollowerPhoneBlur() {
+  followerErrors.value.phone = checkPhone(followerForm.value.phone)
+}
+function onFollowerIdInput(e: any) {
+  followerForm.value.idNum = filterIdNum(e?.detail?.value ?? '', followerForm.value.idType)
+  followerErrors.value.idNum = ''
+}
+function onFollowerIdBlur() {
+  followerErrors.value.idNum = checkIdNum(followerForm.value.idNum, followerForm.value.idType)
+}
+function onFollowerCardSelect(id: number) {
+  followerForm.value.idType = id
+  followerErrors.value.idNum = checkIdNum(followerForm.value.idNum, id)
+  cardPickerShow.value = false
+}
+
+/** 提交添加随行人：保存成功后直接带入当前随行人列表；超出活动可携带上限则提示且不带入 */
+async function onSubmitNewFollower() {
+  const p = {
+    name: followerForm.value.name.trim(),
+    idType: followerForm.value.idType,
+    idNum: followerForm.value.idNum.trim(),
+    phone: followerForm.value.phone.trim(),
+    isFollower: true,
+  }
+  if (!p.name) {
+    uni.showToast({ title: '请输入姓名', icon: 'none' })
+    return
+  }
+  followerErrors.value.phone = checkPhone(p.phone)
+  followerErrors.value.idNum = checkIdNum(p.idNum, p.idType)
+  const firstError = followerErrors.value.phone || followerErrors.value.idNum
+  if (firstError) {
+    uni.showToast({ title: firstError, icon: 'none' })
+    return
+  }
+  followerSubmitting.value = true
+  try {
+    const prevIds = new Set(allFollowers.value.map((i) => i.userIdentityId))
+    const list = await addFollower(p)
+    allFollowers.value = list.filter((item) => item.isFollower)
+    followerFormShow.value = false
+
+    const added = allFollowers.value.find(
+      (i) => !prevIds.has(i.userIdentityId) && i.idNum === p.idNum
+    )
+    if (maxCompanions.value <= 0) {
+      uni.showToast({ title: '该项目不可携带随行人，已保存至随行人列表', icon: 'none' })
+      return
+    }
+    if (companions.value.length >= maxCompanions.value) {
+      // 已选随行人达到活动上限：仅保存，不带入当前列表
+      uni.showToast({
+        title: `当前活动最多携带${maxCompanions.value}位随行人，已保存未带入`,
+        icon: 'none',
+      })
+      return
+    }
+    if (added) {
+      companions.value.push(added)
+      checkedFollowerIds.value.push(added.userIdentityId)
+      uni.showToast({ title: '添加成功', icon: 'success' })
+    }
+  } catch (e: any) {
+    uni.showToast({ title: e?.message || '添加失败', icon: 'none' })
+  } finally {
+    followerSubmitting.value = false
+  }
 }
 
 function onTimeout() {
@@ -336,7 +453,7 @@ onUnload(() => {
       </view>
       <view class="follower-tip">
         <text>已选 {{ companions.length }}/{{ maxCompanions }} 位随行人</text>
-        <text class="link" @tap="goAddFollower">去添加/管理随行人 ›</text>
+        <text class="link" @tap="openAddFollower">添加随行人 ›</text>
       </view>
     </view>
 
@@ -372,6 +489,67 @@ onUnload(() => {
         </view>
       </view>
     </view>
+
+    <!-- 添加随行人弹层：本页直接填写并保存，不跳转实名认证页 -->
+    <view v-if="followerFormShow" class="modal-mask" @tap="followerFormShow = false">
+      <view class="sheet" @tap.stop>
+        <view class="sheet__title">
+          <text>添加随行人</text>
+          <text class="sheet__close" @tap="followerFormShow = false">×</text>
+        </view>
+        <view class="sheet__body">
+          <view class="form-item">
+            <text class="form-item__lbl"><text class="req">*</text>姓名</text>
+            <input
+              class="form-item__input"
+              v-model="followerForm.name"
+              placeholder="请输入随行人姓名"
+            />
+          </view>
+          <view class="form-item" @tap="cardPickerShow = true">
+            <text class="form-item__lbl"><text class="req">*</text>证件类型</text>
+            <text class="form-item__val">{{ cardTypeTitle(followerForm.idType) }}</text>
+            <text class="arrow">›</text>
+          </view>
+          <view class="form-item">
+            <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
+            <input
+              class="form-item__input"
+              :value="followerForm.phone"
+              type="number"
+              maxlength="11"
+              placeholder="请输入手机号码"
+              @input="onFollowerPhoneInput"
+              @blur="onFollowerPhoneBlur"
+            />
+          </view>
+          <view class="field-err" v-if="followerErrors.phone">{{ followerErrors.phone }}</view>
+          <view class="form-item">
+            <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
+            <input
+              class="form-item__input"
+              :value="followerForm.idNum"
+              :maxlength="followerForm.idType === 1 ? 18 : 30"
+              placeholder="请输入证件号码"
+              @input="onFollowerIdInput"
+              @blur="onFollowerIdBlur"
+            />
+          </view>
+          <view class="field-err" v-if="followerErrors.idNum">{{ followerErrors.idNum }}</view>
+          <view class="sheet__confirm" :class="{ disabled: followerSubmitting }" @tap="onSubmitNewFollower">
+            {{ followerSubmitting ? '保存中...' : '保存并使用' }}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 证件类型选择 -->
+    <CardPicker
+      :show="cardPickerShow"
+      :selected="followerForm.idType"
+      @select="onFollowerCardSelect"
+      @close="cardPickerShow = false"
+    />
 
     <!-- 弹窗 -->
     <NoticeModal
@@ -470,6 +648,19 @@ onUnload(() => {
 }
 .form-item__val.placeholder {
   color: #c9cdd4;
+}
+.form-item__input {
+  flex: 1;
+  text-align: right;
+  font-size: 28rpx;
+  color: #1f2329;
+}
+.field-err {
+  padding: 0 32rpx 16rpx;
+  text-align: right;
+  font-size: 24rpx;
+  color: #f53f3f;
+  line-height: 1.4;
 }
 .arrow {
   color: #c9cdd4;
@@ -625,5 +816,8 @@ onUnload(() => {
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
+}
+.sheet__confirm.disabled {
+  opacity: 0.6;
 }
 </style>

@@ -5,7 +5,18 @@ import { generateQRMatrix } from '@/utils/qrcode'
 
 const props = defineProps<{ record: ReserveRecord }>()
 
-const matrix = computed(() => generateQRMatrix(props.record.reservationNum))
+/**
+ * 二维码内容：JSON 携带预约单号 + 核销码，
+ * 核销端扫码后拆分调用 /reservation/verify/{orderNum}/{verifyCode}
+ */
+const qrContent = computed(() =>
+  JSON.stringify({
+    orderNum: props.record.reservationNum,
+    verifyCode: props.record.verifyCode,
+  })
+)
+
+const matrix = computed(() => generateQRMatrix(qrContent.value))
 
 /** 渲染为展开的一维数组，供 grid 布局使用 */
 const cells = computed(() => {

@@ -20,8 +20,9 @@ const nextDayReservations = ref<NextDayReservation[]>([])
 const noticeItems = computed(() =>
   nextDayReservations.value.map((item) => {
     const time = (item.reservationTime || '').slice(11, 16)
+    const day = (item.reservationTime || '').slice(5, 10)
     const who = maskName(item.name) + '(' + item.phone + ')'
-    return time ? `${who} 预约了明日 ${time} 场次` : `${who} 预约了明日场次`
+    return time ? `${who} 预约了${day} ${time} 场次` : `${who} 预约了${day}场次`
   })
 )
 
