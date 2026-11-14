@@ -72,20 +72,6 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 根据 openId 重新生成鉴权 token（静默续登）
-     *
-     * <p>小程序本地存在 {@code reservation_user} 缓存（含 openId）但 token 已过期时调用，
-     * 免去再次弹微信授权。openId 不存在或账号状态异常时返回业务错误。</p>
-     *
-     * @param req openId
-     * @return 新的 token
-     */
-    @PostMapping("/auth/login/openid")
-    public R<String> loginByOpenId(@Validated @RequestBody MinaAppOpenIdLoginReq req) {
-        return R.ok(minaAppLoginService.generalApiAuthTokenByOpenId(req.getOpenId()));
-    }
-
-    /**
      * 小程序首页项目列表信息
      * @return
      */

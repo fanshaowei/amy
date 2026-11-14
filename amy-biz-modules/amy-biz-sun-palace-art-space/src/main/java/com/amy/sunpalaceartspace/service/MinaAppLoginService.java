@@ -81,34 +81,6 @@ public class MinaAppLoginService {
                 .build();
     }
 
-    /**
-     * 根据 openId 重新签发 spasToken（静默续登）
-     *
-     * <p>使用场景：小程序本地缓存了 {@code reservation_user}（含 openId），但 token 已过期
-     * （Redis 中 {@code token → openId} 已失效）。此时无需再走微信 jsCode 授权，
-     * 直接按 openId 换发新 token 并重建 Redis 缓存。</p>
-     *
-     * <p>注意：openId 是小程序端的内部标识，调用方需保证其来源可信（本地上次登录缓存）。</p>
-     *
-     * @param openId 微信 openId
-     * @return 新的 spasToken
-     */
-    public String generalApiAuthTokenByOpenId(String openId) {
-        ReservationUser user = reservationUserService.selectUserInfoByOpenId(openId);
-        if (user == null) {
-            throw new ServiceException("用户不存在，请重新微信授权登录");
-        }
-        if (!ReservationUserStatusEnum.ACTIVE.getCode().equals(user.getStatus())) {
-            throw new ServiceException("账号状态异常，请联系场馆工作人员");
-        }
-
-        String spasToken = generalJwt();
-        // 无 jsCode 场景拿不到 sessionKey，仅重建 token → openId 缓存（2h 滑动，由鉴权切面续期）
-        redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken), openId, 2L, TimeUnit.HOURS);
-        log.info("regenerate mina token by openId: {}", openId);
-        return spasToken;
-    }
-
     private void createReservationUserByWechatInfo(WechatApiAuthLoginReq req, String openId) {
         // 检查用户是否已经登录注册过
         boolean b = reservationUserService.checkReservationUserByOpenId(openId);

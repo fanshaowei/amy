@@ -318,7 +318,7 @@ public class MinaAppService {
         if(user.getIsVerified()) {
             throw new ServiceException("用户已实名验证，无需重复验证");
         }
-        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        boolean b = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), false);
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
@@ -354,7 +354,7 @@ public class MinaAppService {
             throw new ServiceException("证件号码格式不正确，请检查后重新输入");
         }
 
-        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        boolean b = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), true);
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
