@@ -24,7 +24,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,11 +48,11 @@ public class MinaAppController extends BaseController {
 
     /**
      * 上传预约用户微信头像
-     * @param file
-     * @return
+     * @param file multipart 表单字段名固定为 file
+     * @return 头像持久化访问地址
      */
     @PostMapping("/user/avatar/upload")
-    public R<String> uploadReservationUserAvatar(@Param("file") MultipartFile file) {
+    public R<String> uploadReservationUserAvatar(@RequestParam("file") MultipartFile file) {
         String url = minaAppLoginService.uploadReservationUserAvatar(file);
         return R.ok(url);
     }

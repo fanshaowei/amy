@@ -24,6 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -48,8 +49,14 @@ public class MinaAppLoginService {
     private final IReservationUserService reservationUserService;
     private final RemoteFileService remoteFileService;
 
+    /**
+     * 上传小程序微信头像，返回文件服务的持久化访问地址。
+     */
     public String uploadReservationUserAvatar(MultipartFile file) {
         R<SysFile> upload = remoteFileService.upload(file);
+        if (upload == null || upload.getData() == null || !StringUtils.hasText(upload.getData().getUrl())) {
+            throw new ServiceException("头像上传失败，请稍后重试");
+        }
         return upload.getData().getUrl();
     }
 
