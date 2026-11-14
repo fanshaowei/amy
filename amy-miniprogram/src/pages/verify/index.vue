@@ -50,6 +50,83 @@ const followerForm = ref<UserIdentityPayload>({
 })
 const followerSubmitting = ref(false)
 
+/* ===== 手机号 / 证件号 输入验证 ===== */
+/** 实名认证表单的行内错误提示 */
+const formErrors = ref({ phone: '', idNum: '' })
+/** 随行人表单的行内错误提示 */
+const followerErrors = ref({ phone: '', idNum: '' })
+
+/** 实时过滤手机号输入：仅保留数字，最长 11 位 */
+function keepDigits(v: string, max = 11): string {
+  return (v || '').replace(/\D/g, '').slice(0, max)
+}
+
+/**
+ * 实时过滤证件号输入：
+ * 身份证仅保留数字与 X（自动转大写），最长 18 位；
+ * 其他证件类型（护照/通行证等）去除空白，最长 30 位
+ */
+function filterIdNum(v: string, idType: number): string {
+  const s = v || ''
+  return idType === 1
+    ? s.toUpperCase().replace(/[^0-9X]/g, '').slice(0, 18)
+    : s.replace(/\s/g, '').slice(0, 30)
+}
+
+/** 校验手机号：返回错误文案，空串表示通过 */
+function checkPhone(phone: string): string {
+  if (!phone) return '请输入手机号码'
+  if (!isValidPhone(phone)) return '手机号格式不正确：应为 1 开头的 11 位数字'
+  return ''
+}
+
+/**
+ * 校验证件号：返回错误文案，空串表示通过。
+ * 身份证按 GB 11643 校验位算法验证；其他证件做基础长度校验
+ */
+function checkIdNum(idNum: string, idType: number): string {
+  if (!idNum) return '请输入证件号码'
+  if (idType === 1 && !isValidIdCard(idNum)) {
+    return '身份证号格式不正确：18 位且校验位需相符'
+  }
+  if (idType !== 1 && idNum.length < 5) {
+    return '证件号码过短，请核对后重新输入'
+  }
+  return ''
+}
+
+/* 实名认证表单输入处理 */
+function onVerifyPhoneInput(e: any) {
+  form.value.phone = keepDigits(e?.detail?.value ?? '')
+  formErrors.value.phone = ''
+}
+function onVerifyPhoneBlur() {
+  formErrors.value.phone = checkPhone(form.value.phone)
+}
+function onVerifyIdInput(e: any) {
+  form.value.idNum = filterIdNum(e?.detail?.value ?? '', form.value.cardType)
+  formErrors.value.idNum = ''
+}
+function onVerifyIdBlur() {
+  formErrors.value.idNum = checkIdNum(form.value.idNum, form.value.cardType)
+}
+
+/* 随行人表单输入处理 */
+function onFollowerPhoneInput(e: any) {
+  followerForm.value.phone = keepDigits(e?.detail?.value ?? '')
+  followerErrors.value.phone = ''
+}
+function onFollowerPhoneBlur() {
+  followerErrors.value.phone = checkPhone(followerForm.value.phone)
+}
+function onFollowerIdInput(e: any) {
+  followerForm.value.idNum = filterIdNum(e?.detail?.value ?? '', followerForm.value.idType)
+  followerErrors.value.idNum = ''
+}
+function onFollowerIdBlur() {
+  followerErrors.value.idNum = checkIdNum(followerForm.value.idNum, followerForm.value.idType)
+}
+
 /** 证件选择器当前选中值 */
 const cardPickerSelected = computed(() =>
   cardPickerTarget.value === 'verify' ? form.value.cardType : followerForm.value.idType
@@ -58,8 +135,11 @@ const cardPickerSelected = computed(() =>
 function onCardSelect(id: number) {
   if (cardPickerTarget.value === 'verify') {
     form.value.cardType = id
+    // 证件类型变了，原证件号的校验结论作废
+    formErrors.value.idNum = checkIdNum(form.value.idNum, id)
   } else {
     followerForm.value.idType = id
+    followerErrors.value.idNum = checkIdNum(followerForm.value.idNum, id)
   }
   cardPickerShow.value = false
 }
@@ -85,21 +165,19 @@ async function refresh() {
 }
 
 /* ===== 实名认证提交 ===== */
-function validateIdentity(p: { name: string; idType: number; idNum: string; phone: string }): boolean {
+function validateIdentity(
+  p: { name: string; idType: number; idNum: string; phone: string },
+  errors: { phone: string; idNum: string }
+): boolean {
   if (!p.name.trim()) {
     uni.showToast({ title: '请输入姓名', icon: 'none' })
     return false
   }
-  if (!isValidPhone(p.phone)) {
-    uni.showToast({ title: '请输入 11 位正确的手机号', icon: 'none' })
-    return false
-  }
-  if (!p.idNum.trim()) {
-    uni.showToast({ title: '请输入证件号', icon: 'none' })
-    return false
-  }
-  if (p.idType === 1 && !isValidIdCard(p.idNum)) {
-    uni.showToast({ title: '请输入 18 位正确的身份证号', icon: 'none' })
+  errors.phone = checkPhone(p.phone)
+  errors.idNum = checkIdNum(p.idNum, p.idType)
+  const firstError = errors.phone || errors.idNum
+  if (firstError) {
+    uni.showToast({ title: firstError, icon: 'none' })
     return false
   }
   return true
@@ -112,7 +190,7 @@ async function onSubmitVerify() {
     idNum: form.value.idNum.trim(),
     phone: form.value.phone.trim(),
   }
-  if (!validateIdentity(p)) return
+  if (!validateIdentity(p, formErrors.value)) return
   submitting.value = true
   try {
     await verifyUser(p)
@@ -133,6 +211,7 @@ async function onSubmitVerify() {
 /* ===== 随行人管理 ===== */
 function openAddFollower() {
   followerForm.value = { userIdentityId: undefined, name: '', idType: 1, idNum: '', phone: '' }
+  followerErrors.value = { phone: '', idNum: '' }
   followerFormShow.value = true
 }
 
@@ -144,6 +223,7 @@ function openEditFollower(item: UserIdentityRow) {
     idNum: item.idNum,
     phone: item.phone,
   }
+  followerErrors.value = { phone: '', idNum: '' }
   followerFormShow.value = true
 }
 
@@ -161,7 +241,7 @@ async function onSubmitFollower() {
     phone: followerForm.value.phone.trim(),
     isFollower: true,
   }
-  if (!validateIdentity(p)) return
+  if (!validateIdentity(p, followerErrors.value)) return
   followerSubmitting.value = true
   try {
     const list = p.userIdentityId ? await updateFollower(p) : await addFollower(p)
@@ -225,21 +305,27 @@ onShow(() => {
         <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
         <input
           class="form-item__input"
-          v-model="form.phone"
+          :value="form.phone"
           type="number"
           maxlength="11"
           placeholder="请输入手机号码"
+          @input="onVerifyPhoneInput"
+          @blur="onVerifyPhoneBlur"
         />
       </view>
+      <view class="field-err" v-if="formErrors.phone">{{ formErrors.phone }}</view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
         <input
           class="form-item__input"
-          v-model="form.idNum"
+          :value="form.idNum"
           :maxlength="form.cardType === 1 ? 18 : 30"
           placeholder="请输入证件号码"
+          @input="onVerifyIdInput"
+          @blur="onVerifyIdBlur"
         />
       </view>
+      <view class="field-err" v-if="formErrors.idNum">{{ formErrors.idNum }}</view>
       <view class="submit-btn" :class="{ disabled: submitting }" @tap="onSubmitVerify">
         {{ submitting ? '提交中...' : '提交认证' }}
       </view>
@@ -304,21 +390,27 @@ onShow(() => {
             <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
             <input
               class="form-item__input"
-              v-model="followerForm.phone"
+              :value="followerForm.phone"
               type="number"
               maxlength="11"
               placeholder="请输入手机号码"
+              @input="onFollowerPhoneInput"
+              @blur="onFollowerPhoneBlur"
             />
           </view>
+          <view class="field-err" v-if="followerErrors.phone">{{ followerErrors.phone }}</view>
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
             <input
               class="form-item__input"
-              v-model="followerForm.idNum"
+              :value="followerForm.idNum"
               :maxlength="followerForm.idType === 1 ? 18 : 30"
               placeholder="请输入证件号码"
+              @input="onFollowerIdInput"
+              @blur="onFollowerIdBlur"
             />
           </view>
+          <view class="field-err" v-if="followerErrors.idNum">{{ followerErrors.idNum }}</view>
           <view class="submit-btn" :class="{ disabled: followerSubmitting }" @tap="onSubmitFollower">
             {{ followerSubmitting ? '保存中...' : '保存' }}
           </view>
@@ -402,6 +494,13 @@ onShow(() => {
   text-align: right;
   font-size: 28rpx;
   color: #1f2329;
+}
+.field-err {
+  padding: 0 32rpx 16rpx;
+  text-align: right;
+  font-size: 24rpx;
+  color: #f53f3f;
+  line-height: 1.4;
 }
 .arrow {
   color: #c9cdd4;

@@ -173,7 +173,7 @@ public class MinaAppController extends BaseController {
                                                @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         userIdentityReq.setReservationUserId(user.getReservationUserId());
-        user.setIsVerified(true);
+        userIdentityReq.setIsFollower(true);
         return R.ok(minaAppService.addFollower(user, userIdentityReq));
     }
 
