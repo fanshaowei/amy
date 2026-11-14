@@ -125,7 +125,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
             background: token.colorFillQuaternary, color: token.colorTextSecondary
         }}>
             <InfoCircleOutlined style={{marginTop: 2, color: token.colorPrimary}}/>
-            <span>二维码内容仅为订单号本身，不含任何链接或会员信息；下载的图片为白底 PNG，可直接打印。若需改为核销链接格式，请调整 buildQrcodeValue。</span>
+            <span>二维码内容仅为订单号本身，不含任何链接或会员信息；下载的图片为白底 PNG，可直接打印。</span>
         </div>
     </Modal>;
 }
