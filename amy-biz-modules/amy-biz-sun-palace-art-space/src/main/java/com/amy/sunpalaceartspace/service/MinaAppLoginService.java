@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
+import com.amy.common.core.domain.R;
 import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.JwtUtils;
@@ -16,11 +17,15 @@ import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.WechatApiAuthLoginResp;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
+import com.amy.system.api.RemoteFileService;
+import com.amy.system.api.domain.SysFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +47,18 @@ public class MinaAppLoginService {
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
     private final IReservationUserService reservationUserService;
+    private final RemoteFileService remoteFileService;
+
+    /**
+     * 上传小程序微信头像，返回文件服务的持久化访问地址。
+     */
+    public String uploadReservationUserAvatar(MultipartFile file) {
+        R<SysFile> upload = remoteFileService.upload(file);
+        if (upload == null || upload.getData() == null || !StringUtils.hasText(upload.getData().getUrl())) {
+            throw new ServiceException("头像上传失败，请稍后重试");
+        }
+        return upload.getData().getUrl();
+    }
 
     public ReservationUser updateReservationUserInfo(String token, UpdateReservationUserReq req) {
         ReservationUser reservationUser = getUserByToken(token);
@@ -67,46 +84,21 @@ public class MinaAppLoginService {
         String sessionKey = wxMaJscode2SessionResult.getSessionKey();
         log.info("login openid: {}, sessionKey: {}", openId, sessionKey);
 
-        // 创建预约会员记录
-        boolean firstTimeLogin = reservationUserService.checkReservationUserByOpenId(openId);
-        if(!firstTimeLogin) {
+        // 首次登录（库里无该 openId 会员）时创建会员记录并写入本次提交的昵称/头像
+        boolean userExists = reservationUserService.checkReservationUserByOpenId(openId);
+        boolean firstTimeLogin = !userExists;
+        if (firstTimeLogin) {
             createReservationUserByWechatInfo(req, openId);
         }
         // 生成 spasToken
         String spasToken = generalJwt();
         saveMinaUserLoginCache(spasToken, openId, sessionKey);
+        // fistTimeLogin=true 表示首次登录（本次已创建会员）；
+        // false 表示老会员，头像等资料变更由小程序端调 /reservation/user/update 同步
         return WechatApiAuthLoginResp.builder()
                 .fistTimeLogin(firstTimeLogin)
                 .token(spasToken)
                 .build();
-    }
-
-    /**
-     * 根据 openId 重新签发 spasToken（静默续登）
-     *
-     * <p>使用场景：小程序本地缓存了 {@code reservation_user}（含 openId），但 token 已过期
-     * （Redis 中 {@code token → openId} 已失效）。此时无需再走微信 jsCode 授权，
-     * 直接按 openId 换发新 token 并重建 Redis 缓存。</p>
-     *
-     * <p>注意：openId 是小程序端的内部标识，调用方需保证其来源可信（本地上次登录缓存）。</p>
-     *
-     * @param openId 微信 openId
-     * @return 新的 spasToken
-     */
-    public String generalApiAuthTokenByOpenId(String openId) {
-        ReservationUser user = reservationUserService.selectUserInfoByOpenId(openId);
-        if (user == null) {
-            throw new ServiceException("用户不存在，请重新微信授权登录");
-        }
-        if (!ReservationUserStatusEnum.ACTIVE.getCode().equals(user.getStatus())) {
-            throw new ServiceException("账号状态异常，请联系场馆工作人员");
-        }
-
-        String spasToken = generalJwt();
-        // 无 jsCode 场景拿不到 sessionKey，仅重建 token → openId 缓存（2h 滑动，由鉴权切面续期）
-        redisService.setCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, spasToken), openId, 2L, TimeUnit.HOURS);
-        log.info("regenerate mina token by openId: {}", openId);
-        return spasToken;
     }
 
     private void createReservationUserByWechatInfo(WechatApiAuthLoginReq req, String openId) {

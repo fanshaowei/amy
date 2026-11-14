@@ -49,6 +49,8 @@ interface ProjectFormValues extends Omit<ProjectRecord, 'cutOffTime' | 'reservat
     cutOffTime?: Dayjs;
     reservationStartTime?: Dayjs;
     reservationEndTime?: Dayjs;
+    /** 预约间隔：表单内以「分钟」为单位，与后端的「秒」在进出表单时换算 */
+    reservationIntervalSecond?: number;
 }
 
 /**
@@ -80,8 +82,16 @@ const toStr = (value?: Dayjs | string | null) => {
     return parsedRaw.isValid() ? parsedRaw.format('HH:mm:ss') : (timePart || undefined);
 };
 
+/**
+ * 预约间隔单位换算：返回给后端为「秒」，表单展示与录入统一为「分钟」。
+ * 后端 ReservationUtil#extractReservationTimes 以秒除以 60 生成时段，故库里存的是秒。
+ */
+const secondToMinute = (second?: number | null) => second == null ? undefined : second / 60;
+const minuteToSecond = (minute?: number | null) => minute == null ? undefined : Math.round(minute * 60);
+
 const toFormValues = (record?: ProjectRecord): ProjectFormValues | undefined => record ? {
     ...record,
+    reservationIntervalSecond: secondToMinute(record.reservationIntervalSecond),
     cutOffTime: toDayjs(record.cutOffTime),
     reservationStartTime: toDayjs(record.reservationStartTime),
     reservationEndTime: toDayjs(record.reservationEndTime)
@@ -331,6 +341,8 @@ export default function ProjectPage() {
                 const data: ProjectRecord = {
                     ...editing,
                     ...values,
+                    // 表单里的分钟 → 后端存储的秒
+                    reservationIntervalSecond: minuteToSecond(values.reservationIntervalSecond),
                     cutOffTime: toStr(values.cutOffTime),
                     reservationStartTime: toStr(values.reservationStartTime),
                     reservationEndTime: toStr(values.reservationEndTime)
@@ -407,7 +419,7 @@ export default function ProjectPage() {
                     <Col span={8}>
                         <ProFormDigit name="reservationIntervalSecond" label="预约间隔" placeholder="请输入间隔时间"
                                       min={0} precision={0} fieldProps={{suffix: '分钟', style: {width: '100%'}}}
-                                      tooltip="相邻两个预约时段之间的间隔"/>
+                                      tooltip="相邻两个预约时段之间的间隔，单位分钟（提交时自动换算为秒保存）"/>
                     </Col>
                     <Col span={8}>
                         <ProFormDigit name="reservationStaySecond" label="停留时长" placeholder="可停留的时长"

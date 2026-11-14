@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.utils;
 
+import com.amy.common.sensitive.enums.DesensitizedType;
 import org.springframework.util.StringUtils;
 
 import java.util.regex.Pattern;
@@ -27,6 +28,8 @@ import java.util.regex.Pattern;
  * @Date 2026-11-02 01:09
  */
 public class PhoneVerifyUtil {
+    /** 标准手机号：11 位纯数字 */
+    private static final Pattern STANDARD_PHONE = Pattern.compile("^\\d{11}$");
 
     /** 手机号：1 开头，第二位 3~9，共 11 位 */
     private static final Pattern MOBILE = Pattern.compile("^1[3-9]\\d{9}$");
@@ -119,5 +122,23 @@ public class PhoneVerifyUtil {
             return false;
         }
         return pattern.matcher(phone.trim()).matches();
+    }
+
+    /**
+     * 手机号脱敏（{@code 138****1234}）
+     * @param phone 原始手机号，允许为 null 或空串
+     * @return 脱敏后的号码；null / 空串原样返回
+     */
+    public static String maskPhone(String phone) {
+        if (phone == null || phone.isEmpty()) {
+            return phone;
+        }
+        if (STANDARD_PHONE.matcher(phone).matches()) {
+            return DesensitizedType.PHONE.desensitizer().apply(phone);
+        }
+        if (phone.length() <= 7) {
+            return "****";
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }

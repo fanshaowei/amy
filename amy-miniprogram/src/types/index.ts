@@ -220,8 +220,6 @@ export interface User {
   name?: string
   /** 证件类型 1身份证 2护照 3港澳通行证 4台湾通行证 5军官证 */
   idType?: number
-  /** 微信 openId（本地缓存，token 过期后用于静默续登） */
-  openId?: string
 }
 
 /** 随行人/实名身份记录（对应后端 UserIdentityVO） */

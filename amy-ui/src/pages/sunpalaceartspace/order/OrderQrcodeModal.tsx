@@ -2,6 +2,7 @@ import {DownloadOutlined, InfoCircleOutlined, QrcodeOutlined} from '@ant-design/
 import {App, Button, Col, Divider, Modal, QRCode, Row, Space, Typography, theme} from 'antd';
 import {useRef} from 'react';
 import type {ReactNode} from 'react';
+import {getOrderSourceName} from '@/services/sunpalaceartspace/order';
 import type {ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import styles from '../spas.less';
 
@@ -66,9 +67,6 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                 background: token.colorPrimaryBg, color: token.colorPrimary
             }}><QrcodeOutlined/></span>
             <span style={{fontWeight: 600}}>订单二维码</span>
-            <Typography.Text type="secondary" style={{fontSize: 12, fontWeight: 400}}>
-                扫码内容 = 订单号
-            </Typography.Text>
         </Space>}
         open={open && !!num}
         width={620}
@@ -117,6 +115,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                 <InfoRow label="当前状态">
                     {order?.reservationStatusName || STATUS_TEXT[order?.reservationStatus ?? -1] || '未知状态'}
                 </InfoRow>
+                <InfoRow label="订单来源">{getOrderSourceName(order?.orderSource, order?.orderSourceName)}</InfoRow>
             </Col>
         </Row>
         <div style={{
@@ -125,7 +124,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
             background: token.colorFillQuaternary, color: token.colorTextSecondary
         }}>
             <InfoCircleOutlined style={{marginTop: 2, color: token.colorPrimary}}/>
-            <span>二维码内容仅为订单号本身，不含任何链接或会员信息；下载的图片为白底 PNG，可直接打印。若需改为核销链接格式，请调整 buildQrcodeValue。</span>
+            <span>二维码内容仅为订单号本身，不含任何链接或会员信息；下载的图片为白底 PNG，可直接打印。</span>
         </div>
     </Modal>;
 }

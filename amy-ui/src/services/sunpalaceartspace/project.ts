@@ -15,7 +15,7 @@ export interface ProjectRecord {
     reservationStartTime?: string;
     /** 预约结束时间（HH:mm:ss） */
     reservationEndTime?: string;
-    /** 预约间隔（分钟） */
+    /** 预约间隔（后端单位为秒，前端表单以分钟展示，提交前需 *60） */
     reservationIntervalSecond?: number;
     /** 每个时间段可预约的人数 */
     reservationCount?: number;

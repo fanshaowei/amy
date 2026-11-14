@@ -3,7 +3,6 @@ package com.amy.sunpalaceartspace.service;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
-import com.amy.common.sensitive.enums.DesensitizedType;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
@@ -19,6 +18,7 @@ import com.amy.sunpalaceartspace.enums.*;
 import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
+import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -31,9 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
+import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_VERIFY_CODE;
 
 /**
  * @ClassName MinaAppService
@@ -251,10 +252,33 @@ public class MinaAppService {
                 .build();
     }
 
+    public ReservationOrderVO extractReservationOrderInfo(String orderNum) {
+        ReservationOrderVO vo = reservationOrderService.selectReservationOrderVoByNum(orderNum);
+        if (vo == null) {
+            throw new ServiceException("未找到该预约单");
+        }
+        String key = String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum);
+        Object verifyCode = redisService.getCacheObject(key);
+        if(null == verifyCode) {
+            verifyCode = UUID.randomUUID().toString();
+            redisService.setCacheObject(key, verifyCode, 5L, TimeUnit.MINUTES);
+        }
+        vo.setVerifyCode(verifyCode.toString());
+
+        return vo;
+    }
+
     @Transactional
-    public boolean verifyReservationOrder(String token, String orderNum) {
-        ReservationUser verifyUser = minaAppLoginService.getUserByToken(token);
+    public boolean verifyReservationOrder(String orderNum, String verifyCode) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
+        Integer orderSource = reservationOrder.getOrderSource();
+        // 小程序订单的核销码有效期验证
+        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
+            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
+            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
+                throw new ServiceException("无效核销码");
+            }
+        }
 
         //校验订单是否待核销状态
         Integer reservationStatus = reservationOrder.getReservationStatus();
@@ -310,7 +334,7 @@ public class MinaAppService {
     }
 
     @Transactional
-    public boolean verifyUser(ReservationUser user, UserIdentityReq req) {
+    public boolean realNameVerifyUser(ReservationUser user, UserIdentityReq req) {
         boolean verify = IdVerifyUtil.verify(req.getIdType(), req.getIdNum());
         if(!verify) {
             throw new ServiceException("证件号码格式不正确，请检查后重新输入");
@@ -318,13 +342,13 @@ public class MinaAppService {
         if(user.getIsVerified()) {
             throw new ServiceException("用户已实名验证，无需重复验证");
         }
-        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        boolean b = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), false);
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
         // 如果是身份证，实名认证
         if(req.getIdType().equals(IdType.ID_CARD)){
-            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO data = verifyRealNameInfo(req);
             AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
             if (idCardInfor == null) {
                 throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
@@ -354,14 +378,14 @@ public class MinaAppService {
             throw new ServiceException("证件号码格式不正确，请检查后重新输入");
         }
 
-        boolean b = userIdentityService.countByIdNum(req.getIdNum());
+        boolean b = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), true);
         if(b) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
 
         // 如果是身份证，实名认证
         if(req.getIdType().equals(IdType.ID_CARD)){
-            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO data = verifyRealNameInfo(req);
             AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
             if (idCardInfor == null) {
                 throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
@@ -431,7 +455,7 @@ public class MinaAppService {
 
         // 如果是身份证，实名认证
         if (req.getIdType().equals(IdType.ID_CARD)) {
-            AliIdCheckDto.ResultDTO data = verify(req);
+            AliIdCheckDto.ResultDTO data = verifyRealNameInfo(req);
             AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
             if (idCardInfor == null) {
                 throw new ServiceException("身份核验结果缺少证件信息，请稍后重试");
@@ -478,7 +502,7 @@ public class MinaAppService {
         return getUserAndFollowerIdentity(user.getReservationUserId());
     }
 
-    private AliIdCheckDto.ResultDTO verify(UserIdentityReq req) {
+    private AliIdCheckDto.ResultDTO verifyRealNameInfo(UserIdentityReq req) {
         // 调阿里接口验证身份信息
         AliIdCheckDto aliIdCheckDto = aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
         if (aliIdCheckDto == null) {
@@ -500,30 +524,9 @@ public class MinaAppService {
             NextDayReservationOrderResp resp = new NextDayReservationOrderResp();
             BeanUtils.copyProperties(vo, resp);
             // 手机号脱敏：这个接口面向小程序端展示，不应暴露完整号码
-            resp.setPhone(maskPhone(vo.getPhone()));
+            resp.setPhone(PhoneVerifyUtil.maskPhone(vo.getPhone()));
             respList.add(resp);
         }
         return respList;
-    }
-
-    /** 标准手机号：11 位纯数字 */
-    private static final Pattern STANDARD_PHONE = Pattern.compile("^\\d{11}$");
-
-    /**
-     * 手机号脱敏（{@code 138****1234}）
-     * @param phone 原始手机号，允许为 null 或空串
-     * @return 脱敏后的号码；null / 空串原样返回
-     */
-    private static String maskPhone(String phone) {
-        if (phone == null || phone.isEmpty()) {
-            return phone;
-        }
-        if (STANDARD_PHONE.matcher(phone).matches()) {
-            return DesensitizedType.PHONE.desensitizer().apply(phone);
-        }
-        if (phone.length() <= 7) {
-            return "****";
-        }
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 }

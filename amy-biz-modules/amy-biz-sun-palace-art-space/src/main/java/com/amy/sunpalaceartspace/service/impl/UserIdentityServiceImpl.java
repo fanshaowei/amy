@@ -83,10 +83,12 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
     }
 
     @Override
-    public boolean countByIdNum(String idNum) {
-        LambdaQueryWrapper<UserIdentity> queryWrapper = new LambdaQueryWrapper();
-        queryWrapper.eq(UserIdentity::getIdNum, idNum);
-        return this.baseMapper.exists(queryWrapper);
+    public boolean checkExistReservationUser(Long reservationUserId, String idNum, boolean isFollower) {
+        return this.lambdaQuery()
+                .eq(UserIdentity::getReservationUserId, reservationUserId)
+                .eq(UserIdentity::getIdNum, idNum)
+                .eq(UserIdentity::getIsFollower, isFollower)
+                .exists();
     }
 
     /**

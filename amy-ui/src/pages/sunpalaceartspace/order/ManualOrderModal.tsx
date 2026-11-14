@@ -3,6 +3,7 @@ import {
     DeleteOutlined,
     IdcardOutlined,
     InfoCircleOutlined,
+    LockOutlined,
     PlusOutlined,
     TeamOutlined
 } from '@ant-design/icons';
@@ -154,6 +155,13 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
 
     const projectId = Form.useWatch('projectId', form);
     const selected = projects.find(item => item.projectId === Number(projectId));
+    /**
+     * 只有真正匹配到项目（而不是单纯有 projectId 值）才解锁其余字段：
+     * 项目列表加载失败 / 项目被停用移出选项时，填了也提交不出有效订单。
+     */
+    const projectChosen = !!selected;
+    /** 除「预约项目」外的所有控件共用此开关 */
+    const locked = !projectChosen;
     const timeSlots = selected?.timeSlots ?? [];
     /** 项目未配置 travelerCount 时不限制，避免后台补录被 0 卡住 */
     const maxFollowers = selected?.travelerCount ?? undefined;
@@ -177,7 +185,10 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
         labelAlign="left"
         width={880}
         initialValues={{idType: '身份证'}}
-        submitter={{searchConfig: {submitText: '确认添加', resetText: '重置'}}}
+        submitter={{
+            searchConfig: {submitText: '确认添加', resetText: '重置'},
+            submitButtonProps: {disabled: locked}
+        }}
         modalProps={{
             destroyOnHidden: true,
             onCancel: onClose,
@@ -187,6 +198,11 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
             if (!visible) onClose();
         }}
         onFinish={async values => {
+            // 兜底：即使绕过按钮禁用（如字段残留值），也不允许无项目提交
+            if (!selected) {
+                message.warning('请先选择预约项目');
+                return false;
+            }
             const date = toDateStr(values.reservationDate);
             const time = toTimeStr(values.reservationTime);
             if (!date || !time) {
@@ -224,11 +240,20 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
             手动添加的订单直接为「待核销」，<b>不会扣减时段库存</b>，也不绑定会员；请自行确认该时段名额后再提交。
         </NoticeBar>
 
+        {locked
+            ? <div style={{marginBottom: 16}}>
+                <SectionTip>
+                    <Space size={6}><LockOutlined/>请先选择「预约项目」，选定后才能填写预约日期、时段、预约人及随行人员信息。</Space>
+                </SectionTip>
+            </div>
+            : null}
+
         {/* ===== 分区一：预约信息 ===== */}
         <ProCard bordered size="small" headerBordered
                  style={{marginBottom: 16}}
                  bodyStyle={{padding: '16px 16px 4px'}}
-                 title={<SectionHead icon={<CalendarOutlined/>} title="预约信息" hint="选择项目后自动带出可预约时段"/>}>
+                 title={<SectionHead icon={<CalendarOutlined/>} title="预约信息"
+                                    hint={locked ? '第一步：请先选择预约项目' : '选择项目后自动带出可预约时段'}/>}>
             <Row gutter={16}>
                 <Col span={24}>
                     <ProFormSelect
@@ -237,7 +262,22 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                         fieldProps={{
                             style: {width: '100%'}, loading, showSearch: true,
                             optionFilterProp: 'label',
-                            onChange: () => form.setFieldValue('reservationTime', undefined)
+                            allowClear: true,
+                            onChange: value => {
+                                // 换项目后原时段不再适用
+                                form.setFieldValue('reservationTime', undefined);
+                                // 主动清空项目时连带清掉其余已填值，避免「禁用但值还在」被提交
+                                if (value == null) {
+                                    form.setFieldsValue({
+                                        reservationDate: undefined,
+                                        name: undefined,
+                                        phone: undefined,
+                                        idType: '身份证',
+                                        idNum: undefined,
+                                        compUsers: []
+                                    });
+                                }
+                            }
                         }}
                         rules={[{required: true, message: '请选择预约项目'}]}
                     />
@@ -245,7 +285,7 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                 <Col span={12}>
                     <ProFormDatePicker
                         name="reservationDate" label="预约日期" placeholder="请选择日期"
-                        fieldProps={{style: {width: '100%'}}}
+                        fieldProps={{style: {width: '100%'}, disabled: locked}}
                         rules={[{required: true, message: '请选择预约日期'}]}
                     />
                 </Col>
@@ -254,23 +294,25 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                         ? <ProFormSelect
                             name="reservationTime" label="预约时段" placeholder="请选择时段"
                             options={timeSlots.map(slot => ({label: slot.slice(0, 5), value: slot}))}
-                            fieldProps={{style: {width: '100%'}}}
+                            fieldProps={{style: {width: '100%'}, disabled: locked}}
                             rules={[{required: true, message: '请选择预约时段'}]}
                         />
                         : <ProFormTimePicker
                             name="reservationTime" label="预约时间" placeholder="请选择时间"
-                            fieldProps={{format: 'HH:mm:ss', style: {width: '100%'}}}
+                            fieldProps={{format: 'HH:mm:ss', style: {width: '100%'}, disabled: locked}}
                             rules={[{required: true, message: '请选择预约时间'}]}
                         />}
                 </Col>
             </Row>
             <SectionTip>
-                {selected
-                    ? <>「{selected.projectName}」{openRange ? `开放 ${openRange}，` : ''}
-                        {timeSlots.length
-                            ? <>共 <b>{timeSlots.length}</b> 个可预约时段。</>
-                            : <>未配置可预约时段，可手动填写时间。</>}</>
-                    : <>选择项目后，这里会显示该项目的开放时段与可选时段数量。</>}
+                {!loading && !projects.length
+                    ? <>暂无可预约项目，请先在「项目管理」中添加并启用项目。</>
+                    : selected
+                        ? <>「{selected.projectName}」{openRange ? `开放 ${openRange}，` : ''}
+                            {timeSlots.length
+                                ? <>共 <b>{timeSlots.length}</b> 个可预约时段。</>
+                                : <>未配置可预约时段，可手动填写时间。</>}</>
+                        : <>选择项目后，这里会显示该项目的开放时段与可选时段数量。</>}
             </SectionTip>
         </ProCard>
 
@@ -278,17 +320,18 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
         <ProCard bordered size="small" headerBordered
                  style={{marginBottom: 16}}
                  bodyStyle={{padding: '16px 16px 4px'}}
-                 title={<SectionHead icon={<IdcardOutlined/>} title="预约人信息" hint="用于到馆核销时核验身份"/>}
+                 title={<SectionHead icon={<IdcardOutlined/>} title="预约人信息"
+                                    hint={locked ? '请先选择预约项目' : '用于到馆核销时核验身份'}/>}
                  extra={<Tag bordered={false} color="default" style={{margin: 0, fontSize: 11}}>本人</Tag>}>
             <Row gutter={16}>
                 <Col span={12}>
                     <ProFormText name="name" label="姓名" placeholder="请输入预约人姓名"
-                                 fieldProps={{style: {width: '100%'}, maxLength: 50}}
+                                 fieldProps={{style: {width: '100%'}, maxLength: 50, disabled: locked}}
                                  rules={[{required: true, message: '请输入姓名'}]}/>
                 </Col>
                 <Col span={12}>
                     <ProFormText name="phone" label="联系电话" placeholder="请输入 11 位手机号"
-                                 fieldProps={{style: {width: '100%'}, maxLength: 11}}
+                                 fieldProps={{style: {width: '100%'}, maxLength: 11, disabled: locked}}
                                  rules={[
                                      {required: true, message: '请输入联系电话'},
                                      {pattern: PHONE_PATTERN, message: '请输入正确的手机号'}
@@ -296,12 +339,12 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                 </Col>
                 <Col span={12}>
                     <ProFormSelect name="idType" label="证件类型" options={ID_TYPE_OPTIONS}
-                                   fieldProps={{style: {width: '100%'}}}
+                                   fieldProps={{style: {width: '100%'}, disabled: locked}}
                                    rules={[{required: true, message: '请选择证件类型'}]}/>
                 </Col>
                 <Col span={12}>
                     <ProFormText name="idNum" label="证件号码" placeholder="请输入证件号码"
-                                 fieldProps={{style: {width: '100%'}, maxLength: 50}}
+                                 fieldProps={{style: {width: '100%'}, maxLength: 50, disabled: locked}}
                                  rules={[
                                      {required: true, message: '请输入证件号码'},
                                      {
@@ -323,7 +366,8 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
         {/* ===== 分区三：随行人员 ===== */}
         <ProCard bordered size="small" headerBordered
                  bodyStyle={{padding: '16px 16px 16px'}}
-                 title={<SectionHead icon={<TeamOutlined/>} title="随行人员" hint="选填，不含预约人本人"/>}
+                 title={<SectionHead icon={<TeamOutlined/>} title="随行人员"
+                                    hint={locked ? '请先选择预约项目' : '选填，不含预约人本人'}/>}
                  extra={maxFollowers !== undefined
                      ? <Typography.Text type="secondary" style={{fontSize: 12}}>最多 {maxFollowers} 人</Typography.Text>
                      : undefined}>
@@ -343,7 +387,7 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                             padding: '14px 12px', marginBottom: 12, borderRadius: 8,
                             background: token.colorFillQuaternary,
                             color: token.colorTextSecondary, fontSize: 12, textAlign: 'center'
-                        }}>暂无随行人员，如需添加请点击下方按钮</div>
+                        }}>{locked ? '请先选择预约项目，选定后即可添加随行人员' : '暂无随行人员，如需添加请点击下方按钮'}</div>
                         : null}
 
                     {fields.map((field, index) => <Row key={field.key} gutter={12} align="top"
@@ -365,14 +409,14 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                             <Form.Item {...field} name={[field.name, 'name']}
                                        rules={[{required: true, message: '请输入姓名'}]}
                                        style={{marginBottom: 0}}>
-                                <Input placeholder="姓名" maxLength={50}/>
+                                <Input placeholder="姓名" maxLength={50} disabled={locked}/>
                             </Form.Item>
                         </Col>
                         <Col span={FOLLOWER_COLS.idNum}>
                             <Form.Item {...field} name={[field.name, 'idNum']}
                                        rules={[{required: true, message: '请输入证件号码'}]}
                                        style={{marginBottom: 0}}>
-                                <Input placeholder="证件号码" maxLength={50}/>
+                                <Input placeholder="证件号码" maxLength={50} disabled={locked}/>
                             </Form.Item>
                         </Col>
                         <Col span={FOLLOWER_COLS.phone}>
@@ -382,20 +426,22 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                                            {pattern: PHONE_PATTERN, message: '手机号格式不正确'}
                                        ]}
                                        style={{marginBottom: 0}}>
-                                <Input placeholder="联系电话" maxLength={11}/>
+                                <Input placeholder="联系电话" maxLength={11} disabled={locked}/>
                             </Form.Item>
                         </Col>
                         <Col span={FOLLOWER_COLS.action} style={{textAlign: 'right'}}>
                             <Button type="text" danger icon={<DeleteOutlined/>} title="移除该随行人"
-                                    style={{marginTop: 2}}
+                                    style={{marginTop: 2}} disabled={locked}
                                     onClick={() => remove(field.name)}/>
                         </Col>
                     </Row>)}
 
-                    <Button block type="dashed" icon={<PlusOutlined/>}
-                            disabled={maxFollowers !== undefined && fields.length >= maxFollowers}
+                    <Button block type="dashed" icon={locked ? <LockOutlined/> : <PlusOutlined/>}
+                            disabled={locked || (maxFollowers !== undefined && fields.length >= maxFollowers)}
                             onClick={() => add()}>
-                        添加随行人员{fields.length ? `（已添加 ${fields.length} 人）` : ''}
+                        {locked
+                            ? '请先选择预约项目'
+                            : `添加随行人员${fields.length ? `（已添加 ${fields.length} 人）` : ''}`}
                     </Button>
                     {maxFollowers === 0
                         ? <SectionTip>该项目未开放随行人员，仅可为预约人本人添加订单。</SectionTip>

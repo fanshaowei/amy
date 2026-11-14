@@ -15,6 +15,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.enums.IdType;
+import com.amy.sunpalaceartspace.enums.OrderSource;
 import com.amy.sunpalaceartspace.enums.ProjectStatus;
 import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
@@ -65,6 +66,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         IPage<ReservationOrderVO> result = baseMapper.selectReservationOrderList(page, order);
         result.getRecords().forEach(vo -> {
             vo.fillReservationStatusName();
+            vo.fillOrderSourceName();
             vo.fillCompUsersText();
         });
         return result;
@@ -79,6 +81,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         List<ReservationOrderVO> list = baseMapper.selectReservationOrderExportList(order);
         list.forEach(vo -> {
             vo.fillReservationStatusName();
+            vo.fillOrderSourceName();
             vo.fillCompUsersText();
         });
         return list;
@@ -90,6 +93,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         ReservationOrderVO vo = baseMapper.selectReservationOrderById(reservationOrderId);
         if (vo != null) {
             vo.fillReservationStatusName();
+            vo.fillOrderSourceName();
             vo.fillCompUsersText();
         }
         return vo;
@@ -108,6 +112,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         ReservationOrderVO vo = baseMapper.selectReservationOrderVoByNum(orderNum);
         if (vo != null) {
             vo.fillReservationStatusName();
+            vo.fillOrderSourceName();
             vo.fillCompUsersText();
         }
         return vo;
@@ -128,10 +133,20 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     @Override
     public ReservationOrder saveReservationOrder(ReservationOrderReq req)
     {
+        // 小程序端自助预约是默认入口（包括 MQ 削峰前先落库的「预约中」订单）
+        return doSaveReservationOrder(req, OrderSource.MINA);
+    }
+
+    /**
+     * 内部保存入口：订单来源只由服务端指定，不开放给请求参数，避免外部接口伪造成「后台手动添加」。
+     */
+    private ReservationOrder doSaveReservationOrder(ReservationOrderReq req, OrderSource orderSource)
+    {
         ReservationOrder order = convertToEntity(req);
         if(Strings.isBlank(req.getReservationNum())) {
             order.setReservationNum(reservationUtil.generateReservationNum(order.getReservationTime()));
         }
+        order.setOrderSource(orderSource.getCode());
         order.setCreateBy(SecurityUtils.getUsername());
         order.setCreateTime(DateUtils.getNowDate());
         save(order);
@@ -180,6 +195,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         Date endTime = Date.from(nextDay.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
 
         List<ReservationOrderVO> list = baseMapper.selectNextDayReservationOrder(startTime, endTime);
+        list.forEach(ReservationOrderVO::fillOrderSourceName);
         return list;
     }
 
@@ -300,10 +316,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
 
         IdType idType = this.verifyManualGenerate(req);
         if(idType.equals(IdType.ID_CARD)) {
-            AliIdCheckDto aliIdCheckDto = aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
-            if (aliIdCheckDto == null) {
-                throw new ServiceException("身份核验服务异常，请稍后重试");
-            }
+            aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
         }
         // 与小程序端一致：证件类型统一以中文名入库
         req.setIdType(idType.getName());
@@ -311,6 +324,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         ReservationOrderReq orderReq = new ReservationOrderReq();
         BeanUtils.copyProperties(req, orderReq);
         orderReq.setStatusMsg("后台手动添加");
-        return this.saveReservationOrder(orderReq);
+        return this.doSaveReservationOrder(orderReq, OrderSource.MANUAL);
     }
 }

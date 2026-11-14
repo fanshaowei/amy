@@ -2,23 +2,29 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
-import { isLocalTempFile, uploadAvatar } from '@/api/user'
+import { uploadAvatar } from '@/api/user'
+import type { User } from '@/types'
 
 const userStore = useUserStore()
 
+/** 本地用户缓存 key（与 stores/user.ts 保持一致） */
+const STORAGE_KEY = 'reservation_user'
 const nickname = ref('')
 const avatarUrl = ref('')
 const loading = ref(false)
+
+/** 本次会话已上传到后端的头像持久化地址（换头像后重置，避免重复上传） */
+const uploadedAvatarUrl = ref('')
 const redirect = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 
-/** 非首次登录：回跳来源页，无来源则进首页 */
-function goBackOrHome() {
+/** 登录成功后回跳来源页 */
+function goBack() {
   if (redirect.value) {
     uni.redirectTo({ url: redirect.value })
   } else {
-    uni.switchTab({ url: '/pages/home/index' })
+    uni.navigateBack()
   }
 }
 
@@ -41,43 +47,47 @@ async function fetchWxCode(): Promise<string> {
   })
 }
 
-/** 选择微信头像（open-type="chooseAvatar"） */
+/** 选择微信头像（open-type="chooseAvatar"），拿到的是临时路径 */
 function onChooseAvatar(e: any) {
   const url = e?.detail?.avatarUrl
-  if (url) avatarUrl.value = url
+  if (!url) return
+  avatarUrl.value = url
+  // 换了头像，上次上传的持久地址作废，登录时需按新路径重新上传
+  uploadedAvatarUrl.value = ''
+}
+
+/**
+ * 确保头像已上传为持久化地址：
+ * chooseAvatar 给的临时路径只在本次会话有效，直接落库必然失效，
+ * 必须先调 /spas/mina/app/user/avatar/upload 换成后端文件服务的 URL。
+ * 未选头像返回空串（后端首次登录也允许为空）。
+ */
+async function ensureAvatarUploaded(): Promise<string> {
+  if (!avatarUrl.value) return ''
+  if (uploadedAvatarUrl.value) return uploadedAvatarUrl.value
+  const url = await uploadAvatar(avatarUrl.value)
+  uploadedAvatarUrl.value = url
+  return url
 }
 
 async function onLogin() {
   if (loading.value) return
   loading.value = true
   try {
+    // 1. 先上传头像换取持久化地址（失败则阻断登录，避免临时地址落库）
+    const avatarImgUrl = await ensureAvatarUploaded()
+    // 2. 取微信登录凭证
     const jsCode = await fetchWxCode()
-    const nick = nickname.value.trim() || '微信用户'
-    // 临时头像不能随登录直接入库：首次登录先传空，登录拿到 token 后再上传换正式 URL 并保存
-    const avatar = avatarUrl.value
-    const avatarForLogin = isLocalTempFile(avatar) ? '' : avatar
-    const fistTimeLogin = await userStore.login({
+
+    // 3. 携带持久化头像地址一起授权登录（后端首次登录写入会员表；
+    //    老会员由 stores/user.ts 比对后走 /reservation/user/update 同步）
+    await userStore.login({
       jsCode,
-      nickName: nick,
-      avatarImgUrl: avatarForLogin,
+      nickName: nickname.value.trim() || '微信用户',
+      avatarImgUrl,
     })
-    if (fistTimeLogin && avatarForLogin === '' && avatar) {
-      try {
-        const url = await uploadAvatar(avatar)
-        await userStore.updateProfile(nick, url)
-      } catch {
-        // 上传失败不阻塞登录：首次登录会进入编辑页重新保存
-      }
-    }
     uni.showToast({ title: '登录成功', icon: 'success' })
-    setTimeout(() => {
-      if (fistTimeLogin) {
-        // 首次登录：去编辑头像、昵称页，保存后进首页
-        uni.redirectTo({ url: '/pages/edit/index?firstTime=1' })
-      } else {
-        goBackOrHome()
-      }
-    }, 600)
+    setTimeout(goBack, 600)
   } catch (e: any) {
     uni.showToast({ title: e.message || '登录失败', icon: 'none' })
   } finally {
@@ -87,6 +97,13 @@ async function onLogin() {
 
 onLoad((query) => {
   redirect.value = query?.redirect || ''
+  // 预填缓存昵称，避免默认值「微信用户」在老会员重新授权时覆盖原昵称
+  try {
+    const cached = uni.getStorageSync(STORAGE_KEY) as User | null
+    if (cached?.nickname) nickname.value = cached.nickname
+  } catch (e) {
+    /* ignore */
+  }
 })
 </script>
 

@@ -17,6 +17,9 @@ public class SpasConstant {
     // 每个用户每天的预约记录 eg:reservation:project:1:user:202609270930:001
     public static final String RESERVATION_USER_KEY_PREFIX = "reservation:project:%s:user:%s:%s";
 
+    // 订单核销码
+    public static final String RESERVATION_ORDER_VERIFY_CODE = "reservation:order:verify:%s";
+
     /********** 微信相关 ***********/
     // redis cash, spasToken : openId
     public static final String CASH_WX_API_TOKEN_OPEN_ID = "wx:api:token:%s";

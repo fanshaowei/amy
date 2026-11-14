@@ -4,26 +4,29 @@ import {
     ClockCircleOutlined,
     CloseCircleOutlined,
     DeleteOutlined,
+    EditOutlined,
     ExportOutlined,
     HistoryOutlined,
     IdcardOutlined,
+    MobileOutlined,
     PhoneOutlined,
     PlusOutlined,
     QrcodeOutlined,
+    QuestionOutlined,
     StopOutlined,
     TeamOutlined,
     UserOutlined
 } from '@ant-design/icons';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
-import {App, Button, Modal, Space, Tag, Tooltip, Typography} from 'antd';
+import {App, Button, Modal, Space, Tag, Tooltip, Typography, theme} from 'antd';
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
 import {pruneQueryParams} from '@/utils/exportParams';
-import {cancelOrder, deleteOrders, listOrders} from '@/services/sunpalaceartspace/order';
+import {cancelOrder, deleteOrders, getOrderSourceName, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import {ManualOrderModal} from './ManualOrderModal';
 import {OrderQrcodeModal} from './OrderQrcodeModal';
@@ -107,9 +110,28 @@ function StatusPill({style}: { style?: StatusStyle }) {
     }
     return (
         <span className={styles.pill} style={{color: style.color, background: style.background}}>
-            <span className={styles.pillDot} style={{background: style.color}}/>
             {style.icon}
             {style.text}
+        </span>
+    );
+}
+
+/**
+ * 订单来源胶囊。配色取自主题 token，跟随「系统样式」切换主色；
+ * 未知码 / 历史数据（order_source 为空）显示灰色「未知来源」，不留白也不报错。
+ */
+function SourcePill({code, name}: { code?: number; name?: string }) {
+    const {token} = theme.useToken();
+    const label = getOrderSourceName(code, name);
+    const style = code === 1
+        ? {color: token.colorPrimary, background: token.colorPrimaryBg, icon: <MobileOutlined/>}
+        : code === 2
+            ? {color: token.colorWarning, background: token.colorWarningBg, icon: <EditOutlined/>}
+            : {color: token.colorTextSecondary, background: token.colorFillQuaternary, icon: <QuestionOutlined/>};
+    return (
+        <span className={styles.pill} style={{color: style.color, background: style.background}}>
+            {style.icon}
+            {label}
         </span>
     );
 }
@@ -125,6 +147,8 @@ export default function OrderPage() {
     const lastQueryRef = useRef<Record<string, unknown>>({});
     /** 当前查询结果总数：导出前判空，避免无数据时下载一个只有表头的空文件 */
     const totalRef = useRef(0);
+    /** 已提示过的列表错误文案：分页 / 重试时不重复弹窗 */
+    const lastErrorRef = useRef('');
     /** 当前页码与每页条数：用于计算跨页连续的「序号」列 */
     const currentRef = useRef(1);
     const pageSizeRef = useRef(10);
@@ -138,6 +162,15 @@ export default function OrderPage() {
     /** 当前查看二维码的订单（null = 弹窗关闭） */
     const [qrOrder, setQrOrder] = useState<ReservationOrderRecord | null>(null);
 
+    /** 列表失败提示：后端异常时给出可读原因，且同一错误只弹一次 */
+    const reportListError = (msg?: string) => {
+        const text = msg || '订单列表加载失败，请检查艺术空间服务是否启动';
+        if (lastErrorRef.current !== text) {
+            lastErrorRef.current = text;
+            message.error(text);
+        }
+    };
+
     /** 各状态订单数量统计（pageSize=1 只取 total） */
     const loadCounts = useCallback(() => {
         void Promise.all(STATUS_ITEMS.map(item => listOrders({
@@ -145,7 +178,9 @@ export default function OrderPage() {
             pageSize: 1,
             reservationStatus: item.key === '' ? undefined : item.key
         }).then(res => {
-            setCounts(prev => ({...prev, [item.key]: res.data?.total ?? 0}));
+            setCounts(prev => ({...prev, [item.key]: res?.data?.total ?? 0}));
+        }).catch(() => {
+            setCounts(prev => ({...prev, [item.key]: 0}));
         }))).then(() => {
             setUpdatedAt(`${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`);
         });
@@ -285,6 +320,13 @@ export default function OrderPage() {
         width: 110,
         render: (_, row) => <StatusPill style={STATUS_STYLE[row.reservationStatus ?? -1]}/>
     }, {
+        title: '订单来源',
+        dataIndex: 'orderSource',
+        // 后端列表 where 目前没有 orderSource 条件，先关闭搜索，避免出现「能选但不生效」的筛选项
+        search: false,
+        width: 130,
+        render: (_, row) => <SourcePill code={row.orderSource} name={row.orderSourceName}/>
+    }, {
         title: '下单时间',
         dataIndex: 'createTime',
         search: false,
@@ -350,7 +392,7 @@ export default function OrderPage() {
                     rowKey="reservationOrderId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1600}}
+                    scroll={{x: 1730}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 状态筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{reservationStatus: activeStatus || undefined}}
@@ -367,13 +409,29 @@ export default function OrderPage() {
                         };
                         // 记录本次查询条件（不含分页），导出时原样复用，保证「查到什么就导出什么」
                         lastQueryRef.current = queryParams;
-                        const result = await listOrders({...queryParams, pageNum: current, pageSize});
-                        totalRef.current = result.data.total ?? 0;
-                        return {
-                            data: result.data.rows,
-                            total: result.data.total,
-                            success: result.code === 200 || result.code == 0
-                        };
+                        try {
+                            const result = await listOrders({...queryParams, pageNum: current, pageSize});
+                            // 后端异常（网关「服务未找到」等）只返回 {code, msg}，没有 data。
+                            // 类型上 SpasTableResponse.data 是必填，运行期却可能缺失，
+                            // 直接读 result.data.total 会抛 TypeError 让整个页面崩掉。
+                            const payload = result?.data;
+                            if (!payload || (result.code !== 200 && result.code !== 0)) {
+                                totalRef.current = 0;
+                                reportListError(result?.msg);
+                                return {data: [], total: 0, success: false};
+                            }
+                            lastErrorRef.current = '';
+                            totalRef.current = payload.total ?? 0;
+                            return {
+                                data: payload.rows ?? [],
+                                total: payload.total ?? 0,
+                                success: true
+                            };
+                        } catch {
+                            totalRef.current = 0;
+                            reportListError();
+                            return {data: [], total: 0, success: false};
+                        }
                     }}
                     toolBarRender={() => [
                         <PermissionButton key="add" type="primary" icon={<PlusOutlined/>}

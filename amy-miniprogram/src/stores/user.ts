@@ -48,16 +48,38 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    /** 微信登录：换取 token 并拉取会员信息，返回是否首次登录 */
+    /**
+     * 微信登录：换取 token 并拉取会员信息。
+     * 首次登录（fistTimeLogin=true）：后端已创建会员并写入本次头像/昵称，无需再更新；
+     * 老会员（fistTimeLogin=false）：本次提交的头像/昵称与库中不一致时，
+     * 走 /reservation/user/update 同步，同步失败不阻断登录（下次登录自动重试）。
+     */
     async login(payload: userApi.LoginPayload) {
-      const result = await userApi.login(payload)
-      setToken(result.token)
-      this.token = result.token
-      const user = await userApi.getProfile()
+      const { token, fistTimeLogin } = await userApi.login(payload)
+      setToken(token)
+      this.token = token
+      let user = await userApi.getProfile()
+      if (!fistTimeLogin) {
+        const nickName = (payload.nickName || '').trim()
+        const avatarImgUrl = payload.avatarImgUrl || ''
+        const avatarChanged = !!avatarImgUrl && avatarImgUrl !== user.avatarImgUrl
+        const nickChanged = !!nickName && nickName !== user.nickname
+        if (avatarChanged || nickChanged) {
+          try {
+            user =
+              (await userApi.updateReservationUser({
+                nickName: nickName || user.nickname || '',
+                avatarImgUrl: avatarImgUrl || user.avatarImgUrl || '',
+              })) || user
+          } catch (e) {
+            console.warn('sync reservation user profile failed', e)
+          }
+        }
+      }
       this.user = user
       this.loggedIn = true
       uni.setStorageSync(STORAGE_KEY, user)
-      return result.fistTimeLogin
+      return user
     },
 
     /** 修改头像/昵称并同步本地状态 */

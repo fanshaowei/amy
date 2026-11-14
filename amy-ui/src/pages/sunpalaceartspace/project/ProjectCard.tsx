@@ -87,7 +87,8 @@ export function ProjectCard({project, selected, onSelectChange, onEdit, onDelete
                     </MetaItem>
                     <MetaItem icon={<HistoryOutlined/>} label="预约规则">
                         {[
-                            project.reservationIntervalSecond != null && `每 ${project.reservationIntervalSecond} 分钟`,
+                            // 后端存储单位为秒，卡片展示换算成分钟
+                            project.reservationIntervalSecond != null && `每 ${project.reservationIntervalSecond / 60} 分钟`,
                             project.advanceReservationDays != null && `提前 ${project.advanceReservationDays} 天`
                         ].filter(Boolean).join(' · ') || '-'}
                     </MetaItem>

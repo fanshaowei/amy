@@ -109,13 +109,11 @@ public class AliIdCheckUtil {
             throw new ServiceException("身份核验服务返回异常，请稍后重试");
         }
 
-        if (dto.getErrorCode() == null || dto.getErrorCode() != 0) {
+        if (dto.getErrorCode() == null || dto.getErrorCode() != 0|| !dto.getResult().getIsok()) {
             // 注意：errorCode 是 Integer，必须先判 null 再比较，否则拆箱 NPE
             log.error("身份核验服务返回业务错误, errorCode={}, reason={}, 原始响应={}",
                     dto.getErrorCode(), dto.getReason(), rawBody);
-            throw new ServiceException(StringUtils.hasText(dto.getReason())
-                    ? dto.getReason()
-                    : "身份核验服务异常，请稍后重试");
+            throw new ServiceException("身份信息不一致，请核对后再试");
         }
         return dto;
     }

@@ -59,6 +59,29 @@ function onLogout() {
   })
 }
 
+/** 清除本地缓存：清空本地存储（token、用户缓存等）并回到首页 */
+function onClearCache() {
+  uni.showModal({
+    title: '清除本地缓存',
+    content: '将清除本地的登录状态和缓存数据，确定继续吗？',
+    confirmColor: '#f53f3f',
+    success: (res) => {
+      if (!res.confirm) return
+      try {
+        uni.clearStorageSync()
+      } catch (e) {
+        // 清除失败也继续重置内存态
+      }
+      // 同步重置内存中的登录态，避免页面仍显示已登录
+      userStore.logout()
+      uni.showToast({ title: '缓存已清除', icon: 'none' })
+      setTimeout(() => {
+        uni.reLaunch({ url: '/pages/home/index' })
+      }, 600)
+    },
+  })
+}
+
 onShow(async () => {
   if (!userStore.loggedIn) return
   try {
@@ -106,6 +129,11 @@ onShow(async () => {
       <view class="menu-item" @tap="goAbout">
         <text class="menu-item__icon">ⓘ</text>
         <text class="menu-item__text">关于我们</text>
+        <text class="menu-item__arrow">›</text>
+      </view>
+      <view class="menu-item" @tap="onClearCache">
+        <text class="menu-item__icon">✕</text>
+        <text class="menu-item__text">清除本地缓存</text>
         <text class="menu-item__arrow">›</text>
       </view>
     </view>

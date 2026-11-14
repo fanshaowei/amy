@@ -92,7 +92,6 @@ public class ReservationUserController extends BaseController {
         DateRangeParamUtils.normalize(query);
 
         /*
-         * 按「量级」决定是否要求时间分片，而不是一刀切：
          *   1. 时间跨度合规（≤ 7 天）→ 用户已主动分片，无论多少行都放行，且不额外查 count；
          *   2. 跨度不合规 → 先数行数：
          *        - 不超过 MAX_EXPORT_ROWS_WITHOUT_RANGE 条：内存可控，放行；

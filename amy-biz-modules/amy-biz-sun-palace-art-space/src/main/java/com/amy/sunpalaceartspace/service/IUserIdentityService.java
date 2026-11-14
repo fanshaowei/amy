@@ -49,5 +49,5 @@ public interface IUserIdentityService extends IService<UserIdentity> {
 
     void updateOrSaveUserIdentityAfterRealVerify(UserIdentityReq req);
 
-    boolean countByIdNum( String idNum);
+    boolean checkExistReservationUser(Long reservationUserId, String idNum, boolean isFollower);
 }
