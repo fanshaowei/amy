@@ -122,6 +122,11 @@
             <artifactId>junit-platform-launcher</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-api-system</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

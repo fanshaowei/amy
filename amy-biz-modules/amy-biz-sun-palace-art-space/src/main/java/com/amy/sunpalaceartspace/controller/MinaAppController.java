@@ -10,27 +10,25 @@ import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
-import com.amy.sunpalaceartspace.domain.req.*;
-import com.amy.sunpalaceartspace.domain.req.mina.MinaAppOpenIdLoginReq;
+import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
+import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.req.mina.SubmitReservationReq;
 import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.*;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
-import com.amy.sunpalaceartspace.service.IReservationOrderService;
-import com.amy.sunpalaceartspace.service.IReservationUserService;
-import com.amy.sunpalaceartspace.service.MinaAppLoginService;
-import com.amy.sunpalaceartspace.service.MinaAppService;
-import com.amy.sunpalaceartspace.service.SubmitReservationOrderService;
+import com.amy.sunpalaceartspace.service.*;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -49,6 +47,17 @@ public class MinaAppController extends BaseController {
     private final IReservationUserService reservationUserService;
     private final MinaAppLoginService minaAppLoginService;
     private final SubmitReservationOrderService submitReservationOrderService;
+
+    /**
+     * 上传预约用户微信头像
+     * @param file
+     * @return
+     */
+    @PostMapping("/user/avatar/upload")
+    public R<String> uploadReservationUserAvatar(@Param("file") MultipartFile file) {
+        String url = minaAppLoginService.uploadReservationUserAvatar(file);
+        return R.ok(url);
+    }
 
     /**
      * 小程序调用后端接口前，获取鉴权token,后续调用业务接口，都要在请求头携带该token
@@ -240,10 +249,10 @@ public class MinaAppController extends BaseController {
      * @return
      */
     @MinaApiAuth
-    @PostMapping("/reservation/verify/{orderNum}")
+    @PostMapping("/reservation/verify/{orderNum}/{verifyCode}")
     public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
-            @PathVariable("orderNum") String orderNum) {
-        return R.ok(minaAppService.verifyReservationOrder(token, orderNum));
+            @PathVariable("orderNum") String orderNum, @PathVariable("verifyCode") String verifyCode) {
+        return R.ok(minaAppService.verifyReservationOrder(token, orderNum, verifyCode));
     }
 
     /**

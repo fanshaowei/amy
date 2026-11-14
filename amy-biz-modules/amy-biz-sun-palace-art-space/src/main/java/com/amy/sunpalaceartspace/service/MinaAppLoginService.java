@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaPhoneNumberInfo;
+import com.amy.common.core.domain.R;
 import com.amy.common.core.exception.InnerAuthException;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.JwtUtils;
@@ -16,11 +17,14 @@ import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.WechatApiAuthLoginResp;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
+import com.amy.system.api.RemoteFileService;
+import com.amy.system.api.domain.SysFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +46,12 @@ public class MinaAppLoginService {
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
     private final IReservationUserService reservationUserService;
+    private final RemoteFileService remoteFileService;
+
+    public String uploadReservationUserAvatar(MultipartFile file) {
+        R<SysFile> upload = remoteFileService.upload(file);
+        return upload.getData().getUrl();
+    }
 
     public ReservationUser updateReservationUserInfo(String token, UpdateReservationUserReq req) {
         ReservationUser reservationUser = getUserByToken(token);

@@ -80,12 +80,6 @@
         <if test="entity.reservationUserId != null and entity.reservationUserId != ''">
             and r.reservation_user_id = #{entity.reservationUserId}
         </if>
-        <!--
-            按日期筛选：用裸列 + 左闭右开区间 [当天 00:00:00, 次日 00:00:00)，
-            而不是 date(r.reservation_time) = date(#{...}) —— 对列套函数会让索引失效、大表全表扫。
-            date_add 只作用于【参数】不作用于列，MySQL 会先算出常量再做 range scan，索引照常可用。
-            起点由 Service 用 DateRangeParamUtils.startOfDay() 保证是当天零点。
-        -->
         <if test="entity.reservationTime != null">
             and r.reservation_time &gt;= #{entity.reservationTime}
             and r.reservation_time &lt; date_add(#{entity.reservationTime}, interval 1 day)
