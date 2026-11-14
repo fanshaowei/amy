@@ -66,9 +66,6 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                 background: token.colorPrimaryBg, color: token.colorPrimary
             }}><QrcodeOutlined/></span>
             <span style={{fontWeight: 600}}>订单二维码</span>
-            <Typography.Text type="secondary" style={{fontSize: 12, fontWeight: 400}}>
-                扫码内容 = 订单号
-            </Typography.Text>
         </Space>}
         open={open && !!num}
         width={620}
