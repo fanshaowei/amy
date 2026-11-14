@@ -297,7 +297,7 @@ public class SubmitReservationOrderService {
         // 重复预约
         if (result == 2) {
             log.error("projectId: {} reservationTime: {} 用户: {} 已预约.", projectId, reservationTimeStr, userId);
-            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "不可重复预约");
+            reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "您已预约，不可重复预约");
             throw new ServiceException("您已预约，不可重复预约");
         }
     }
