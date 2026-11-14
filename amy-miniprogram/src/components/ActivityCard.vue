@@ -87,7 +87,7 @@ const remainStateLabel = computed(() => {
 
       <view class="activity-card__footer">
         <view class="activity-card__deadline">
-          <text class="deadline-label">截止</text>
+          <text class="deadline-label">预约截止</text>
           <text class="deadline-time">{{ hmsToHm(activity.cutOffTime) }}</text>
         </view>
         <view

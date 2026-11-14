@@ -1,9 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ReserveRecord } from '@/types'
+import { RESERVE_STATUS } from '@/types'
 import StatusBadge from './StatusBadge.vue'
 
-defineProps<{ record: ReserveRecord }>()
+const props = defineProps<{ record: ReserveRecord }>()
 const emit = defineEmits<{ (e: 'click', orderNum: string): void }>()
+
+/** status_msg 与状态中文文案相同（或为空）时不重复显示 */
+const showStatusMsg = computed(() => {
+  const msg = (props.record.statusMsg || '').trim()
+  if (!msg) return false
+  const statusText = RESERVE_STATUS[props.record.reservationStatus]?.text || ''
+  return msg !== statusText
+})
 </script>
 
 <template>
@@ -12,6 +22,7 @@ const emit = defineEmits<{ (e: 'click', orderNum: string): void }>()
       <view class="record-card__name">{{ record.projectName }}</view>
       <StatusBadge :status="record.reservationStatus" />
     </view>
+    <view v-if="showStatusMsg" class="record-card__status-msg">{{ record.statusMsg }}</view>
     <view class="record-card__time">预约时间：{{ record.reservationTime }}</view>
     <view class="record-card__info">
       <view>单号：{{ record.reservationNum }}</view>
@@ -45,6 +56,12 @@ const emit = defineEmits<{ (e: 'click', orderNum: string): void }>()
   color: #1f2329;
   flex: 1;
   line-height: 1.4;
+}
+.record-card__status-msg {
+  font-size: 24rpx;
+  color: #f53f3f;
+  line-height: 1.5;
+  margin-top: 12rpx;
 }
 .record-card__time {
   font-size: 26rpx;

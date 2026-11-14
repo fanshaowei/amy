@@ -5,7 +5,7 @@ import { generateQRMatrix } from '@/utils/qrcode'
 
 const props = defineProps<{ record: ReserveRecord }>()
 
-const matrix = computed(() => generateQRMatrix(props.record.reservationNum))
+const matrix = computed(() => generateQRMatrix(props.record.verifyCode))
 
 /** 渲染为展开的一维数组，供 grid 布局使用 */
 const cells = computed(() => {

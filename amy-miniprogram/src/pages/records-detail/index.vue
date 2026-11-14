@@ -9,8 +9,15 @@ import { hmsToHm } from '@/utils'
 
 const record = ref<ReserveRecord | null>(null)
 
-/** 预约状态（后端：0待核销 1已完成 2已过期 3已取消） */
+/** 预约状态（后端：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
+
+/** status_msg 与状态中文文案相同（或为空）时不重复显示 */
+const showStatusMsg = computed(() => {
+  const msg = (record.value?.statusMsg || '').trim()
+  if (!msg) return false
+  return msg !== (statusInfo.value?.text || '')
+})
 
 /** 预约人信息（本人 + 随行人员） */
 const people = computed(() => {
@@ -84,6 +91,7 @@ onLoad((query) => {
           {{ statusInfo.text }}
         </view>
         <view class="result__status-meta">单号：{{ record.reservationNum }}</view>
+        <view v-if="showStatusMsg" class="result__status-msg">{{ record.statusMsg }}</view>
       </view>
 
       <view class="result__qr">
@@ -108,7 +116,7 @@ onLoad((query) => {
           <text class="v">{{ entryTime }}</text>
         </view>
         <view v-for="(p, i) in people" :key="i" class="row">
-          <text class="k">{{ i === 0 ? '预约人' : '随行人' }}</text>
+          <text class="k">{{ i === 0 ? '预约人' : '随行人' }}&nbsp;&nbsp;&nbsp;&nbsp;</text>
           <text class="v">{{ p.name }} · {{ p.idNum }} · {{ p.phone || '-' }}</text>
         </view>
       </view>
@@ -172,6 +180,17 @@ onLoad((query) => {
 .text--cancel {
   color: #f53f3f;
 }
+.text--fail {
+  color: #f53f3f;
+}
+.text--booking {
+  color: #3b7dff;
+}
+.result__status-msg {
+  font-size: 24rpx;
+  color: #f53f3f;
+  margin-top: 8rpx;
+}
 .result__status-meta {
   font-size: 24rpx;
   color: #86909c;
@@ -204,10 +223,15 @@ onLoad((query) => {
 }
 .row .k {
   color: #4e5969;
+  flex-shrink: 0;
+  margin-right: 32rpx;
 }
 .row .v {
   color: #1f2329;
   font-weight: 500;
+  flex: 1;
+  text-align: right;
+  word-break: break-all;
 }
 .result__actions {
   padding: 8rpx 32rpx 40rpx;

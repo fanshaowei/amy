@@ -13,7 +13,7 @@ const view = ref<'scan' | 'result'>('scan')
 const record = ref<ReserveRecord | null>(null)
 const confirming = ref(false)
 
-/** 预约状态（后端：0待核销 1已完成 2已过期 3已取消） */
+/** 预约状态（后端：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
 /** 是否已完成核销 */
 const verified = computed(() => record.value?.reservationStatus === 1)
@@ -268,6 +268,12 @@ onShow(() => {
 }
 .text--cancel {
   color: #f53f3f;
+}
+.text--fail {
+  color: #f53f3f;
+}
+.text--booking {
+  color: #3b7dff;
 }
 .meta {
   font-size: 24rpx;
