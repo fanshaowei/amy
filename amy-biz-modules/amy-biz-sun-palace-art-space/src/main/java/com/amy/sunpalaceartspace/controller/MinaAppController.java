@@ -1,7 +1,6 @@
 package com.amy.sunpalaceartspace.controller;
 
 import com.amy.common.core.domain.R;
-import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.web.controller.BaseController;
 import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
@@ -156,11 +155,11 @@ public class MinaAppController extends BaseController {
      */
     @MinaApiAuth
     @PostMapping("/user/verify")
-    public R<Boolean> verifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
+    public R<Boolean> realNameverifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         userIdentityReq.setReservationUserId(user.getReservationUserId());
         userIdentityReq.setIsFollower(false);
-        return R.ok(minaAppService.verifyUser(user, userIdentityReq));
+        return R.ok(minaAppService.realNameVerifyUser(user, userIdentityReq));
     }
 
     /**
@@ -222,10 +221,7 @@ public class MinaAppController extends BaseController {
     @MinaApiAuth
     @GetMapping("/reservation/{orderNum}")
     public R<ReservationOrderVO> getReservationOrder(@PathVariable("orderNum") String orderNum) {
-        ReservationOrderVO vo = reservationOrderService.selectReservationOrderVoByNum(orderNum);
-        if (vo == null) {
-            throw new ServiceException("未找到该预约单");
-        }
+        ReservationOrderVO vo = minaAppService.extractReservationOrderInfo(orderNum);
         return R.ok(vo);
     }
 
