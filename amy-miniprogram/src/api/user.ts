@@ -18,7 +18,8 @@
  */
 
 import type { User, UserIdentity } from '@/types'
-import { BASE_URL, request } from '@/utils/request'
+import type { ApiResult } from '@/types'
+import { BASE_URL, getToken, request } from '@/utils/request'
 
 export interface LoginPayload {
   /** 微信登录凭证 code（uni.login 获取） */
@@ -27,6 +28,14 @@ export interface LoginPayload {
   avatarImgUrl?: string
   /** 微信昵称 */
   nickName?: string
+}
+
+/** /auth/login 返回结构（对应后端 WechatApiAuthLoginResp） */
+export interface LoginResult {
+  /** 是否首次登录（true 时小程序跳转编辑头像/昵称页） */
+  fistTimeLogin: boolean
+  /** 鉴权 token */
+  token: string
 }
 
 /**

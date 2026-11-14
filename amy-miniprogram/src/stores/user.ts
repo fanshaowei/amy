@@ -1,7 +1,8 @@
 /**
  * 用户状态管理
  *
- * 登录流程：uni.login 取 code -> POST /mina/app/auth/login 换 token -> GET /mina/app/user/info 取会员信息
+ * 登录流程：uni.login 取 code -> POST /mina/app/auth/login（返回 fistTimeLogin + token）
+ * -> fistTimeLogin=true 跳编辑头像/昵称页，false 进首页 -> GET /mina/app/user/info 取会员信息
  */
 
 import { defineStore } from 'pinia'
@@ -79,6 +80,15 @@ export const useUserStore = defineStore('user', {
       this.loggedIn = true
       uni.setStorageSync(STORAGE_KEY, user)
       return user
+    },
+
+    /** 修改头像/昵称并同步本地状态 */
+    async updateProfile(nickName: string, avatarImgUrl: string) {
+      await userApi.updateProfile({ nickName, avatarImgUrl })
+      if (this.user) {
+        this.user = { ...this.user, nickname: nickName, avatarImgUrl }
+        uni.setStorageSync(STORAGE_KEY, this.user)
+      }
     },
 
     /** 刷新会员信息 */

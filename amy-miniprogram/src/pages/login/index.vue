@@ -9,10 +9,10 @@ const userStore = useUserStore()
 
 /** 本地用户缓存 key（与 stores/user.ts 保持一致） */
 const STORAGE_KEY = 'reservation_user'
-
 const nickname = ref('')
 const avatarUrl = ref('')
 const loading = ref(false)
+
 /** 本次会话已上传到后端的头像持久化地址（换头像后重置，避免重复上传） */
 const uploadedAvatarUrl = ref('')
 const redirect = ref('')
@@ -78,6 +78,7 @@ async function onLogin() {
     const avatarImgUrl = await ensureAvatarUploaded()
     // 2. 取微信登录凭证
     const jsCode = await fetchWxCode()
+
     // 3. 携带持久化头像地址一起授权登录（后端首次登录写入会员表；
     //    老会员由 stores/user.ts 比对后走 /reservation/user/update 同步）
     await userStore.login({
