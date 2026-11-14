@@ -128,6 +128,8 @@ export async function getNextDayReservations(): Promise<NextDayReservation[]> {
   const list = await request<NextDayReservation[]>({
     url: '/spas/mina/app/reservation/next/day/order',
     skipAuthRedirect: true,
+    // 首页滚动播报属于展示增强，失败时静默降级为空，不弹全局错误提示
+    silent: true,
   })
   return Array.isArray(list) ? list : []
 }

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { uploadAvatar } from '@/api/user'
+import { showError } from '@/utils/request'
 import type { User } from '@/types'
 
 const userStore = useUserStore()
@@ -88,8 +89,8 @@ async function onLogin() {
     })
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(goBack, 600)
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '登录失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '登录失败')
   } finally {
     loading.value = false
   }

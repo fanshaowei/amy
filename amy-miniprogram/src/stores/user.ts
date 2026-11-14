@@ -1,8 +1,10 @@
 /**
  * 用户状态管理
  *
- * 登录流程：uni.login 取 code -> POST /mina/app/auth/login（返回 fistTimeLogin + token）
- * -> fistTimeLogin=true 跳编辑头像/昵称页，false 进首页 -> GET /mina/app/user/info 取会员信息
+ * 登录流程：uni.login 取 code -> 先把微信头像上传换持久化 URL
+ * -> POST /spas/mina/app/auth/login（返回 token + fistTimeLogin）
+ * -> GET /spas/mina/app/user/info 取会员信息
+ * -> 非首次登录且头像/昵称有变化时，调 /reservation/user/update 同步
  */
 
 import { defineStore } from 'pinia'
@@ -66,11 +68,21 @@ export const useUserStore = defineStore('user', {
         const nickChanged = !!nickName && nickName !== user.nickname
         if (avatarChanged || nickChanged) {
           try {
-            user =
-              (await userApi.updateReservationUser({
+            await userApi.updateReservationUser(
+              {
                 nickName: nickName || user.nickname || '',
                 avatarImgUrl: avatarImgUrl || user.avatarImgUrl || '',
-              })) || user
+              },
+              true // 静默：同步失败不弹提示、不阻断登录
+            )
+            // /reservation/user/update 返回的是数据库实体（带 token、无 idType），
+            // 与 /user/info 的 VO 结构不同，不能用它覆盖会员信息。
+            // 这里只把本次改动的两个字段合并进 getProfile() 的结果。
+            user = {
+              ...user,
+              nickname: nickName || user.nickname,
+              avatarImgUrl: avatarImgUrl || user.avatarImgUrl,
+            }
           } catch (e) {
             console.warn('sync reservation user profile failed', e)
           }
@@ -84,17 +96,18 @@ export const useUserStore = defineStore('user', {
 
     /** 修改头像/昵称并同步本地状态 */
     async updateProfile(nickName: string, avatarImgUrl: string) {
-      await userApi.updateProfile({ nickName, avatarImgUrl })
+      // 对应 POST /spas/mina/app/reservation/user/update（MinaAppController#updateReservationUser）
+      await userApi.updateReservationUser({ nickName, avatarImgUrl })
       if (this.user) {
         this.user = { ...this.user, nickname: nickName, avatarImgUrl }
         uni.setStorageSync(STORAGE_KEY, this.user)
       }
     },
 
-    /** 刷新会员信息 */
-    async fetchProfile() {
+    /** 刷新会员信息；silent=true 时失败不弹统一提示（用于页面无感刷新） */
+    async fetchProfile(silent = false) {
       if (!this.token) return null
-      const user = await userApi.getProfile()
+      const user = await userApi.getProfile(silent)
       this.user = user
       uni.setStorageSync(STORAGE_KEY, user)
       return user

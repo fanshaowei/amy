@@ -6,6 +6,7 @@ import { RESERVE_STATUS } from '@/types'
 import { queryOrder, confirm } from '@/api/scan'
 import { useUserStore } from '@/stores/user'
 import { hmsToHm } from '@/utils'
+import { showError } from '@/utils/request'
 
 const userStore = useUserStore()
 
@@ -43,8 +44,8 @@ async function handleOrderCode(orderNum: string) {
   try {
     record.value = await queryOrder(num)
     view.value = 'result'
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '查询失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '查询失败')
   } finally {
     uni.hideLoading()
   }
@@ -57,8 +58,8 @@ async function onConfirm() {
     await confirm(record.value.reservationNum)
     uni.showToast({ title: '核销成功', icon: 'success' })
     record.value = await queryOrder(record.value.reservationNum)
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '核销失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '核销失败')
   } finally {
     confirming.value = false
   }

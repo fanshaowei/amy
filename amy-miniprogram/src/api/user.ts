@@ -18,8 +18,7 @@
  */
 
 import type { User, UserIdentity } from '@/types'
-import type { ApiResult } from '@/types'
-import { BASE_URL, getToken, request } from '@/utils/request'
+import { BASE_URL, networkError, request, responseError } from '@/utils/request'
 
 export interface LoginPayload {
   /** 微信登录凭证 code（uni.login 获取） */
@@ -30,18 +29,11 @@ export interface LoginPayload {
   nickName?: string
 }
 
-/** /auth/login 返回结构（对应后端 WechatApiAuthLoginResp） */
-export interface LoginResult {
-  /** 是否首次登录（true 时小程序跳转编辑头像/昵称页） */
-  fistTimeLogin: boolean
-  /** 鉴权 token */
-  token: string
-}
-
 /**
  * 登录接口响应（对应后端 WechatApiAuthLoginResp）
  * fistTimeLogin=true 表示首次登录（后端已创建会员并写入本次头像/昵称）；
  * false 表示老会员，资料变更需另调 /reservation/user/update 同步。
+ * 注意：后端字段名拼写即为 fistTimeLogin（少一个 r），此处保持一致。
  */
 export interface LoginResult {
   token: string
@@ -53,7 +45,8 @@ export interface LoginResult {
  * POST /spas/mina/app/auth/login
  */
 export async function login(payload: LoginPayload): Promise<LoginResult> {
-  const data = await request<any>({
+  // 兼容后端 data 直接是 token 字符串的历史情况
+  const data = await request<LoginResult | string>({
     url: '/spas/mina/app/auth/login',
     method: 'POST',
     auth: false,
@@ -63,15 +56,10 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
       nickName: payload.nickName || '',
     },
   })
-  const token =
-    typeof data === 'string' && data
-      ? data
-      : data && typeof data.token === 'string'
-        ? data.token
-        : ''
+  const token = typeof data === 'string' ? data : data?.token || ''
   if (!token) throw new Error('登录响应异常：未获取到 token')
   const fistTimeLogin =
-    data && typeof data === 'object' ? data.fistTimeLogin === true : false
+    typeof data === 'object' && data !== null ? data.fistTimeLogin === true : false
   return { token, fistTimeLogin }
 }
 
@@ -99,13 +87,14 @@ export function uploadAvatar(filePath: string): Promise<string> {
           if (res.statusCode === 200 && body && body.code === 200 && body.data) {
             resolve(body.data as string)
           } else {
-            reject(new Error(body?.msg || '头像上传失败'))
+            // 上传通道不走 request()，这里复用同一套异常解析，保证后端 msg 不丢失
+            reject(responseError(res.data, res.statusCode, '头像上传失败'))
           }
         } catch (e) {
-          reject(new Error('头像上传响应解析失败'))
+          reject(responseError(null, res.statusCode, '头像上传响应解析失败'))
         }
       },
-      fail: (err) => reject(new Error(err.errMsg || '头像上传失败，请检查网络')),
+      fail: (err) => reject(networkError(err?.errMsg, '头像上传失败，请检查网络')),
     })
   })
 }
@@ -139,13 +128,23 @@ export interface UpdateReservationUserPayload {
 }
 
 /**
- * 更新当前会员的昵称/头像（老会员重新授权登录时同步本次选择的资料）
+ * 更新当前会员的昵称/头像
  * POST /spas/mina/app/reservation/user/update
+ *
+ * 注意：后端返回的是 R<ReservationUser>**数据库实体**（含 token/status、无 idType），
+ * 与 /user/info 返回的 MinaReservationUserInfoResp 不是同一套结构，
+ * 不能当作前端 User 使用。这里只返回 void，本地会员信息由调用方合并或重新拉取。
+ *
+ * @param silent 登录时的资料同步属「失败可忽略」的后台请求，传 true 不弹提示、不打断登录
  */
-export function updateReservationUser(payload: UpdateReservationUserPayload): Promise<User> {
-  return request<User>({
+export async function updateReservationUser(
+  payload: UpdateReservationUserPayload,
+  silent = false
+): Promise<void> {
+  await request<unknown>({
     url: '/spas/mina/app/reservation/user/update',
     method: 'POST',
+    silent: silent || undefined,
     data: {
       nickName: payload.nickName,
       avatarImgUrl: payload.avatarImgUrl,
@@ -157,8 +156,8 @@ export function updateReservationUser(payload: UpdateReservationUserPayload): Pr
  * 获取当前登录会员信息
  * GET /spas/mina/app/user/info
  */
-export async function getProfile(): Promise<User> {
-  return request<User>({ url: '/spas/mina/app/user/info' })
+export async function getProfile(silent = false): Promise<User> {
+  return request<User>({ url: '/spas/mina/app/user/info', silent: silent || undefined })
 }
 
 /**
@@ -182,7 +181,7 @@ export interface UserIdentityPayload {
   phone: string
   isFollower?: boolean
 }
- 
+
 /**
  * 实名认证（本人），成功后会员 is_verified 置为 true
  * POST /spas/mina/app/user/verify
@@ -242,7 +241,8 @@ export async function updateFollower(payload: UserIdentityPayload): Promise<User
       idType: payload.idType,
       idNum: payload.idNum,
       phone: payload.phone,
-      isFollower: payload.isFollower || false
+      // 该接口固定用于修改随行人，后端 updateFollower 也会强制 setIsFollower(true)
+      isFollower: payload.isFollower ?? true,
     },
   })
 }

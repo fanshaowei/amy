@@ -8,6 +8,7 @@ import { getFollowers } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
 import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
+import { showError } from '@/utils/request'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
@@ -62,7 +63,7 @@ async function loadActivity(id: number) {
     // 可预约日期由后端「项目预约信息」接口下发
     dates.value = activity.value.reservationDates || []
   } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    showError(e, '加载失败')
   }
 }
 
@@ -71,7 +72,7 @@ async function loadSlots() {
   try {
     slots.value = await getSlots(activityId.value, selectedDate.value)
   } catch (e) {
-    uni.showToast({ title: '时段加载失败', icon: 'none' })
+    showError(e, '时段加载失败')
   }
 }
 
@@ -115,8 +116,8 @@ async function loadIdentity() {
     if (limit > 0 && allFollowers.value.length > limit) {
       followerPickerShow.value = true
     }
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || '实名信息加载失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '实名信息加载失败')
   }
 }
 
@@ -244,8 +245,8 @@ async function onSubmit() {
     setTimeout(() => {
       uni.switchTab({ url: '/pages/records/index' })
     }, 800)
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '提交失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '提交失败')
   } finally {
     submitting.value = false
   }

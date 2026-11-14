@@ -6,6 +6,7 @@ import { getActivities } from '@/api/activity'
 import { getNextDayReservations } from '@/api/reserve'
 import { useUserStore } from '@/stores/user'
 import { maskName } from '@/utils'
+import { showError } from '@/utils/request'
 import ActivityCard from '@/components/ActivityCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
@@ -46,7 +47,8 @@ async function load() {
   try {
     activities.value = await getActivities()
   } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    // 展示后端返回的真实原因（如网关限流「操作过于频繁，请稍候再试」）
+    showError(e, '加载失败')
   } finally {
     loading.value = false
     uni.stopPullDownRefresh()

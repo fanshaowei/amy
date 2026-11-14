@@ -6,6 +6,7 @@ import { RESERVE_STATUS } from '@/types'
 import { getRecordDetail, cancelReserve } from '@/api/reserve'
 import QrcodeCard from '@/components/QrcodeCard.vue'
 import { hmsToHm } from '@/utils'
+import { showError } from '@/utils/request'
 
 const record = ref<ReserveRecord | null>(null)
 
@@ -38,8 +39,8 @@ async function load(orderNum: string) {
   }
   try {
     record.value = await getRecordDetail(orderNum)
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '加载失败')
   }
 }
 
@@ -62,8 +63,8 @@ function onCancel() {
         await cancelReserve(record.value!.reservationNum)
         uni.showToast({ title: '已取消预约', icon: 'success' })
         load(record.value!.reservationNum)
-      } catch (e: any) {
-        uni.showToast({ title: e.message || '取消失败', icon: 'none' })
+      } catch (e) {
+        showError(e, '取消失败')
       } finally {
         cancelling.value = false
       }

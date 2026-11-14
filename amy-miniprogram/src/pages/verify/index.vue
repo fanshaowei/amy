@@ -13,6 +13,7 @@ import type { UserIdentityPayload } from '@/api/user'
 import type { UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
 import { isValidIdCard, isValidPhone } from '@/utils'
+import { showError } from '@/utils/request'
 import CardPicker from '@/components/CardPicker.vue'
 
 const userStore = useUserStore()
@@ -157,8 +158,8 @@ async function refresh() {
       form.value.phone = userStore.phone
     }
     mode.value = userStore.user?.isVerified ? 'manage' : 'verify'
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || '加载失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '加载失败')
   } finally {
     loading.value = false
   }
@@ -201,8 +202,8 @@ async function onSubmitVerify() {
       return
     }
     await refresh()
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || '实名认证失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '实名认证失败')
   } finally {
     submitting.value = false
   }
@@ -248,8 +249,8 @@ async function onSubmitFollower() {
     followers.value = list.filter((item) => item.isFollower)
     followerFormShow.value = false
     uni.showToast({ title: p.userIdentityId ? '修改成功' : '添加成功', icon: 'success' })
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || '保存失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '保存失败')
   } finally {
     followerSubmitting.value = false
   }
@@ -266,8 +267,8 @@ function onDeleteFollower(item: UserIdentityRow) {
         const list = await deleteFollower(item.userIdentityId)
         followers.value = list.filter((i) => i.isFollower)
         uni.showToast({ title: '已删除', icon: 'success' })
-      } catch (e: any) {
-        uni.showToast({ title: e?.message || '删除失败', icon: 'none' })
+      } catch (e) {
+        showError(e, '删除失败')
       }
     },
   })

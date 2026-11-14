@@ -4,6 +4,7 @@ import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
+import { showError } from '@/utils/request'
 import RecordCard from '@/components/RecordCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
@@ -23,7 +24,7 @@ async function load() {
     await reserveStore.fetchList()
     records.value = reserveStore.records
   } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    showError(e, '加载失败')
   } finally {
     loading.value = false
     uni.stopPullDownRefresh()

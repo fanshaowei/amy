@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
+import { showError } from '@/utils/request'
 
 const userStore = useUserStore()
 
@@ -21,7 +22,7 @@ onLoad((query) => {
 onShow(async () => {
   if (!userStore.loggedIn) return
   try {
-    const user = await userStore.fetchProfile()
+    const user = await userStore.fetchProfile(true) // 无感刷新，失败不弹提示
     if (user) {
       // 仅在未填写时回填，避免覆盖用户正在编辑的内容
       if (!nickname.value) nickname.value = user.nickname || ''
@@ -63,8 +64,8 @@ async function onSave() {
         uni.navigateBack()
       }
     }, 600)
-  } catch (e: any) {
-    uni.showToast({ title: e.message || '保存失败', icon: 'none' })
+  } catch (e) {
+    showError(e, '保存失败')
   } finally {
     saving.value = false
   }
@@ -81,8 +82,8 @@ async function onGetPhoneNumber(e: any) {
   try {
     const phone = await userStore.updatePhone(jsCode)
     uni.showToast({ title: `已绑定 ${phone}`, icon: 'none' })
-  } catch (err: any) {
-    uni.showToast({ title: err.message || '绑定失败', icon: 'none' })
+  } catch (err) {
+    showError(err, '绑定失败')
   } finally {
     binding.value = false
   }
