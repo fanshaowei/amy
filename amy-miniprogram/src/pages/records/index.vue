@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
@@ -46,6 +47,7 @@ onPullDownRefresh(() => {
 
 <template>
   <view class="records">
+    <PageHero title="预约记录" eyebrow="MY RESERVATIONS" subtitle="查看与管理您的艺术之约" compact />
     <view v-if="loading" class="records__loading">加载中...</view>
     <view v-else-if="records.length">
       <RecordCard
@@ -55,18 +57,18 @@ onPullDownRefresh(() => {
         @click="onCardClick"
       />
     </view>
-    <EmptyState v-else icon="📋" text="暂无预约记录" />
+    <EmptyState v-else name="list" text="暂无预约记录" />
   </view>
 </template>
 
 <style scoped lang="scss">
 .records {
   min-height: 100vh;
-  padding: 24rpx 0;
+  padding: 0 0 $art-page-bottom;
 }
 .records__loading {
   text-align: center;
-  color: #86909c;
+  color: $uni-text-color-grey;
   padding: 100rpx 0;
   font-size: 26rpx;
 }

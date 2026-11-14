@@ -9,13 +9,34 @@ import { maskName } from '@/utils'
 import { showError } from '@/utils/request'
 import ActivityCard from '@/components/ActivityCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import ArtEmblem from '@/components/ArtEmblem.vue'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
 const loading = ref(true)
+const keyword = ref('')
 
 /* 首页「预约动态」：明日已预约名单（公开信息，姓名脱敏） */
 const nextDayReservations = ref<NextDayReservation[]>([])
+
+/** 顶部日期胶囊：本地时区，不依赖后端 */
+const todayLabel = computed(() => {
+  const d = new Date()
+  const week = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
+  return `${d.getMonth() + 1}月${d.getDate()}日 · ${week}`
+})
+
+/** 搜索框是真过滤，不再是装饰：按项目名称模糊匹配 */
+const filteredActivities = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return activities.value
+  return activities.value.filter((a) => (a.projectName || '').toLowerCase().includes(kw))
+})
+
+function clearKeyword() {
+  keyword.value = ''
+}
 
 const noticeItems = computed(() =>
   nextDayReservations.value.map((item) => {
@@ -66,6 +87,20 @@ function onBook(id: number) {
   uni.navigateTo({ url: `/pages/detail/index?id=${id}` })
 }
 
+/* ---------- 快捷入口 ---------- */
+function goRecords() {
+  uni.switchTab({ url: '/pages/records/index' })
+}
+function goVerify() {
+  uni.navigateTo({ url: '/pages/verify/index' })
+}
+function goAbout() {
+  uni.navigateTo({ url: '/pages/about/index' })
+}
+function goProfile() {
+  uni.navigateTo({ url: userStore.loggedIn ? '/pages/edit/index' : '/pages/login/index' })
+}
+
 onShow(() => {
   load()
 })
@@ -77,30 +112,115 @@ onPullDownRefresh(() => {
 
 <template>
   <view class="home">
-    <view class="home__search">
+    <!-- ============ 品牌 Hero：深靛玻璃 + 日轮 + 孔雀翎羽 ============ -->
+    <view class="hero anim-up">
+      <view class="hero__wave"></view>
+      <view class="hero__body">
+        <view class="hero__eyebrow">
+          <view class="hero__rule"></view>
+          <text>SUN PALACE · ART SPACE</text>
+        </view>
+        <view class="hero__title">太阳宫<text class="hero__title-accent">艺术空间</text></view>
+        <view class="hero__slogan">孔雀 · 月光 · 洱海</view>
+        <view class="hero__chips">
+          <view class="hero__chip">
+            <AppIcon name="calendar" :size="22" color="#f0cf94" />
+            <text>{{ todayLabel }}</text>
+          </view>
+          <view class="hero__chip">
+            <text class="hero__live-dot"></text>
+            <text>开放预约中</text>
+          </view>
+        </view>
+      </view>
+      <view class="hero__emblem"><ArtEmblem :size="196" /></view>
+      <view class="hero__corner"></view>
+    </view>
+
+    <!-- ============ 搜索 ============ -->
+    <view class="home__search anim-up--1">
       <view class="search-box">
-        <text class="search-box__dot"></text>
-        <text class="search-box__text">搜索活动名称</text>
+        <AppIcon name="search" :size="30" color="#8a93b2" />
+        <input
+          class="search-box__input"
+          v-model="keyword"
+          type="text"
+          confirm-type="search"
+          placeholder="搜索活动名称"
+          placeholder-class="search-box__ph"
+        />
+        <view v-if="keyword" class="search-box__clear" @tap="clearKeyword">
+          <AppIcon name="close" :size="24" color="#8a93b2" />
+        </view>
       </view>
     </view>
 
-    <view v-if="loading" class="home__loading">加载中...</view>
-    <view v-else-if="activities.length" class="activity-list">
-      <ActivityCard
-        v-for="a in activities"
+    <!-- ============ 快捷入口 ============ -->
+    <view class="quick anim-up--1">
+      <view class="quick__item" @tap="goRecords">
+        <view class="quick__icon quick__icon--gold">
+          <AppIcon name="ticket" :size="36" color="#f0cf94" />
+        </view>
+        <text class="quick__label">我的预约</text>
+        <text class="quick__en">RECORDS</text>
+      </view>
+      <view class="quick__item" @tap="goVerify">
+        <view class="quick__icon quick__icon--jade">
+          <AppIcon name="shield" :size="36" color="#8ce0d2" />
+        </view>
+        <text class="quick__label">实名认证</text>
+        <text class="quick__en">VERIFY</text>
+      </view>
+      <view class="quick__item" @tap="goAbout">
+        <view class="quick__icon quick__icon--indigo">
+          <AppIcon name="info" :size="36" color="#b9c9ff" />
+        </view>
+        <text class="quick__label">关于我们</text>
+        <text class="quick__en">ABOUT</text>
+      </view>
+      <view class="quick__item" @tap="goProfile">
+        <view class="quick__icon quick__icon--rose">
+          <AppIcon name="user" :size="36" color="#f4bcd2" />
+        </view>
+        <text class="quick__label">我的资料</text>
+        <text class="quick__en">PROFILE</text>
+      </view>
+    </view>
+
+    <!-- ============ 项目卡片 ============ -->
+    <view v-if="loading" class="home__skeletons">
+      <view v-for="i in 2" :key="i" class="skeleton">
+        <view class="skeleton__pic"></view>
+        <view class="skeleton__line skeleton__line--title"></view>
+        <view class="skeleton__line"></view>
+        <view class="skeleton__block"></view>
+      </view>
+    </view>
+    <view v-else-if="filteredActivities.length" class="activity-list">
+      <view
+        v-for="(a, i) in filteredActivities"
         :key="a.projectId"
-        :activity="a"
-        @book="onBook"
-      />
-    </view>
-    <EmptyState v-else text="暂无活动" />
-
-    <!-- 预约动态：明日已预约名单滚动展示（公开信息，姓名脱敏） -->
-    <view v-if="noticeItems.length" class="notice">
-      <view class="notice__badge">
-        <text class="notice__dot"></text>
-        <text>明日已约 {{ noticeItems.length }} 人</text>
+        class="anim-up"
+        :style="{ animationDelay: i * 0.07 + 's' }"
+      >
+        <ActivityCard :activity="a" :index="i" @book="onBook" />
       </view>
+    </view>
+    <EmptyState v-else name="feather" :text="keyword ? '没有找到相关项目' : '暂无活动'" />
+
+    <!-- ============ 预约动态 ============ -->
+    <view v-if="noticeItems.length" class="notice anim-up--3">
+      <view class="notice__head">
+        <view class="notice__icon">
+          <AppIcon name="bell" :size="28" color="#f0cf94" />
+        </view>
+        <view class="notice__titles">
+          <text class="notice__title">明日预约动态</text>
+          <text class="notice__en">UPCOMING RESERVATIONS</text>
+        </view>
+        <text class="notice__count">{{ noticeItems.length }} 人已约</text>
+      </view>
+      <view class="notice__divider"></view>
       <swiper
         v-if="noticeItems.length > 3"
         class="notice__swiper"
@@ -112,14 +232,24 @@ onPullDownRefresh(() => {
         :display-multiple-items="3"
       >
         <swiper-item v-for="(item, i) in noticeItems" :key="i">
-          <view class="notice__item text-ellipsis">{{ item }}</view>
+          <view class="notice__item text-ellipsis">
+            <text class="notice__bullet"></text>{{ item }}
+          </view>
         </swiper-item>
       </swiper>
       <view v-else class="notice__list">
         <view v-for="(item, i) in noticeItems" :key="i" class="notice__item text-ellipsis">
-          {{ item }}
+          <text class="notice__bullet"></text>{{ item }}
         </view>
       </view>
+    </view>
+
+    <!-- 页脚落款 -->
+    <view class="home__footer">
+      <view class="home__footer-rule"></view>
+      <text class="home__footer-star">✦</text>
+      <text>太阳宫艺术空间 · 与美相约</text>
+      <view class="home__footer-rule"></view>
     </view>
   </view>
 </template>
@@ -127,97 +257,318 @@ onPullDownRefresh(() => {
 <style scoped lang="scss">
 .home {
   min-height: 100vh;
-  padding-bottom: 40rpx;
-}
-.home__search {
-  background: linear-gradient(180deg, #3b7dff 0%, #5b95ff 100%);
-  padding: 16rpx 24rpx 24rpx;
-  margin-bottom: 24rpx;
+  padding-bottom: 60rpx;
 }
 
-/* 预约动态滚动条（列表下方，浅色卡片样式，三行展示） */
-.notice {
-  display: flex;
-  align-items: center;
-  padding: 20rpx;
-  margin: 24rpx 24rpx 0;
-  background: #ffffff;
-  border: 1rpx solid #e5e8ef;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(59, 125, 255, 0.08);
+/* ==================== Hero ==================== */
+.hero {
+  position: relative;
+  margin: 16rpx 24rpx 0;
+  height: 340rpx;
+  border-radius: 36rpx;
   overflow: hidden;
+  box-sizing: border-box;
+  padding: 32rpx 30rpx;
+  background-color: rgba(36, 58, 114, 0.82);
+  background-image: linear-gradient(118deg, rgba(32, 51, 106, 0.94) 0%, rgba(30, 92, 130, 0.86) 52%, rgba(31, 138, 132, 0.76) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: 0 20rpx 52rpx rgba(20, 36, 82, 0.3), inset 0 1rpx 0 rgba(255, 255, 255, 0.18);
 }
-.notice__badge {
-  flex-shrink: 0;
-  align-self: flex-start;
+/* 底部水波弧：两层半透明椭圆叠出洱海水光 */
+.hero__wave {
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  bottom: -230rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 -30rpx 0 rgba(255, 255, 255, 0.05);
+}
+.hero__corner {
+  position: absolute;
+  right: -60rpx;
+  top: -80rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(240, 207, 148, 0.28);
+}
+.hero__body {
+  position: relative;
+  z-index: 2;
+  width: 66%;
+}
+.hero__eyebrow {
   display: flex;
   align-items: center;
-  height: 44rpx;
-  padding-right: 16rpx;
-  margin-right: 16rpx;
-  border-right: 1rpx solid #e5e8ef;
-  font-size: 22rpx;
-  font-weight: 600;
-  color: #3b7dff;
+  gap: 12rpx;
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+  color: rgba(240, 207, 148, 0.94);
+  margin-bottom: 12rpx;
 }
-.notice__dot {
+.hero__rule {
+  @include art-rule(40rpx);
+}
+.hero__title {
+  font-size: 42rpx;
+  font-weight: 700;
+  line-height: 1.24;
+  letter-spacing: 2rpx;
+  color: #fffaf0;
+  text-shadow: 0 2rpx 12rpx rgba(12, 28, 70, 0.28);
+}
+.hero__title-accent {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 500;
+  letter-spacing: 6rpx;
+  color: #f0cf94;
+  margin-top: 4rpx;
+}
+.hero__slogan {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  color: rgba(255, 255, 255, 0.74);
+}
+.hero__chips {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+.hero__chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 24rpx;
+  font-size: 20rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.hero__live-dot {
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #3b7dff;
-  margin-right: 8rpx;
-  animation: notice-pulse 1.6s ease-in-out infinite;
+  background: #8ce6cf;
+  box-shadow: 0 0 10rpx #8ce6cf;
+  animation: notice-pulse 1.8s ease-in-out infinite;
+}
+.hero__emblem {
+  position: absolute;
+  right: -8rpx;
+  top: 58rpx;
+  z-index: 1;
+  opacity: 0.96;
+}
+
+/* ==================== 搜索 ==================== */
+.home__search {
+  padding: 24rpx 24rpx 0;
+}
+.search-box {
+  @include glass-inset(36rpx);
+  background: rgba(255, 255, 255, 0.66);
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 26rpx;
+  gap: 16rpx;
+}
+.search-box__input {
+  flex: 1;
+  min-width: 0;
+  height: 76rpx;
+  font-size: 26rpx;
+  color: $uni-text-color;
+}
+.search-box__ph {
+  color: $uni-text-color-placeholder;
+  font-size: 26rpx;
+}
+.search-box__clear {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: rgba(138, 147, 178, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== 快捷入口：与 Hero / 海报卡同色系 ==================== */
+.quick {
+  display: flex;
+  margin: 24rpx 24rpx 0;
+  @include art-dark-glass(28rpx);
+  padding: 26rpx 10rpx 22rpx;
+}
+.quick__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+.quick__icon {
+  @include art-icon-well(rgba(255, 255, 255, 0.1));
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 28rpx;
+  margin-bottom: 10rpx;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.14);
+}
+.quick__icon--gold { background: rgba(240, 207, 148, 0.14); }
+.quick__icon--jade { background: rgba(140, 224, 210, 0.13); }
+.quick__icon--indigo { background: rgba(185, 201, 255, 0.13); }
+.quick__icon--rose { background: rgba(244, 188, 210, 0.13); }
+.quick__label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+}
+.quick__en {
+  font-size: 16rpx;
+  letter-spacing: 1rpx;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+/* ==================== 骨架屏 ==================== */
+.home__skeletons {
+  padding: 32rpx 24rpx 0;
+}
+.skeleton {
+  @include art-dark-glass(32rpx);
+  padding-bottom: 32rpx;
+  margin-bottom: 28rpx;
+  overflow: hidden;
+}
+.skeleton__pic {
+  height: 300rpx;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.04) 20%, rgba(255, 255, 255, 0.13) 50%, rgba(255, 255, 255, 0.04) 80%);
+  background-size: 300% 100%;
+  animation: skeleton-flow 1.6s linear infinite;
+}
+.skeleton__line {
+  height: 24rpx;
+  margin: 28rpx 32rpx 0;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.12);
+  width: 60%;
+}
+.skeleton__line--title {
+  width: 78%;
+  height: 34rpx;
+}
+.skeleton__block {
+  height: 120rpx;
+  margin: 28rpx 32rpx 0;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.08);
+}
+@keyframes skeleton-flow {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.activity-list {
+  padding: 32rpx 24rpx 0;
+}
+
+/* ==================== 预约动态 ==================== */
+.notice {
+  padding: 24rpx 26rpx 20rpx;
+  margin: 36rpx 24rpx 0;
+  @include art-dark-glass(28rpx);
+  overflow: hidden;
+}
+.notice__head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.notice__icon {
+  @include art-icon-well(rgba(240, 207, 148, 0.14));
+  width: 56rpx;
+  height: 56rpx;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.14);
+}
+.notice__titles {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+.notice__title {
+  font-size: 27rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  color: rgba(255, 255, 255, 0.94);
+}
+.notice__en {
+  font-size: 16rpx;
+  letter-spacing: 1.6rpx;
+  color: rgba(255, 255, 255, 0.46);
+}
+.notice__count {
+  font-size: 22rpx;
+  color: #f0cf94;
+  font-weight: 600;
+}
+.notice__divider {
+  height: 1rpx;
+  margin: 20rpx 0 12rpx;
+  background: linear-gradient(90deg, $art-gradient-gold, rgba(200, 163, 92, 0.04));
 }
 .notice__swiper {
-  flex: 1;
   height: 132rpx;
-}
-.notice__list {
-  flex: 1;
 }
 .notice__item {
   height: 44rpx;
   line-height: 44rpx;
   font-size: 22rpx;
-  color: #4e5969;
+  color: rgba(255, 255, 255, 0.72);
+  display: flex;
+  align-items: center;
+}
+.notice__bullet {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #8ce0d2;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+  opacity: 0.72;
 }
 @keyframes notice-pulse {
   0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(0.7);
-  }
+  100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
 }
-.search-box {
-  background: #fff;
-  height: 72rpx;
-  border-radius: 36rpx;
+
+/* ==================== 页脚 ==================== */
+.home__footer {
   display: flex;
   align-items: center;
-  padding: 0 28rpx;
+  justify-content: center;
   gap: 16rpx;
+  margin-top: 56rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: $uni-text-color-grey;
 }
-.search-box__dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background: #3b7dff;
+.home__footer-rule {
+  @include art-rule(56rpx);
+  opacity: 0.6;
 }
-.search-box__text {
-  color: #c9cdd4;
-  font-size: 26rpx;
-}
-.home__loading {
-  text-align: center;
-  color: #86909c;
-  padding: 100rpx 0;
-  font-size: 26rpx;
-}
-.activity-list {
-  padding: 0 24rpx;
+.home__footer-star {
+  color: $art-gold;
+  font-size: 22rpx;
 }
 </style>

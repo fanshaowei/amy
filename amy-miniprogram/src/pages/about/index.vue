@@ -1,7 +1,10 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
+</script>
 
 <template>
   <view class="about">
+    <PageHero title="关于我们" eyebrow="ABOUT · SUN PALACE" subtitle="服务说明与预约规则" compact flush />
     <view class="about__card">
       <view class="h">服务说明</view>
       <view class="p">本平台提供活动预约服务，用户可通过小程序浏览可预约活动、提交预约申请、查看预约记录。</view>
@@ -25,18 +28,20 @@
 <style scoped lang="scss">
 .about {
   min-height: 100vh;
-  padding: 24rpx;
+  /* 顶部交给页头自身的 16rpx 上边距，与其它内页一致；底部留足滚动呼吸 */
+  padding: 0 24rpx $art-page-bottom;
 }
 .about__card {
-  background: #fff;
-  border-radius: 32rpx;
+  @include art-card(0.62, 20px, 32rpx);
+  /* 与「我的」页的「页头 → 首张卡」保持同一节奏，不再贴在页头底部 */
+  margin-top: $art-gap;
   padding: 40rpx;
   line-height: 1.9;
   font-size: 28rpx;
-  color: #4e5969;
+  color: $art-text;
 }
 .h {
-  color: #1f2329;
+  color: $art-text-strong;
   font-size: 30rpx;
   font-weight: 600;
   margin: 28rpx 0 16rpx;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
@@ -108,6 +109,7 @@ onShow(() => {
 
 <template>
   <view class="scan">
+    <PageHero title="核销" eyebrow="VERIFICATION" subtitle="扫描入场二维码完成核销" compact />
     <!-- 扫码界面 -->
     <view v-if="view === 'scan'" class="scan__view">
       <view class="scan__box">
@@ -176,10 +178,11 @@ onShow(() => {
 <style scoped lang="scss">
 .scan {
   min-height: 100vh;
+  padding-bottom: $art-page-bottom;
 }
 /* 扫码界面 */
 .scan__view {
-  padding: 64rpx 48rpx;
+  padding: $art-gap 24rpx 0;
 }
 .scan__box {
   width: 100%;
@@ -187,7 +190,7 @@ onShow(() => {
   aspect-ratio: 1;
   margin: 0 auto;
   position: relative;
-  border: 4rpx solid #3b7dff;
+  border: 4rpx solid $art-accent;
   border-radius: 32rpx;
   background: #1f2329;
   overflow: hidden;
@@ -198,7 +201,7 @@ onShow(() => {
   position: absolute;
   width: 64rpx;
   height: 64rpx;
-  border: 8rpx solid #fff;
+  border: 8rpx solid $art-accent;
 }
 .scan__box::before {
   top: 0;
@@ -220,8 +223,8 @@ onShow(() => {
   right: 24rpx;
   top: 24rpx;
   height: 4rpx;
-  background: linear-gradient(90deg, transparent, #3b7dff, transparent);
-  box-shadow: 0 0 16rpx #3b7dff;
+  background: linear-gradient(90deg, transparent, $art-accent, transparent);
+  box-shadow: 0 0 16rpx rgba(240, 207, 148, 0.7);
   animation: scan 1.6s linear infinite;
 }
 @keyframes scan {
@@ -237,29 +240,29 @@ onShow(() => {
 }
 .scan__tip {
   text-align: center;
-  color: #86909c;
+  color: $uni-text-color-grey;
   font-size: 26rpx;
   margin-top: 32rpx;
 }
 .scan__actions {
-  margin-top: 64rpx;
+  margin-top: $art-gap-lg;
   display: flex;
   flex-direction: column;
   gap: 24rpx;
 }
 .btn-primary {
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  @include art-gold-button();
+  
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .btn-outline {
-  border: 1px solid #3b7dff;
-  color: #3b7dff;
+  @include art-chip();
+  border: 1rpx solid rgba(240, 207, 148, 0.5);
+  color: $art-accent;
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
@@ -267,13 +270,11 @@ onShow(() => {
 }
 /* 结果界面 */
 .scan__result {
-  padding: 24rpx;
+  padding: $art-gap 24rpx 0;
 }
 .result-card {
-  background: #fff;
-  border-radius: 40rpx;
+  @include art-card(0.66, 22px, 40rpx);
   overflow: hidden;
-  box-shadow: 0 8rpx 40rpx rgba(31, 35, 41, 0.06);
 }
 .result-card__status {
   padding: 48rpx 32rpx 32rpx;
@@ -284,26 +285,26 @@ onShow(() => {
   font-weight: 700;
 }
 .text--expired {
-  color: #86909c;
+  color: $art-text-dim;
 }
 .text--done {
-  color: #00b96b;
+  color: #7fe0a8;
 }
 .text--pending {
-  color: #ff9500;
+  color: #ffc47a;
 }
 .text--cancel {
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .text--fail {
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .text--booking {
-  color: #3b7dff;
+  color: $art-accent;
 }
 .meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 12rpx;
 }
 .result-card__detail {
@@ -314,40 +315,40 @@ onShow(() => {
   justify-content: space-between;
   padding: 20rpx 0;
   font-size: 28rpx;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
 }
 .row:last-child {
   border-bottom: 0;
 }
 .row .k {
-  color: #4e5969;
+  color: $art-text;
 }
 .row .v {
-  color: #1f2329;
+  color: $art-text-strong;
   font-weight: 500;
 }
 .confirm-actions {
-  margin-top: 40rpx;
+  margin-top: $art-gap-lg;
   display: flex;
   flex-direction: column;
   gap: 20rpx;
 }
 .btn-confirm {
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  @include art-gold-button();
+  
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .btn-confirm.disabled {
   opacity: 0.6;
 }
 .btn-done {
-  background: #f2f3f5;
-  color: #c9cdd4;
+  @include art-chip();
+  border-radius: 56rpx;
+  color: $art-text-dim;
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
@@ -355,7 +356,7 @@ onShow(() => {
 }
 .btn-rescan {
   text-align: center;
-  color: #86909c;
+  color: $uni-text-color-grey;
   font-size: 28rpx;
   padding: 20rpx;
 }

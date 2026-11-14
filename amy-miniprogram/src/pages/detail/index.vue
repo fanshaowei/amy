@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import type { Activity, TimeSlot, UserIdentity as UserIdentityRow } from '@/types'
@@ -394,10 +395,13 @@ onUnload(() => {
   <view class="detail">
     <CountdownBar :seconds="activity?.reservationStaySecond || 180" @timeout="onTimeout" />
 
-    <view v-if="activity" class="detail__hero">
-      <view class="detail__title">{{ activity.projectName }}</view>
-      <view class="detail__desc">{{ activity.desc }}</view>
-    </view>
+    <PageHero
+      v-if="activity"
+      :title="activity.projectName"
+      eyebrow="RESERVATION · 预约详情"
+      :subtitle="activity.desc || '选择日期与时段，完成预约'"
+      compact
+    />
 
     <view class="section">
       <view class="section__hd">时间选择</view>
@@ -500,7 +504,7 @@ onUnload(() => {
         <view class="sheet__body">
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>姓名</text>
-            <input
+            <input placeholder-class="art-ph"
               class="form-item__input"
               v-model="followerForm.name"
               placeholder="请输入随行人姓名"
@@ -513,7 +517,7 @@ onUnload(() => {
           </view>
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
-            <input
+            <input placeholder-class="art-ph"
               class="form-item__input"
               :value="followerForm.phone"
               type="number"
@@ -526,7 +530,7 @@ onUnload(() => {
           <view class="field-err" v-if="followerErrors.phone">{{ followerErrors.phone }}</view>
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
-            <input
+            <input placeholder-class="art-ph"
               class="form-item__input"
               :value="followerForm.idNum"
               :maxlength="followerForm.idType === 1 ? 18 : 30"
@@ -576,34 +580,18 @@ onUnload(() => {
 <style scoped lang="scss">
 .detail {
   min-height: 100vh;
-  padding-bottom: 60rpx;
-}
-.detail__hero {
-  background: linear-gradient(180deg, #3b7dff, #5b95ff);
-  padding: 32rpx;
-  color: #fff;
-}
-.detail__title {
-  font-size: 40rpx;
-  font-weight: 600;
-  margin-bottom: 16rpx;
-}
-.detail__desc {
-  font-size: 26rpx;
-  opacity: 0.9;
-  line-height: 1.7;
+  padding-bottom: $art-page-bottom;
 }
 .section {
-  background: #fff;
-  margin: 24rpx;
-  border-radius: 24rpx;
+  @include art-card(0.6, 18px, 24rpx);
+  margin: $art-gap 24rpx 0;
   overflow: hidden;
 }
 .section__hd {
   padding: 28rpx 32rpx 20rpx;
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .section__hd--row {
   display: flex;
@@ -613,19 +601,19 @@ onUnload(() => {
 .auto-tag {
   font-size: 22rpx;
   font-weight: 400;
-  color: #00b42a;
-  background: rgba(0, 180, 42, 0.08);
+  color: #7fe0a8;
+  background: rgba(0, 180, 42, 0.12);
   border-radius: 8rpx;
   padding: 4rpx 12rpx;
 }
 .section__hd .pick {
   font-size: 26rpx;
-  color: #3b7dff;
+  color: $art-accent;
   font-weight: 400;
 }
 .form-item {
   padding: 28rpx 32rpx;
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid $art-divider;
   display: flex;
   align-items: center;
   gap: 24rpx;
@@ -633,49 +621,49 @@ onUnload(() => {
 }
 .form-item__lbl {
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
   flex-shrink: 0;
 }
 .req {
-  color: #f53f3f;
+  color: #ff9c9c;
   margin-right: 4rpx;
 }
 .form-item__val {
   flex: 1;
   text-align: right;
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .form-item__val.placeholder {
-  color: #c9cdd4;
+  color: $art-text-dim;
 }
 .form-item__input {
   flex: 1;
   text-align: right;
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .field-err {
   padding: 0 32rpx 16rpx;
   text-align: right;
   font-size: 24rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
   line-height: 1.4;
 }
 .arrow {
-  color: #c9cdd4;
+  color: $art-text-dim;
   font-size: 28rpx;
 }
 .tip {
   padding: 24rpx 32rpx;
   font-size: 26rpx;
-  color: #86909c;
+  color: $art-text-dim;
 }
 .follower {
   display: flex;
   align-items: center;
   padding: 24rpx 32rpx;
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid $art-divider;
 }
 .follower__info {
   flex: 1;
@@ -684,25 +672,25 @@ onUnload(() => {
 .follower__name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .follower__type {
   font-size: 22rpx;
   font-weight: 400;
-  color: #3b7dff;
-  background: rgba(59, 125, 255, 0.08);
+  color: $art-accent;
+  background: rgba(240, 207, 148, 0.12);
   border-radius: 8rpx;
   padding: 2rpx 12rpx;
   margin-left: 16rpx;
 }
 .follower__meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 8rpx;
 }
 .follower__del {
   font-size: 26rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .follower-tip {
   display: flex;
@@ -710,22 +698,21 @@ onUnload(() => {
   align-items: center;
   padding: 24rpx 32rpx 28rpx;
   font-size: 24rpx;
-  color: #86909c;
-  border-top: 1px solid #f2f3f5;
+  color: $art-text-dim;
+  border-top: 1px solid $art-divider;
 }
 .follower-tip .link {
-  color: #3b7dff;
+  color: $art-accent;
 }
 .submit-btn {
-  margin: 32rpx 24rpx 40rpx;
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  margin: $art-gap 24rpx $art-page-bottom;
+  @include art-gold-button();
+  
   padding: 28rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 32rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .submit-btn.disabled {
   opacity: 0.6;
@@ -733,15 +720,14 @@ onUnload(() => {
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  @include glass-mask;
   z-index: 999;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 .sheet {
-  background: #fff;
-  border-radius: 40rpx 40rpx 0 0;
+  @include art-strong();
   max-height: 75vh;
   overflow-y: auto;
   padding-bottom: env(safe-area-inset-bottom);
@@ -762,7 +748,7 @@ onUnload(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #86909c;
+  color: $art-text-dim;
   font-size: 40rpx;
 }
 .sheet__body {
@@ -772,7 +758,7 @@ onUnload(() => {
   display: flex;
   align-items: center;
   padding: 24rpx 0;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
 }
 .pick-item__info {
   flex: 1;
@@ -781,36 +767,36 @@ onUnload(() => {
 .pick-item__name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .pick-item__type {
   font-size: 22rpx;
   font-weight: 400;
-  color: #3b7dff;
-  background: rgba(59, 125, 255, 0.08);
+  color: $art-accent;
+  background: rgba(240, 207, 148, 0.12);
   border-radius: 8rpx;
   padding: 2rpx 12rpx;
   margin-left: 16rpx;
 }
 .pick-item__meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 6rpx;
 }
 .pick-item__check {
   width: 48rpx;
   text-align: center;
   font-size: 34rpx;
-  color: #3b7dff;
+  color: $art-accent;
   font-weight: 600;
 }
 .pick-item.selected .pick-item__name {
-  color: #3b7dff;
+  color: $art-accent;
 }
 .sheet__confirm {
   margin-top: 32rpx;
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  @include art-gold-button();
+  
   padding: 24rpx;
   border-radius: 56rpx;
   text-align: center;

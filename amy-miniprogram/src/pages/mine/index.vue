@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { maskTel } from '@/utils'
+import AppIcon from '@/components/AppIcon.vue'
 
 const userStore = useUserStore()
 
@@ -94,7 +96,7 @@ onShow(async () => {
 
 <template>
   <view class="mine">
-    <view class="mine__header" />
+    <PageHero title="我的" eyebrow="MY · SUN PALACE" subtitle="个人信息与管理" compact />
 
     <view class="mine__card" @tap="onCardClick">
       <image
@@ -111,30 +113,40 @@ onShow(async () => {
 
     <view class="mine__menu">
       <view class="menu-item" @tap="goRecords">
-        <text class="menu-item__icon">▤</text>
+        <view class="menu-item__icon menu-item__icon--gold">
+          <AppIcon name="list" :size="32" color="#f0cf94" />
+        </view>
         <text class="menu-item__text">预约记录</text>
-        <text class="menu-item__arrow">›</text>
+        <AppIcon class="menu-item__arrow" name="next" :size="24" color="rgba(255, 255, 255, 0.42)" />
       </view>
       <view class="menu-item" @tap="goVerify">
-        <text class="menu-item__icon">✚</text>
+        <view class="menu-item__icon menu-item__icon--jade">
+          <AppIcon name="shield" :size="32" color="#8ce0d2" />
+        </view>
         <text class="menu-item__text">实名认证</text>
         <text class="menu-item__status" :class="{ ok: isVerified }">{{ isVerified ? '已实名' : '未实名' }}</text>
-        <text class="menu-item__arrow">›</text>
+        <AppIcon class="menu-item__arrow" name="next" :size="24" color="rgba(255, 255, 255, 0.42)" />
       </view>
       <view v-if="userStore.isVerifier" class="menu-item" @tap="goScan">
-        <text class="menu-item__icon">⌖</text>
+        <view class="menu-item__icon menu-item__icon--indigo">
+          <AppIcon name="scan" :size="32" color="#b9c9ff" />
+        </view>
         <text class="menu-item__text">核销</text>
-        <text class="menu-item__arrow">›</text>
+        <AppIcon class="menu-item__arrow" name="next" :size="24" color="rgba(255, 255, 255, 0.42)" />
       </view>
       <view class="menu-item" @tap="goAbout">
-        <text class="menu-item__icon">ⓘ</text>
+        <view class="menu-item__icon menu-item__icon--indigo">
+          <AppIcon name="info" :size="32" color="#b9c9ff" />
+        </view>
         <text class="menu-item__text">关于我们</text>
-        <text class="menu-item__arrow">›</text>
+        <AppIcon class="menu-item__arrow" name="next" :size="24" color="rgba(255, 255, 255, 0.42)" />
       </view>
       <view class="menu-item" @tap="onClearCache">
-        <text class="menu-item__icon">✕</text>
+        <view class="menu-item__icon menu-item__icon--rose">
+          <AppIcon name="trash" :size="32" color="#f4bcd2" />
+        </view>
         <text class="menu-item__text">清除本地缓存</text>
-        <text class="menu-item__arrow">›</text>
+        <AppIcon class="menu-item__arrow" name="next" :size="24" color="rgba(255, 255, 255, 0.42)" />
       </view>
     </view>
 
@@ -145,21 +157,22 @@ onShow(async () => {
 <style scoped lang="scss">
 .mine {
   min-height: 100vh;
-}
-.mine__header {
-  height: 200rpx;
-  background: linear-gradient(180deg, #3b7dff 0%, #5b95ff 100%);
+  /* 未登录时不渲染「退出登录」，页尾留白由根容器兜底 */
+  padding-bottom: $art-page-bottom;
 }
 .mine__card {
-  background: #fff;
-  margin: -100rpx 24rpx 0;
-  border-radius: 32rpx;
+  @include art-card(0.62, 20px, 32rpx);
+  /* 不再用负 margin 叠压页头：Hero 与卡片各自独立，留出清晰边界 */
+  margin: $art-gap 24rpx 0;
   padding: 40rpx 32rpx;
   display: flex;
   align-items: center;
   gap: 28rpx;
-  box-shadow: 0 8rpx 32rpx rgba(31, 35, 41, 0.06);
   position: relative;
+  /* 会员卡比下方菜单卡亮一档 + 右上暖金光晕，避免两块同色深靛卡贴在一起看不出层次 */
+  background-image:
+    radial-gradient(circle at 88% 6%, rgba(240, 207, 148, 0.22) 0%, rgba(240, 207, 148, 0) 44%),
+    linear-gradient(125deg, rgba(58, 92, 162, 0.86) 0%, rgba(20, 38, 78, 0.9) 64%);
 }
 .mine__avatar {
   width: 120rpx;
@@ -174,65 +187,79 @@ onShow(async () => {
 .mine__nick {
   font-size: 34rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .mine__meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 8rpx;
 }
 .mine__edit {
-  color: #3b7dff;
+  color: $art-accent;
   font-size: 26rpx;
 }
 .mine__menu {
-  background: #fff;
-  margin: 24rpx;
-  border-radius: 32rpx;
+  @include art-card(0.58, 18px, 32rpx);
+  /* 与上方会员卡拉开距离，两块深靛卡不再连成一片 */
+  margin: $art-gap 24rpx 0;
   overflow: hidden;
-  box-shadow: 0 4rpx 24rpx rgba(31, 35, 41, 0.04);
 }
 .menu-item {
   padding: 32rpx;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
   font-size: 30rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .menu-item:last-child {
   border-bottom: 0;
 }
 .menu-item__icon {
-  width: 48rpx;
-  font-size: 40rpx;
-  color: #3b7dff;
-  text-align: center;
+  @include art-chip();
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 22rpx;
+  flex-shrink: 0;
+}
+.menu-item__icon--gold {
+  background: rgba(240, 207, 148, 0.14);
+}
+.menu-item__icon--jade {
+  background: rgba(140, 224, 210, 0.13);
+}
+.menu-item__icon--indigo {
+  background: rgba(185, 201, 255, 0.13);
+}
+.menu-item__icon--rose {
+  background: rgba(244, 188, 210, 0.13);
 }
 .menu-item__text {
   flex: 1;
 }
 .menu-item__status {
   font-size: 24rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
   margin-right: 8rpx;
 }
 .menu-item__status.ok {
-  color: #00b42a;
+  color: #7fe0a8;
 }
 .logout-btn {
-  margin: 48rpx 24rpx 60rpx;
-  background: #fff;
-  color: #f53f3f;
+  margin: $art-gap-lg 24rpx $art-page-bottom;
+  @include art-chip();
+  color: #ff9c9c;
   padding: 28rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
-  box-shadow: 0 4rpx 24rpx rgba(31, 35, 41, 0.04);
 }
 .menu-item__arrow {
-  color: #c9cdd4;
-  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-left: 4rpx;
 }
 </style>

@@ -38,11 +38,9 @@ const showStatusMsg = computed(() => {
 
 <style scoped lang="scss">
 .record-card {
-  background: #fff;
-  margin: 24rpx;
-  border-radius: 32rpx;
+  @include art-card(0.6, 18px, 32rpx);
+  margin: $art-gap 24rpx 0;
   padding: 32rpx;
-  box-shadow: 0 4rpx 24rpx rgba(31, 35, 41, 0.04);
 }
 .record-card__top {
   display: flex;
@@ -53,25 +51,25 @@ const showStatusMsg = computed(() => {
 .record-card__name {
   font-size: 32rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
   flex: 1;
   line-height: 1.4;
 }
 .record-card__status-msg {
   font-size: 24rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
   line-height: 1.5;
   margin-top: 12rpx;
 }
 .record-card__time {
   font-size: 26rpx;
-  color: #1f2329;
+  color: $art-text-strong;
   margin-top: 20rpx;
   font-weight: 500;
 }
 .record-card__info {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   line-height: 1.9;
   margin-top: 12rpx;
 }
@@ -81,12 +79,12 @@ const showStatusMsg = computed(() => {
   justify-content: space-between;
   padding-top: 24rpx;
   margin-top: 24rpx;
-  border-top: 1px solid #f2f3f5;
-  color: #3b7dff;
+  border-top: 1px solid $art-divider;
+  color: $art-accent;
   font-size: 26rpx;
 }
 .record-card__footer .arrow {
-  color: #c9cdd4;
+  color: $art-text-dim;
   font-size: 32rpx;
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
@@ -289,13 +290,14 @@ onShow(() => {
 
 <template>
   <view class="verify">
+    <PageHero title="实名认证" eyebrow="IDENTITY VERIFICATION" subtitle="本人信息与随行人管理" compact />
     <!-- 未实名：填写本人实名认证信息 -->
     <view v-if="mode === 'verify'" class="section">
       <view class="section__hd">实名认证信息</view>
       <view class="tip">根据场馆要求，预约前需完成本人实名认证</view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>姓名</text>
-        <input class="form-item__input" v-model="form.name" placeholder="请输入本人姓名" />
+        <input placeholder-class="art-ph" class="form-item__input" v-model="form.name" placeholder="请输入本人姓名" />
       </view>
       <view class="form-item" @tap="cardPickerTarget = 'verify'; cardPickerShow = true">
         <text class="form-item__lbl"><text class="req">*</text>证件类型</text>
@@ -304,7 +306,7 @@ onShow(() => {
       </view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
-        <input
+        <input placeholder-class="art-ph"
           class="form-item__input"
           :value="form.phone"
           type="number"
@@ -317,7 +319,7 @@ onShow(() => {
       <view class="field-err" v-if="formErrors.phone">{{ formErrors.phone }}</view>
       <view class="form-item">
         <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
-        <input
+        <input placeholder-class="art-ph"
           class="form-item__input"
           :value="form.idNum"
           :maxlength="form.cardType === 1 ? 18 : 30"
@@ -380,7 +382,7 @@ onShow(() => {
         <view class="sheet__body">
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>姓名</text>
-            <input class="form-item__input" v-model="followerForm.name" placeholder="请输入随行人姓名" />
+            <input placeholder-class="art-ph" class="form-item__input" v-model="followerForm.name" placeholder="请输入随行人姓名" />
           </view>
           <view class="form-item" @tap="openFollowerCardPicker">
             <text class="form-item__lbl"><text class="req">*</text>证件类型</text>
@@ -389,7 +391,7 @@ onShow(() => {
           </view>
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>手机号码</text>
-            <input
+            <input placeholder-class="art-ph"
               class="form-item__input"
               :value="followerForm.phone"
               type="number"
@@ -402,7 +404,7 @@ onShow(() => {
           <view class="field-err" v-if="followerErrors.phone">{{ followerErrors.phone }}</view>
           <view class="form-item">
             <text class="form-item__lbl"><text class="req">*</text>证件号码</text>
-            <input
+            <input placeholder-class="art-ph"
               class="form-item__input"
               :value="followerForm.idNum"
               :maxlength="followerForm.idType === 1 ? 18 : 30"
@@ -432,12 +434,11 @@ onShow(() => {
 <style scoped lang="scss">
 .verify {
   min-height: 100vh;
-  padding-bottom: 60rpx;
+  padding-bottom: $art-page-bottom;
 }
 .section {
-  background: #fff;
-  margin: 24rpx;
-  border-radius: 24rpx;
+  @include art-card(0.6, 18px, 24rpx);
+  margin: $art-gap 24rpx 0;
   overflow: hidden;
   padding-bottom: 16rpx;
 }
@@ -445,7 +446,7 @@ onShow(() => {
   padding: 28rpx 32rpx 8rpx;
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .section__hd--row {
   display: flex;
@@ -455,20 +456,20 @@ onShow(() => {
 }
 .section__hd .add {
   font-size: 26rpx;
-  color: #3b7dff;
+  color: $art-accent;
   font-weight: 400;
 }
 .tip {
   padding: 0 32rpx 16rpx;
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
 }
 .tip--empty {
   padding: 24rpx 32rpx 32rpx;
 }
 .form-item {
   padding: 28rpx 32rpx;
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid $art-divider;
   display: flex;
   align-items: center;
   gap: 24rpx;
@@ -476,47 +477,46 @@ onShow(() => {
 }
 .form-item__lbl {
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
   flex-shrink: 0;
   width: 160rpx;
 }
 .req {
-  color: #f53f3f;
+  color: #ff9c9c;
   margin-right: 4rpx;
 }
 .form-item__val {
   flex: 1;
   text-align: right;
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .form-item__input {
   flex: 1;
   text-align: right;
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .field-err {
   padding: 0 32rpx 16rpx;
   text-align: right;
   font-size: 24rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
   line-height: 1.4;
 }
 .arrow {
-  color: #c9cdd4;
+  color: $art-text-dim;
   font-size: 28rpx;
 }
 .submit-btn {
-  margin: 32rpx;
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  margin: $art-gap;
+  @include art-gold-button();
+  
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .submit-btn.disabled {
   opacity: 0.6;
@@ -529,21 +529,21 @@ onShow(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20rpx 0;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
   font-size: 28rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .identity-row:last-child {
   border-bottom: 0;
 }
 .identity-row .lbl {
-  color: #86909c;
+  color: $art-text-dim;
 }
 .follower {
   display: flex;
   align-items: center;
   padding: 24rpx 32rpx;
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid $art-divider;
 }
 .follower__info {
   flex: 1;
@@ -552,20 +552,20 @@ onShow(() => {
 .follower__name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .follower__type {
   font-size: 22rpx;
   font-weight: 400;
-  color: #3b7dff;
-  background: rgba(59, 125, 255, 0.08);
+  color: $art-accent;
+  background: rgba(240, 207, 148, 0.12);
   border-radius: 8rpx;
   padding: 2rpx 12rpx;
   margin-left: 16rpx;
 }
 .follower__meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 8rpx;
 }
 .follower__ops {
@@ -574,23 +574,22 @@ onShow(() => {
 }
 .op {
   font-size: 26rpx;
-  color: #3b7dff;
+  color: $art-accent;
 }
 .op--danger {
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  @include glass-mask;
   z-index: 999;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 .sheet {
-  background: #fff;
-  border-radius: 40rpx 40rpx 0 0;
+  @include art-strong();
   max-height: 80vh;
   overflow-y: auto;
   padding-bottom: env(safe-area-inset-bottom);
@@ -611,7 +610,7 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #86909c;
+  color: $art-text-dim;
   font-size: 40rpx;
 }
 .sheet__body {

@@ -2,9 +2,13 @@
 import { computed } from 'vue'
 import type { Activity } from '@/types'
 import { hmsToHm } from '@/utils'
+import AppIcon from '@/components/AppIcon.vue'
 
-const props = defineProps<{ activity: Activity }>()
+const props = withDefaults(defineProps<{ activity: Activity; index?: number }>(), { index: 0 })
 const emit = defineEmits<{ (e: 'book', id: number): void }>()
+
+/** 卡片序号：01 / 02 …用衬线数字做艺术化编号 */
+const serial = computed(() => String(props.index + 1).padStart(2, '0'))
 
 /** 可预约日期区间（后端直接下发开始/结束日期） */
 const dateRange = computed(() => {
@@ -43,294 +47,283 @@ const remainStateLabel = computed(() => {
 </script>
 
 <template>
-  <view class="activity-card">
-    <view class="activity-card__pic">
-      <image class="activity-card__img" :src="activity.coverArtUrl" mode="aspectFill" />
-      <view class="activity-card__tag">📍 艺术空间</view>
-      <view class="activity-card__badge" :class="`badge--${remainState}`">
-        {{ remainStateLabel }}
+  <view class="activity-card" :class="`activity-card--${remainState}`">
+    <!-- 封面即海报底图，深色渐变从下往上压出可读的文字区 -->
+    <image class="activity-card__img" :src="activity.coverArtUrl" mode="aspectFill" />
+    <view class="activity-card__shade"></view>
+
+    <view class="activity-card__inner">
+      <view class="activity-card__top">
+        <view class="activity-card__serial">
+          <text class="activity-card__serial-num art-serif-num">{{ serial }}</text>
+          <text class="activity-card__serial-en">PROJECT</text>
+        </view>
+        <view class="activity-card__badge" :class="`badge--${remainState}`">
+          <text class="activity-card__badge-dot"></text>
+          <text>{{ remainStateLabel }}</text>
+        </view>
+      </view>
+
+      <view class="activity-card__main">
+        <view class="activity-card__eyebrow">
+          <AppIcon name="location" :size="20" color="#f0cf94" />
+          <text>太阳宫 · 艺术空间</text>
+        </view>
+        <view class="activity-card__title text-ellipsis">{{ activity.projectName }}</view>
+
+        <view class="activity-card__meta">
+          <view class="meta-row">
+            <AppIcon name="calendar" :size="24" color="#f0cf94" />
+            <text>{{ dateRange }}</text>
+          </view>
+          <view class="meta-row">
+            <AppIcon name="clock" :size="24" color="#8ce0d2" />
+            <text>{{ timeRange }}</text>
+          </view>
+        </view>
+
+        <view class="activity-card__rule"></view>
+
+        <view class="activity-card__bottom">
+          <view class="stats">
+            <view class="stats__line">
+              <text class="stats__num">{{ remainNum }}</text>
+              <text class="stats__total">/ {{ totalNum }} 余号</text>
+              <text class="stats__pct">{{ bookedPercent }}% 已约</text>
+            </view>
+            <text class="stats__deadline">
+              预约截止 {{ hmsToHm(activity.cutOffTime) }}
+            </text>
+          </view>
+          <view
+            class="activity-card__btn"
+            :class="{ 'activity-card__btn--disabled': remainState === 'soldout' }"
+            @tap="remainState !== 'soldout' && emit('book', activity.projectId)"
+          >
+            <text>{{ remainState === 'soldout' ? '已约满' : '立即预约' }}</text>
+          </view>
+        </view>
       </view>
     </view>
-    <view class="activity-card__body">
-      <view class="activity-card__title text-ellipsis">{{ activity.projectName }}</view>
 
-      <view class="activity-card__meta">
-        <view class="meta-row">
-          <text class="meta-icon">📅</text>
-          <text class="meta-text">{{ dateRange }}</text>
-        </view>
-        <view class="meta-row">
-          <text class="meta-icon">⏰</text>
-          <text class="meta-text">{{ timeRange }}</text>
-        </view>
-      </view>
-
-      <!-- 预约统计 -->
-      <view class="stats" :class="`stats--${remainState}`">
-        <view class="stats__header">
-          <view class="stats__remain">
-            <text class="stats__remain-label">剩余号数</text>
-            <view class="stats__remain-value">
-              <text class="stats__remain-num">{{ remainNum }}</text>
-              <text class="stats__remain-total">/ {{ totalNum }}</text>
-            </view>
-          </view>
-          <view class="stats__booked">
-            <text class="stats__booked-num">{{ bookedPercent }}%</text>
-            <text class="stats__booked-label">已预约</text>
-          </view>
-        </view>
-        <view class="stats__bar">
-          <view class="stats__bar-fill" :style="{ width: bookedPercent + '%' }"></view>
-        </view>
-      </view>
-
-      <view class="activity-card__footer">
-        <view class="activity-card__deadline">
-          <text class="deadline-label">预约截止</text>
-          <text class="deadline-time">{{ hmsToHm(activity.cutOffTime) }}</text>
-        </view>
-        <view
-          class="activity-card__btn"
-          :class="{ 'activity-card__btn--disabled': remainState === 'soldout' }"
-          @tap="remainState !== 'soldout' && emit('book', activity.projectId)"
-        >
-          {{ remainState === 'soldout' ? '已约满' : '立即预约' }}
-        </view>
-      </view>
+    <!-- 底部一条金→青的号源进度，取代原来带白边的内嵌统计块 -->
+    <view class="activity-card__progress">
+      <view class="activity-card__progress-fill" :style="{ width: bookedPercent + '%' }"></view>
     </view>
   </view>
 </template>
 
 <style scoped lang="scss">
 .activity-card {
-  background: #fff;
-  border-radius: 32rpx;
-  overflow: hidden;
-  margin-bottom: 28rpx;
-  box-shadow: 0 4rpx 24rpx rgba(31, 35, 41, 0.04);
-}
-.activity-card__pic {
   position: relative;
-  height: 360rpx;
+  overflow: hidden;
+  border-radius: 32rpx;
+  margin-bottom: 32rpx;
+  background-color: #14264c;
+  box-shadow: 0 20rpx 52rpx rgba(18, 32, 70, 0.26);
 }
 .activity-card__img {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
 }
-.activity-card__tag {
+/* 顶部保留画面，底部压深到接近实色，保证白字可读 */
+.activity-card__shade {
   position: absolute;
-  top: 24rpx;
-  left: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 8rpx 20rpx;
-  border-radius: 24rpx;
-  font-size: 22rpx;
-  color: #3b7dff;
-  font-weight: 600;
-  backdrop-filter: blur(8rpx);
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    180deg,
+    rgba(12, 24, 52, 0.44) 0%,
+    rgba(12, 24, 52, 0.08) 24%,
+    rgba(12, 24, 52, 0.72) 56%,
+    rgba(10, 22, 48, 0.97) 100%
+  );
 }
-.activity-card__badge {
-  position: absolute;
-  top: 24rpx;
-  right: 24rpx;
-  padding: 8rpx 18rpx;
-  border-radius: 24rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-  backdrop-filter: blur(8rpx);
-}
-.badge--plenty {
-  background: rgba(7, 193, 96, 0.92);
-  color: #fff;
-}
-.badge--tight {
-  background: rgba(255, 125, 0, 0.92);
-  color: #fff;
-}
-.badge--soldout {
-  background: rgba(134, 144, 156, 0.92);
-  color: #fff;
-}
-.activity-card__body {
-  padding: 28rpx 32rpx 24rpx;
-}
-.activity-card__title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1f2329;
-  margin-bottom: 20rpx;
-  line-height: 1.4;
+.activity-card--soldout .activity-card__shade {
+  background-color: rgba(28, 34, 52, 0.32);
 }
 
-/* 元信息 */
+.activity-card__inner {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  min-height: 480rpx;
+  padding: 26rpx 30rpx 34rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* ---------- 顶部：编号 + 状态 ---------- */
+.activity-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.activity-card__serial {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  text-shadow: 0 2rpx 12rpx rgba(8, 18, 42, 0.5);
+}
+.activity-card__serial-num {
+  font-size: 44rpx;
+  line-height: 1;
+  color: #f0cf94;
+}
+.activity-card__serial-en {
+  font-size: 17rpx;
+  letter-spacing: 3rpx;
+  color: rgba(240, 207, 148, 0.82);
+}
+.activity-card__badge {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 24rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(10, 22, 48, 0.5);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+}
+.activity-card__badge-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #6ee7b7;
+}
+.badge--tight .activity-card__badge-dot { background: #ffb35c; }
+.badge--soldout .activity-card__badge-dot { background: #b9c0d0; }
+
+/* ---------- 主信息 ---------- */
+.activity-card__main {
+  min-width: 0;
+}
+.activity-card__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #f0cf94;
+  margin-bottom: 10rpx;
+}
+.activity-card__title {
+  /* 自定义组件内不能使用 App.vue 的全局 text-ellipsis，这里内聚一份 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  line-height: 1.3;
+  color: #fffaf0;
+  text-shadow: 0 2rpx 14rpx rgba(8, 18, 42, 0.4);
+  margin-bottom: 16rpx;
+}
 .activity-card__meta {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  margin-bottom: 24rpx;
+  gap: 8rpx;
 }
 .meta-row {
   display: flex;
   align-items: center;
-  font-size: 24rpx;
-  color: #4e5969;
+  gap: 10rpx;
+  font-size: 23rpx;
+  color: rgba(255, 255, 255, 0.76);
 }
-.meta-icon {
-  font-size: 24rpx;
-  margin-right: 8rpx;
-  opacity: 0.7;
-}
-.meta-text {
-  font-size: 24rpx;
+.activity-card__rule {
+  height: 1rpx;
+  margin: 22rpx 0 20rpx;
+  background: linear-gradient(90deg, rgba(240, 207, 148, 0.72), rgba(240, 207, 148, 0.04));
 }
 
-/* 统计区 */
-.stats {
-  position: relative;
-  background: linear-gradient(135deg, #f7faff 0%, #eef3ff 100%);
-  border-radius: 20rpx;
-  padding: 22rpx 24rpx 24rpx;
-  margin-bottom: 24rpx;
-  border: 1rpx solid rgba(59, 125, 255, 0.08);
-}
-.stats--tight {
-  background: linear-gradient(135deg, #fff7e6 0%, #ffe7c2 100%);
-  border-color: rgba(255, 125, 0, 0.15);
-}
-.stats--soldout {
-  background: linear-gradient(135deg, #f5f6f7 0%, #e8eaed 100%);
-  border-color: rgba(134, 144, 156, 0.12);
-}
-
-.stats__header {
+/* ---------- 底部：号源 + 按钮 ---------- */
+.activity-card__bottom {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  gap: 20rpx;
 }
-
-.stats__remain-label,
-.stats__booked-label {
-  display: block;
-  font-size: 22rpx;
-  color: #86909c;
-  margin-bottom: 4rpx;
+.stats {
+  min-width: 0;
 }
-
-.stats__remain-value {
-  display: flex;
-  align-items: baseline;
-}
-.stats__remain-num {
-  font-size: 52rpx;
-  font-weight: 700;
-  color: #3b7dff;
-  line-height: 1;
-  font-family: 'DIN Alternate', 'Helvetica Neue', sans-serif;
-  letter-spacing: -1rpx;
-}
-.stats--tight .stats__remain-num {
-  color: #ff7d00;
-}
-.stats--soldout .stats__remain-num {
-  color: #86909c;
-}
-.stats__remain-total {
-  font-size: 24rpx;
-  color: #86909c;
-  margin-left: 6rpx;
-  font-weight: 500;
-}
-
-.stats__booked {
-  text-align: right;
-}
-.stats__booked-num {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1f2329;
-  line-height: 1;
-  font-family: 'DIN Alternate', 'Helvetica Neue', sans-serif;
-}
-.stats__booked-label {
-  margin: 4rpx 0 0;
-  color: #86909c;
-}
-
-/* 进度条 */
-.stats__bar {
-  height: 12rpx;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 6rpx;
-  overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 1rpx 2rpx rgba(31, 35, 41, 0.06);
-}
-.stats__bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b7dff 0%, #5b95ff 100%);
-  border-radius: 6rpx;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2rpx 6rpx rgba(59, 125, 255, 0.4);
-  position: relative;
-}
-.stats__bar-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
-  animation: shimmer 2.4s linear infinite;
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-.stats--tight .stats__bar-fill {
-  background: linear-gradient(90deg, #ff7d00 0%, #ffa940 100%);
-  box-shadow: 0 2rpx 6rpx rgba(255, 125, 0, 0.4);
-}
-.stats--soldout .stats__bar-fill {
-  background: linear-gradient(90deg, #c9cdd4 0%, #86909c 100%);
-  box-shadow: none;
-}
-
-/* 底部操作区 */
-.activity-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 4rpx;
-}
-.activity-card__deadline {
+.stats__line {
   display: flex;
   align-items: baseline;
   gap: 8rpx;
 }
-.deadline-label {
-  font-size: 24rpx;
-  color: #86909c;
-}
-.deadline-time {
-  font-size: 30rpx;
+.stats__num {
+  font-size: 48rpx;
   font-weight: 700;
-  color: #1f2329;
+  line-height: 1;
+  color: #fffaf0;
   font-family: 'DIN Alternate', 'Helvetica Neue', sans-serif;
+}
+.activity-card--tight .stats__num { color: #ffc98a; }
+.activity-card--soldout .stats__num { color: rgba(255, 255, 255, 0.62); }
+.stats__total {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.66);
+}
+.stats__pct {
+  font-size: 20rpx;
+  color: #8ce0d2;
+  margin-left: 6rpx;
+}
+.stats__deadline {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 21rpx;
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .activity-card__btn {
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
-  padding: 18rpx 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+  padding: 18rpx 34rpx;
   border-radius: 48rpx;
-  font-size: 28rpx;
+  font-size: 27rpx;
   font-weight: 600;
-  box-shadow: 0 8rpx 24rpx rgba(59, 125, 255, 0.35);
   letter-spacing: 1rpx;
+  @include art-gold-button();
 }
 .activity-card__btn--disabled {
-  background: #c9cdd4;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.72);
   box-shadow: none;
+}
+
+/* ---------- 底部号源进度 ---------- */
+.activity-card__progress {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6rpx;
+  background: rgba(255, 255, 255, 0.12);
+}
+.activity-card__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f0cf94 0%, #8ce0d2 100%);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.activity-card--soldout .activity-card__progress-fill {
+  background: rgba(255, 255, 255, 0.4);
 }
 </style>

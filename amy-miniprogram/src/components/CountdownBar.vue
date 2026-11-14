@@ -56,8 +56,9 @@ watch(
 
 <style scoped lang="scss">
 .countdown-bar {
-  background: linear-gradient(90deg, #ffb800, #ff9500);
-  color: #fff;
+  @include art-card(0.9, 14px, 0rpx);
+  border-bottom: 1rpx solid rgba(240, 207, 148, 0.26);
+  color: rgba(255, 255, 255, 0.76);
   padding: 20rpx 32rpx;
   text-align: center;
   font-size: 26rpx;
@@ -68,11 +69,16 @@ watch(
   gap: 12rpx;
 }
 .countdown-bar.urgent {
-  background: linear-gradient(90deg, #ff7d00, #f53f3f);
+  background-image: linear-gradient(120deg, rgba(158, 62, 62, 0.5) 0%, rgba(20, 38, 78, 0) 82%);
 }
 .countdown-bar__time {
   font-size: 34rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
+  color: $art-accent;
+  font-family: 'DIN Alternate', 'Helvetica Neue', sans-serif;
+}
+.countdown-bar.urgent .countdown-bar__time {
+  color: #ffb0a0;
 }
 </style>

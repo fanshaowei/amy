@@ -39,15 +39,14 @@ const emit = defineEmits<{
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  @include glass-mask;
   z-index: 999;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 .sheet {
-  background: #fff;
-  border-radius: 40rpx 40rpx 0 0;
+  @include art-strong();
   padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
 }
 .sheet__title {
@@ -66,7 +65,7 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #86909c;
+  color: $art-text-dim;
   font-size: 40rpx;
 }
 .list {
@@ -74,7 +73,7 @@ const emit = defineEmits<{
 }
 .item {
   padding: 28rpx 16rpx;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -84,11 +83,11 @@ const emit = defineEmits<{
   border-bottom: 0;
 }
 .item.selected {
-  color: #3b7dff;
+  color: $art-accent;
   font-weight: 600;
 }
 .check {
-  color: #3b7dff;
+  color: $art-accent;
   font-size: 32rpx;
 }
 </style>

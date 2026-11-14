@@ -58,7 +58,7 @@ const gridStyle = computed(() => ({
 }
 .qr-card__code {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-bottom: 24rpx;
   letter-spacing: 1rpx;
 }
@@ -68,7 +68,7 @@ const gridStyle = computed(() => ({
   height: 400rpx;
   padding: 16rpx;
   background: #fff;
-  border: 1px solid #e5e6eb;
+  border: 1px solid rgba(240, 207, 148, 0.28);
   border-radius: 16rpx;
   gap: 0;
 }
@@ -81,6 +81,6 @@ const gridStyle = computed(() => ({
 .qr-card__label {
   margin-top: 20rpx;
   font-size: 26rpx;
-  color: #86909c;
+  color: $art-text-dim;
 }
 </style>

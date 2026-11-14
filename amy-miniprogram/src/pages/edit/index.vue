@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
@@ -92,6 +93,7 @@ async function onGetPhoneNumber(e: any) {
 
 <template>
   <view class="edit">
+    <PageHero title="编辑资料" eyebrow="PROFILE · 个人资料" subtitle="完善您的昵称与头像" compact flush />
     <view class="edit__avatar">
       <!-- #ifdef MP-WEIXIN -->
       <button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
@@ -108,7 +110,7 @@ async function onGetPhoneNumber(e: any) {
     <view class="form">
       <view class="item">
         <text class="lbl">昵称</text>
-        <input class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
+        <input placeholder-class="art-ph" class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
       </view>
       <view class="item">
         <text class="lbl">手机</text>
@@ -135,13 +137,13 @@ async function onGetPhoneNumber(e: any) {
 <style scoped lang="scss">
 .edit {
   min-height: 100vh;
-  padding: 24rpx;
+  padding: 0 24rpx $art-page-bottom;
 }
 .edit__avatar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40rpx 0;
+  padding: $art-gap 0;
 }
 .avatar-btn {
   position: relative;
@@ -160,7 +162,8 @@ async function onGetPhoneNumber(e: any) {
   width: 140rpx;
   height: 140rpx;
   border-radius: 50%;
-  border: 4rpx solid #f2f3f5;
+  border: 3rpx solid rgba(240, 207, 148, 0.62);
+  box-shadow: 0 8rpx 24rpx rgba(28, 44, 90, 0.18);
 }
 .avatar-badge {
   position: absolute;
@@ -169,8 +172,8 @@ async function onGetPhoneNumber(e: any) {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: #3b7dff;
-  color: #fff;
+  background: $art-accent;
+  color: $art-on-gold;
   font-size: 20rpx;
   display: flex;
   align-items: center;
@@ -178,21 +181,20 @@ async function onGetPhoneNumber(e: any) {
 }
 .hint {
   font-size: 24rpx;
-  color: #86909c;
+  color: $uni-text-color-grey;
   margin-top: 16rpx;
 }
 .form {
-  background: #f7f8fa;
-  border-radius: 24rpx;
+  @include art-card(0.6, 18px, 24rpx);
   padding: 0 32rpx;
-  margin-bottom: 32rpx;
+  margin-bottom: $art-gap;
 }
 .item {
   padding: 28rpx 0;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  border-bottom: 1px solid #ecedf0;
+  border-bottom: 1px solid $art-divider;
 }
 .item:last-child {
   border-bottom: 0;
@@ -200,33 +202,33 @@ async function onGetPhoneNumber(e: any) {
 .lbl {
   width: 100rpx;
   font-size: 26rpx;
-  color: #4e5969;
+  color: $art-text;
 }
 .val {
   flex: 1;
   font-size: 28rpx;
+  color: $art-text-strong;
 }
 .save-btn {
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  @include art-gold-button();
+  
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .save-btn.disabled {
   opacity: 0.6;
 }
 .phone-btn {
-  background: #f2f3f5;
-  color: #4e5969;
+  @include art-chip();
+  color: $art-text;
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
-  margin-top: 24rpx;
+  margin-top: $art-gap;
 }
 .phone-btn.disabled {
   opacity: 0.6;

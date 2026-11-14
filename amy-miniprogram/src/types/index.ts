@@ -7,6 +7,30 @@
  *  - ReservationOrderReq / ReservationOrderVO
  */
 
+/** AppIcon 支持的线性图标名（纯 CSS 绘制，见 components/AppIcon.vue） */
+export type IconName =
+  | 'location'
+  | 'calendar'
+  | 'clock'
+  | 'search'
+  | 'ticket'
+  | 'bell'
+  | 'user'
+  | 'shield'
+  | 'list'
+  | 'arrow'
+  | 'next'
+  | 'sparkle'
+  | 'scan'
+  | 'info'
+  | 'trash'
+  | 'check'
+  | 'plus'
+  | 'close'
+  | 'note'
+  | 'sun'
+  | 'feather'
+
 /** 证件类型（与后端 IdType 枚举一致：1身份证 2护照 3港澳通行证 4台湾通行证 5军官证） */
 export type CardType = 1 | 2 | 3 | 4 | 5
 

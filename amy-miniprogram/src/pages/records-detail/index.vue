@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
@@ -86,6 +87,7 @@ onLoad((query) => {
 
 <template>
   <view v-if="record" class="result">
+    <PageHero title="预约详情" eyebrow="RESERVATION DETAIL" subtitle="入场核验码与预约信息" compact flush />
     <view class="result__card">
       <view class="result__status">
         <view class="result__status-big" :class="`text--${statusInfo.type}`">
@@ -135,14 +137,13 @@ onLoad((query) => {
 <style scoped lang="scss">
 .result {
   min-height: 100vh;
-  padding: 32rpx 24rpx;
+  padding: 0 24rpx $art-page-bottom;
 }
 .result__card {
-  background: #fff;
-  border-radius: 40rpx;
-  overflow: hidden;
+  @include art-card(0.66, 22px, 40rpx);
+  
+  margin-top: $art-gap;overflow: hidden;
   position: relative;
-  box-shadow: 0 8rpx 40rpx rgba(31, 35, 41, 0.06);
 }
 .result__card::before,
 .result__card::after {
@@ -150,7 +151,7 @@ onLoad((query) => {
   position: absolute;
   width: 48rpx;
   height: 48rpx;
-  background: #f4f6fa;
+  background: rgba(240, 207, 148, 0.16);
   border-radius: 50%;
   top: 220rpx;
   z-index: 2;
@@ -170,31 +171,31 @@ onLoad((query) => {
   font-weight: 700;
 }
 .text--expired {
-  color: #86909c;
+  color: $art-text-dim;
 }
 .text--done {
-  color: #00b96b;
+  color: #7fe0a8;
 }
 .text--pending {
-  color: #ff9500;
+  color: #ffc47a;
 }
 .text--cancel {
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .text--fail {
-  color: #f53f3f;
+  color: #ff9c9c;
 }
 .text--booking {
-  color: #3b7dff;
+  color: $art-accent;
 }
 .result__status-msg {
   font-size: 24rpx;
-  color: #f53f3f;
+  color: #ff9c9c;
   margin-top: 8rpx;
 }
 .result__status-meta {
   font-size: 24rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 12rpx;
 }
 .result__qr {
@@ -207,7 +208,7 @@ onLoad((query) => {
   top: 0;
   left: 32rpx;
   right: 32rpx;
-  border-top: 2rpx dashed #e5e6eb;
+  border-top: 2rpx dashed $art-divider;
 }
 .result__detail {
   padding: 16rpx 32rpx 40rpx;
@@ -217,18 +218,18 @@ onLoad((query) => {
   justify-content: space-between;
   padding: 20rpx 0;
   font-size: 28rpx;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid $art-divider;
 }
 .row:last-child {
   border-bottom: 0;
 }
 .row .k {
-  color: #4e5969;
+  color: $art-text;
   flex-shrink: 0;
   margin-right: 32rpx;
 }
 .row .v {
-  color: #1f2329;
+  color: $art-text-strong;
   font-weight: 500;
   flex: 1;
   text-align: right;
@@ -242,8 +243,9 @@ onLoad((query) => {
   line-height: 80rpx;
   text-align: center;
   font-size: 28rpx;
-  color: #f53f3f;
-  border: 2rpx solid #f53f3f;
+  color: #ff9c9c;
+  @include art-chip();
+  border: 1rpx solid rgba(245, 63, 63, 0.5);
   border-radius: 48rpx;
 }
 .cancel-btn.disabled {

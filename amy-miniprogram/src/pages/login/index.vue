@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { uploadAvatar } from '@/api/user'
 import { showError } from '@/utils/request'
 import type { User } from '@/types'
+import ArtEmblem from '@/components/ArtEmblem.vue'
 
 const userStore = useUserStore()
 
@@ -110,9 +111,9 @@ onLoad((query) => {
 
 <template>
   <view class="login">
-    <view class="login__logo">🎫</view>
-    <view class="login__title">预约门票</view>
-    <view class="login__sub">请完成微信授权登录</view>
+    <view class="login__logo"><ArtEmblem :size="132" /></view>
+    <view class="login__title">太阳宫艺术空间</view>
+    <view class="login__sub">请完成微信授权登录 · 开启艺术之约</view>
 
     <view class="login__avatar">
       <!-- #ifdef MP-WEIXIN -->
@@ -129,7 +130,7 @@ onLoad((query) => {
     <view class="login__form">
       <view class="item">
         <text class="lbl">昵称</text>
-        <input class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
+        <input placeholder-class="art-ph" class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
       </view>
     </view>
 
@@ -143,32 +144,48 @@ onLoad((query) => {
 <style scoped lang="scss">
 .login {
   min-height: 100vh;
-  background: #fff;
+  /* 品牌登录页整片深靛，和首页 Hero / 项目海报卡同一套底色 */
+  background-color: #101f3f;
+  background-image:
+    radial-gradient(circle at 88% 6%, rgba(240, 207, 148, 0.2) 0%, rgba(240, 207, 148, 0) 40%),
+    radial-gradient(circle at 4% 78%, rgba(31, 158, 154, 0.22) 0%, rgba(31, 158, 154, 0) 46%),
+    linear-gradient(165deg, #14264c 0%, #101f3f 58%, #122b49 100%);
   padding: 40rpx 64rpx;
 }
 .login__logo {
-  width: 160rpx;
-  height: 160rpx;
+  position: relative;
+  width: 172rpx;
+  height: 172rpx;
   margin: 48rpx auto 32rpx;
-  background: linear-gradient(135deg, #3b7dff, #5b95ff);
-  border-radius: 40rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 72rpx;
-  box-shadow: 0 16rpx 48rpx rgba(59, 125, 255, 0.3);
+  background-color: rgba(36, 58, 114, 0.86);
+  background-image: linear-gradient(135deg, rgba(32, 51, 106, 0.94) 0%, rgba(31, 138, 132, 0.82) 100%);
+  box-shadow: 0 16rpx 40rpx rgba(28, 52, 108, 0.28), inset 0 1rpx 0 rgba(255, 255, 255, 0.22);
+}
+.login__logo::after {
+  content: '';
+  position: absolute;
+  left: -10rpx;
+  right: -10rpx;
+  top: -10rpx;
+  bottom: -10rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(200, 163, 92, 0.42);
 }
 .login__title {
   text-align: center;
   font-size: 44rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: $art-text-strong;
   margin-bottom: 16rpx;
 }
 .login__sub {
   text-align: center;
   font-size: 26rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-bottom: 64rpx;
 }
 .login__avatar {
@@ -191,16 +208,16 @@ onLoad((query) => {
   width: 128rpx;
   height: 128rpx;
   border-radius: 50%;
-  border: 4rpx solid #f2f3f5;
+  border: 3rpx solid rgba(240, 207, 148, 0.62);
+  box-shadow: 0 8rpx 24rpx rgba(28, 44, 90, 0.18);
 }
 .login__avatar-tip {
   font-size: 22rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 12rpx;
 }
 .login__form {
-  background: #f7f8fa;
-  border-radius: 24rpx;
+  @include art-card(0.6, 18px, 24rpx);
   padding: 0 32rpx;
   margin-bottom: 32rpx;
 }
@@ -209,7 +226,7 @@ onLoad((query) => {
   display: flex;
   align-items: center;
   gap: 24rpx;
-  border-bottom: 1px solid #ecedf0;
+  border-bottom: 1px solid $art-divider;
 }
 .item:last-child {
   border-bottom: 0;
@@ -217,21 +234,20 @@ onLoad((query) => {
 .lbl {
   width: 100rpx;
   font-size: 26rpx;
-  color: #4e5969;
+  color: $art-text;
 }
 .val {
   flex: 1;
   font-size: 28rpx;
 }
 .login__btn {
-  background: linear-gradient(90deg, #3b7dff, #5b95ff);
-  color: #fff;
+  @include art-gold-button();
+  
   padding: 26rpx;
   border-radius: 56rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 32rpx rgba(59, 125, 255, 0.35);
 }
 .login__btn.disabled {
   opacity: 0.6;
@@ -239,7 +255,7 @@ onLoad((query) => {
 .login__tip {
   text-align: center;
   font-size: 22rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 32rpx;
   line-height: 1.7;
 }

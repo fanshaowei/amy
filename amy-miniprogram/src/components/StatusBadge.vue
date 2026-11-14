@@ -18,29 +18,31 @@ const info = computed(() => RESERVE_STATUS[props.status] || { text: '未知', ty
   font-size: 22rpx;
   line-height: 1.4;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1rpx 0 rgba(240, 207, 148, 0.16);
 }
+/* 深靛卡上的状态色：统一提亮，原来的深橙/深绿在深底上会糊成一片 */
 .badge--pending {
-  background: #fff7e8;
-  color: #ff9500;
+  background: rgba(255, 196, 122, 0.16);
+  color: #ffcb85;
 }
 .badge--done {
-  background: #e8f8f0;
-  color: #00b96b;
+  background: rgba(127, 224, 168, 0.16);
+  color: #9be8bf;
 }
 .badge--expired {
-  background: #f2f3f5;
-  color: #86909c;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
 }
-.badge--cancel {
-  background: #fff1f0;
-  color: #f53f3f;
-}
+.badge--cancel,
 .badge--fail {
-  background: #fff1f0;
-  color: #f53f3f;
+  background: rgba(255, 156, 156, 0.14);
+  color: #ffabab;
 }
 .badge--booking {
-  background: #eaf2ff;
-  color: #3b7dff;
+  background: rgba(140, 224, 210, 0.14);
+  color: $art-accent-jade;
 }
 </style>

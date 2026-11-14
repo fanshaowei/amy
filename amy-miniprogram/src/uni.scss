@@ -1,21 +1,86 @@
-/* uni-app 全局 SCSS 变量（自动注入到每个组件） */
+/* uni-app 全局 SCSS 变量（自动注入到每个组件）
+ * 注意：本文件只放「变量 / mixin」，不要写具体 CSS 规则，否则会被注入到每个组件重复输出。
+ *
+ * 设计语言：Glassmorphism 毛玻璃
+ * - 页面底层是柔和的弥散光渐变（见 App.vue 的 page 背景），卡片浮在光斑之上
+ * - 卡片 = 半透明底色 + 背景模糊 + 投影 + 顶部一条极淡高光；**不描白边**
+ *   （整圈白色描边会让每个元素都像贴了塑料框，视觉很脏，用户明确反馈过）
+ * - 边界感改由投影和顶部高光承担；分隔用 $glass-divider 这种深色淡线
+ * - backdrop-filter 在部分安卓 WebView 上不被支持，此时会自动降级为
+ *   「半透明底色 + 渐变背景」，视觉仍然完整、功能不受影响（所以底色不能省）
+ */
 
-/* 主色板 */
-$uni-color-primary: #3b7dff;
-$uni-color-primary-light: #5b95ff;
+/* ============ 主色板 ============ */
+$uni-color-primary: #5b6cf6;
+$uni-color-primary-light: #8b5cf6;
 $uni-color-success: #00b96b;
 $uni-color-warning: #ff9500;
 $uni-color-error: #f53f3f;
 
-/* 文字 */
-$uni-text-color: #1f2329;
-$uni-text-color-secondary: #4e5969;
-$uni-text-color-grey: #86909c;
-$uni-text-color-placeholder: #c9cdd4;
+/* 品牌渐变（按钮 / Logo / Hero） */
+$brand-gradient: linear-gradient(100deg, #5a6cf6 0%, #8b5cf6 100%);
+$brand-gradient-soft: linear-gradient(135deg, #6b7cf8 0%, #9b6cf8 100%);
 
-/* 边框与背景 */
-$uni-border-color: #f2f3f5;
-$uni-bg-color: #f4f6fa;
+/* ============ 太阳宫艺术副色 ============
+ * 主色仍是蓝紫，用于交互与可读性；下面这一组只负责「氛围」：
+ * 孔雀青（洱海水光 / 扎染）、暖金（日轮）、胭脂（点睛）、墨靛（文字）。
+ * 它们出现在光斑、纹样、图标、编号与分隔线里，不参与主按钮，
+ * 所以不会破坏既有页面的信息层级。 */
+$art-jade: #1f9e9a;
+$art-jade-deep: #1c7fa8;
+$art-gold: #c8a35c;
+$art-gold-light: #f0cf94;
+$art-rose: #d8789e;
+$art-ink: #243a72;
+$art-gradient: linear-gradient(120deg, #1f9e9a 0%, #3b6fd4 52%, #7a5ce0 100%);
+$art-gradient-gold: linear-gradient(100deg, #cf9f52 0%, #f2d7a0 100%);
+
+/* ============ 深靛主题（全站统一） ============
+ * 首页 Hero / 项目海报卡之后，其余页面与弹层也统一到这套「深靛玻璃 + 描金」语言。
+ * 页面底层仍是浅色洱海水光，深靛卡片浮在其上，与首页 Hero 的处理方式一致。
+ * 下面这几个变量只用于深靛卡片「内部」的文字与描金点缀，切勿用于浅底区域。 */
+$art-text-strong: #fffaf0;
+$art-text: rgba(255, 255, 255, 0.8);
+$art-text-dim: rgba(255, 255, 255, 0.5);
+$art-divider: rgba(240, 207, 148, 0.16);
+$art-accent: #f0cf94;
+$art-accent-jade: #8ce0d2;
+$art-on-gold: #1b2c52;
+
+/* ============ 内页纵向节奏（全站统一） ============
+ * PageHero 自身上边距 16rpx；页头→首块、块→块一律 $art-gap；
+ * 需要强调的分组（操作按钮组、退出登录）用 $art-gap-lg；页尾统一 $art-page-bottom。
+ * flush 页（about / edit / records-detail）父容器左右 padding 24rpx、顶部必须为 0，
+ * 否则会和页头的 16rpx 上边距叠加，比其它页面整体低一截。 */
+$art-gap: 28rpx;
+$art-gap-lg: 40rpx;
+$art-page-bottom: 48rpx;
+
+/* ============ 文字 ============ */
+$uni-text-color: #1b2340;
+$uni-text-color-secondary: #5a6486;
+$uni-text-color-grey: #8a93b2;
+$uni-text-color-placeholder: #a6aec8;
+
+/* ============ 玻璃体系 ============ */
+/* 卡片底色（不支持 backdrop-filter 时的降级色，必须保留不透明度） */
+$glass-surface: rgba(255, 255, 255, 0.58);
+$glass-surface-strong: rgba(255, 255, 255, 0.82);
+$glass-surface-inset: rgba(255, 255, 255, 0.34);
+/* 顶部极淡高光（不是描边，只在上边缘有一条） */
+$glass-border: rgba(38, 52, 100, 0.06);
+$glass-highlight: rgba(255, 255, 255, 0.42);
+/* 玻璃上的分隔线：比原来的 #f2f3f5 更淡，避免切断通透感 */
+$glass-divider: rgba(80, 92, 140, 0.1);
+$glass-divider-light: rgba(255, 255, 255, 0.6);
+/* 投影：偏蓝紫，模拟玻璃悬浮 */
+$glass-shadow: 0 12rpx 40rpx rgba(48, 58, 110, 0.1);
+$glass-shadow-sm: 0 6rpx 24rpx rgba(48, 58, 110, 0.08);
+$brand-shadow: 0 10rpx 30rpx rgba(99, 91, 240, 0.34);
+
+/* 边框与背景（兼容旧引用） */
+$uni-border-color: $glass-divider;
+$uni-bg-color: #eef2ff;
 $uni-bg-color-white: #ffffff;
 
 /* 圆角 */
@@ -23,3 +88,192 @@ $uni-border-radius-sm: 8px;
 $uni-border-radius-base: 12px;
 $uni-border-radius-lg: 16px;
 $uni-border-radius-circle: 50%;
+
+/* ============ Mixins ============ */
+
+/* 标准玻璃卡片 */
+@mixin glass-surface($alpha: 0.58, $blur: 18px, $radius: 32rpx) {
+  box-sizing: border-box;
+  /* 半透明底色 + 斜向高光，模拟玻璃受光面；不用 background 简写多层，兼容 WXSS 解析 */
+  background-color: rgba(255, 255, 255, $alpha);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0) 48%
+  );
+  -webkit-backdrop-filter: blur($blur) saturate(180%);
+  backdrop-filter: blur($blur) saturate(180%);
+  border-radius: $radius;
+  /* 用投影 + 一条上缘高光表达玻璃厚度，取代整圈白描边 */
+  box-shadow: 0 14rpx 42rpx rgba(38, 52, 100, 0.13),
+    inset 0 1rpx 0 $glass-highlight;
+}
+
+/* 更实的玻璃：底部弹层 sheet、需要盖住滚动内容的面板 */
+@mixin glass-strong($radius: 40rpx 40rpx 0 0) {
+  box-sizing: border-box;
+  background-color: $glass-surface-strong;
+  background-image: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0) 42%
+  );
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  border-radius: $radius;
+  box-shadow: 0 -12rpx 48rpx rgba(38, 52, 100, 0.16),
+    inset 0 1rpx 0 $glass-highlight;
+}
+
+/* 内嵌控件：搜索框、输入框容器、统计区、时间格 */
+@mixin glass-inset($radius: 24rpx) {
+  box-sizing: border-box;
+  background: $glass-surface-inset;
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  border-radius: $radius;
+  box-shadow: inset 0 2rpx 10rpx rgba(60, 72, 130, 0.07),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.3);
+}
+
+/* 玻璃小标签 / 徽章 / 胶囊 */
+@mixin glass-chip($tint: rgba(255, 255, 255, 0.66)) {
+  box-sizing: border-box;
+  background: $tint;
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  backdrop-filter: blur(12px) saturate(170%);
+  box-shadow: 0 4rpx 16rpx rgba(38, 52, 100, 0.12),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.38);
+}
+
+/* 品牌主按钮 */
+@mixin brand-button($angle: 100deg) {
+  background: linear-gradient($angle, #5a6cf6 0%, #8b5cf6 100%);
+  box-shadow: $brand-shadow, inset 0 1rpx 0 rgba(255, 255, 255, 0.28);
+}
+
+/* 深靛艺术玻璃：与首页 Hero / 项目海报卡同一套语言，供快捷入口、动态、骨架复用。
+ * 同样不描白边，靠投影与顶部一条极淡高光表达层次。 */
+@mixin art-dark-glass($radius: 28rpx) {
+  box-sizing: border-box;
+  background-color: rgba(26, 44, 88, 0.84);
+  background-image: linear-gradient(
+    120deg,
+    rgba(58, 84, 150, 0.32) 0%,
+    rgba(31, 138, 132, 0.12) 100%
+  );
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-radius: $radius;
+  box-shadow: 0 16rpx 42rpx rgba(20, 34, 74, 0.22),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
+}
+
+/* 海报卡上的暖金主按钮（深底上使用，文字为墨靛）。
+ * 接收角度参数，与旧 brand-button 的调用方式兼容。 */
+@mixin art-gold-button($angle: 100deg) {
+  background: linear-gradient($angle, #f0d49c 0%, #d3a75b 100%);
+  color: $art-on-gold;
+  box-shadow: 0 8rpx 22rpx rgba(12, 24, 52, 0.3),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.45);
+}
+
+/* ============ 深靛主题 mixin（与浅色版同签名，便于整站平移） ============
+ * 这四个 mixin 与 glass-surface / glass-inset / glass-chip / glass-strong
+ * 参数签名一致，页面只需把 @include 名字换掉即可，不必逐个改调用参数。
+ * 一律不描白边：边界靠投影 + 顶部一条淡金高光表达。 */
+
+/* 深靛玻璃卡：$alpha / $blur 仅为兼容旧调用，底色固定，保证全站深浅一致 */
+@mixin art-card($alpha: 0.84, $blur: 18px, $radius: 32rpx) {
+  box-sizing: border-box;
+  /* 关键：卡片内未显式设色的文字默认继承浅色，否则会继承 page 的深色而看不见 */
+  color: $art-text;
+  background-color: rgba(20, 38, 78, 0.9);
+  background-image: linear-gradient(
+    125deg,
+    rgba(46, 72, 134, 0.6) 0%,
+    rgba(20, 38, 78, 0) 58%
+  );
+  -webkit-backdrop-filter: blur($blur) saturate(160%);
+  backdrop-filter: blur($blur) saturate(160%);
+  border-radius: $radius;
+  box-shadow: 0 18rpx 46rpx rgba(16, 30, 70, 0.24),
+    inset 0 1rpx 0 rgba(240, 207, 148, 0.2);
+}
+
+/* 深底内嵌控件：输入框、日期胶囊、时段格、次按钮 */
+@mixin art-inset($radius: 24rpx) {
+  box-sizing: border-box;
+  color: $art-text;
+  background-color: rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  border-radius: $radius;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.06),
+    inset 0 2rpx 10rpx rgba(6, 16, 40, 0.16);
+}
+
+/* 深底小标签 / 胶囊 / 次按钮 */
+@mixin art-chip($tint: rgba(255, 255, 255, 0.09)) {
+  box-sizing: border-box;
+  color: $art-text;
+  background-color: rgba(255, 255, 255, 0.09);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  box-shadow: 0 4rpx 16rpx rgba(10, 22, 52, 0.18),
+    inset 0 1rpx 0 rgba(240, 207, 148, 0.14);
+}
+
+/* 底部弹层：深靛实底，顶部一条描金线，压住滚动内容 */
+@mixin art-strong($radius: 40rpx 40rpx 0 0) {
+  box-sizing: border-box;
+  color: $art-text;
+  background-color: rgba(16, 32, 66, 0.97);
+  background-image: linear-gradient(
+    160deg,
+    rgba(46, 72, 134, 0.5) 0%,
+    rgba(16, 32, 66, 0) 46%
+  );
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  border-radius: $radius;
+  box-shadow: 0 -12rpx 48rpx rgba(10, 20, 48, 0.36),
+    inset 0 1rpx 0 rgba(240, 207, 148, 0.28);
+}
+
+/* 弹层遮罩：轻模糊 + 压暗，突出上层玻璃面板 */
+@mixin glass-mask {
+  background: rgba(10, 18, 42, 0.52);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ============ 艺术装饰 ============ */
+
+/* 圆形玻璃图标底座：把线性图标托起来，避免图标直接贴在玻璃上发飘 */
+@mixin art-icon-well($tone: rgba(255, 255, 255, 0.66)) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: $tone;
+  border-radius: 50%;
+  box-shadow: 0 4rpx 14rpx rgba(38, 52, 100, 0.1),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.45);
+}
+
+/* 金色细线：分区标题、英文小标旁的装饰，模拟描金 */
+@mixin art-rule($width: 44rpx) {
+  width: $width;
+  height: 3rpx;
+  border-radius: 2rpx;
+  background: $art-gradient-gold;
+  box-shadow: 0 0 8rpx rgba(207, 159, 82, 0.45);
+}
+
+/* 入场动效：内容依次上浮，让长列表不显得平铺直叙
+ * 注意：keyframes 定义在 App.vue 全局样式中，这里只放 mixin，
+ * 否则会被自动注入到每个组件里重复输出。 */
+@mixin anim-up($delay: 0s) {
+  animation: art-up 0.62s cubic-bezier(0.16, 1, 0.3, 1) $delay both;
+}

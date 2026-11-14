@@ -72,15 +72,14 @@ const emit = defineEmits<{
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  @include glass-mask;
   z-index: 999;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 .sheet {
-  background: #fff;
-  border-radius: 40rpx 40rpx 0 0;
+  @include art-strong();
   padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
   max-height: 82vh;
   overflow-y: auto;
@@ -101,7 +100,7 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #86909c;
+  color: $art-text-dim;
   font-size: 40rpx;
 }
 .block {
@@ -109,7 +108,7 @@ const emit = defineEmits<{
 }
 .block__hd {
   font-size: 26rpx;
-  color: #1f2329;
+  color: $art-text-strong;
   font-weight: 600;
   margin-bottom: 20rpx;
 }
@@ -120,16 +119,14 @@ const emit = defineEmits<{
 }
 .date-pill {
   padding: 16rpx 28rpx;
-  background: #fff;
-  border: 1px solid #e5e6eb;
-  border-radius: 16rpx;
+  @include art-inset(16rpx);
   font-size: 26rpx;
-  color: #1f2329;
+  color: $art-text-strong;
 }
 .date-pill.selected {
-  background: #3b7dff;
-  color: #fff;
-  border-color: #3b7dff;
+  @include art-gold-button(135deg);
+  
+  border-color: transparent;
 }
 .time-grid {
   display: grid;
@@ -139,62 +136,63 @@ const emit = defineEmits<{
 .time-cell {
   padding: 24rpx 12rpx;
   border-radius: 24rpx;
-  background: #e8f3ff;
+  @include art-inset(24rpx);
+  background: rgba(240, 207, 148, 0.08);
   text-align: center;
   position: relative;
 }
 .time-cell__t {
   font-size: 32rpx;
   font-weight: 600;
-  color: #3b7dff;
+  color: $art-accent;
 }
 .time-cell__sub {
   font-size: 22rpx;
-  color: #3b7dff;
+  color: $art-accent;
   opacity: 0.7;
   margin-top: 4rpx;
 }
 .time-cell__state {
   font-size: 22rpx;
-  color: #86909c;
+  color: $art-text-dim;
   margin-top: 4rpx;
 }
 .time-cell.full {
-  background: #f7f8fa;
+  background: rgba(255, 255, 255, 0.06);
 }
 .time-cell.full .time-cell__t,
 .time-cell.full .time-cell__sub {
-  color: #c9cdd4;
+  color: $art-text-dim;
 }
 .time-cell.full .time-cell__state {
-  color: #c9cdd4;
+  color: $art-text-dim;
 }
 /* 不可预约：与「约满」同样是置灰不可点，用虚线边框区分成因 */
 .time-cell.closed {
-  background: #f7f8fa;
-  border: 1px dashed #c9cdd4;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
 }
 .time-cell.closed .time-cell__t,
 .time-cell.closed .time-cell__sub {
-  color: #c9cdd4;
+  color: $art-text-dim;
 }
 .time-cell.closed .time-cell__state {
-  color: #c9cdd4;
+  color: $art-text-dim;
 }
 .time-cell.selected {
-  background: #3b7dff;
+  @include art-gold-button(135deg);
 }
 .time-cell.selected .time-cell__t,
 .time-cell.selected .time-cell__sub,
 .time-cell.selected .time-cell__state {
-  color: #fff;
+  color: $art-on-gold;
   opacity: 1;
 }
 .time-cell__check {
   position: absolute;
   top: 8rpx;
   right: 16rpx;
-  color: #fff;
+  color: $art-on-gold;
   font-size: 28rpx;
 }
 .sheet__actions {
@@ -210,12 +208,11 @@ const emit = defineEmits<{
   font-size: 30rpx;
 }
 .btn--cancel {
-  background: #fff;
-  border: 1px solid #e5e6eb;
-  color: #1f2329;
+  @include art-inset(56rpx);
+  background: rgba(255, 255, 255, 0.07);
+  color: $art-text-strong;
 }
 .btn--primary {
-  background: #00b96b;
-  color: #fff;
+  @include art-gold-button();
 }
 </style>
