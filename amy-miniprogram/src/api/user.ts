@@ -2,9 +2,9 @@
  * 用户接口
  *
  * 后端：
- *  - POST /spas/mina/app/auth/login          微信登录换取 token（MinaAppController#login）
- *  - POST /spas/mina/app/auth/login/openid   按 openId 换发 token（MinaAppController#loginByOpenId）
- *  - GET  /spas/mina/app/user/info           当前登录会员信息（MinaAppController#getUserInfo）
+ *  - POST /spas/mina/app/auth/login            微信登录换取 token（MinaAppController#login，返回 fistTimeLogin + token）
+ *  - POST /spas/mina/app/reservation/user/update  修改会员头像/昵称（MinaAppController#updateReservationUser）
+ *  - GET  /spas/mina/app/user/info             当前登录会员信息（MinaAppController#getUserInfo）
  *  - POST /spas/mina/app/user/verify         实名认证（MinaAppController#verifyUser）
  *  - GET  /spas/mina/app/user/followers/get  会员身份+随行人列表（MinaAppController#getReservationUserAndFollowers）
  *  - POST /spas/mina/app/user/follower/add    添加随行人（MinaAppController#addFollower）
@@ -17,7 +17,8 @@
  */
 
 import type { User, UserIdentity } from '@/types'
-import { request } from '@/utils/request'
+import type { ApiResult } from '@/types'
+import { BASE_URL, getToken, request } from '@/utils/request'
 
 export interface LoginPayload {
   /** 微信登录凭证 code（uni.login 获取） */
@@ -28,12 +29,20 @@ export interface LoginPayload {
   nickName?: string
 }
 
+/** /auth/login 返回结构（对应后端 WechatApiAuthLoginResp） */
+export interface LoginResult {
+  /** 是否首次登录（true 时小程序跳转编辑头像/昵称页） */
+  fistTimeLogin: boolean
+  /** 鉴权 token */
+  token: string
+}
+
 /**
- * 微信登录，返回后端鉴权 token
+ * 微信登录，返回 fistTimeLogin 与 token
  * POST /spas/mina/app/auth/login
  */
-export async function login(payload: LoginPayload): Promise<string> {
-  return request<string>({
+export async function login(payload: LoginPayload): Promise<LoginResult> {
+  return request<LoginResult>({
     url: '/spas/mina/app/auth/login',
     method: 'POST',
     auth: false,
@@ -46,17 +55,53 @@ export async function login(payload: LoginPayload): Promise<string> {
 }
 
 /**
- * 按 openId 换发 token（token 过期后的静默续登）
- * 本地缓存 reservation_user 中存在 openId 时调用，免去再次微信授权
- * POST /spas/mina/app/auth/login/openid
+ * 修改会员头像/昵称
+ * POST /spas/mina/app/reservation/user/update
  */
-export async function loginByOpenId(openId: string): Promise<string> {
-  return request<string>({
-    url: '/spas/mina/app/auth/login/openid',
+export async function updateProfile(payload: { nickName: string; avatarImgUrl: string }): Promise<boolean> {
+  return request<boolean>({
+    url: '/spas/mina/app/reservation/user/update',
     method: 'POST',
-    auth: false,
-    skipAuthRedirect: true,
-    data: { openId },
+    data: {
+      nickName: payload.nickName,
+      avatarImgUrl: payload.avatarImgUrl,
+    },
+  })
+}
+
+/** 判断是否为本地临时文件路径（微信 chooseAvatar 返回 http://tmp/... 或 wxfile://...） */
+export function isLocalTempFile(url: string): boolean {
+  if (!url) return false
+  return !/^https?:\/\//i.test(url) || /^https?:\/\/tmp\//i.test(url)
+}
+
+/**
+ * 上传头像到文件服务（后端经 Feign 调 amy-file 落盘），返回可长期访问的 URL。
+ * 保存头像前必须先走此接口，否则入库的是本地临时路径。
+ * POST /spas/mina/app/avatar/upload（multipart，name=file）
+ */
+export async function uploadAvatar(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const token = getToken()
+    uni.uploadFile({
+      url: `${BASE_URL}/spas/mina/app/avatar/upload`,
+      filePath,
+      name: 'file',
+      header: token ? { Authorization: token } : {},
+      success: (res) => {
+        try {
+          const body = JSON.parse(res.data) as ApiResult<{ name: string; url: string }>
+          if (body.code === 200 && body.data?.url) {
+            resolve(body.data.url)
+          } else {
+            reject(new Error(body.msg || '头像上传失败'))
+          }
+        } catch {
+          reject(new Error('头像上传失败'))
+        }
+      },
+      fail: (err) => reject(new Error(err.errMsg || '头像上传失败')),
+    })
   })
 }
 
