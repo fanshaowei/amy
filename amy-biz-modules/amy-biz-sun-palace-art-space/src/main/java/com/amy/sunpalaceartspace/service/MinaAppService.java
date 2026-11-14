@@ -447,14 +447,18 @@ public class MinaAppService {
         // 证件号查重：排除本记录自身
         boolean duplicated = userIdentityService.count(
                 new LambdaQueryWrapper<UserIdentity>()
+                        .eq(UserIdentity::getReservationUserId, user.getReservationUserId())
                         .eq(UserIdentity::getIdNum, req.getIdNum())
+                        .eq(UserIdentity::getIsFollower, true)
                         .ne(UserIdentity::getUserIdentityId, req.getUserIdentityId())) > 0;
         if (duplicated) {
             throw new ServiceException("已存在相同身份号的记录，请勿重复添加");
         }
 
         // 如果是身份证，实名认证
-        if (req.getIdType().equals(IdType.ID_CARD)) {
+        String nameOld = identity.getName();
+        String idNumOld = identity.getIdNum();
+        if (req.getIdType().equals(IdType.ID_CARD) && (!req.getName().equals(nameOld) || !req.getIdNum().equals(idNumOld))) {
             AliIdCheckDto.ResultDTO data = verifyRealNameInfo(req);
             AliIdCheckDto.ResultDTO.IdCardInforDTO idCardInfor = data.getIdCardInfor();
             if (idCardInfor == null) {
@@ -509,8 +513,6 @@ public class MinaAppService {
             throw new ServiceException("身份核验服务异常，请稍后重试");
         }
         AliIdCheckDto.ResultDTO data = aliIdCheckDto.getResult();
-        // result 可能整体缺失（网关异常响应只含 error_code/reason）；
-        // isok 是 Boolean，必须用 Boolean.TRUE.equals 避免为 null 时拆箱 NPE
         if (data == null || !Boolean.TRUE.equals(data.getIsok())) {
             throw new ServiceException("身份信息验证失败，请检查姓名和证件号码是否正确");
         }
