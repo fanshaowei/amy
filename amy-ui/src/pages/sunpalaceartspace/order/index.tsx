@@ -56,7 +56,7 @@ interface StatusStyle {
 /** 状态码 -> 展示样式（表格状态列与顶部统计卡共用） */
 const STATUS_STYLE: Record<number, StatusStyle> = {
     0: {text: '待核销', color: '#f59e0b', background: '#fef4e2', icon: <ClockCircleOutlined/>},
-    1: {text: '已完成', color: '#10b981', background: '#e7f8f1', icon: <CheckCircleOutlined/>},
+    1: {text: '已核销', color: '#10b981', background: '#e7f8f1', icon: <CheckCircleOutlined/>},
     2: {text: '已过期', color: '#6b7385', background: '#f2f4f8', icon: <HistoryOutlined/>},
     3: {text: '已取消', color: '#f0525f', background: '#fdecee', icon: <CloseCircleOutlined/>}
 };

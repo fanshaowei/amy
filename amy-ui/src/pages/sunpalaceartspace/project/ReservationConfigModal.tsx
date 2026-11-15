@@ -181,18 +181,20 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
             loading={row.configId != null && togglingIds.has(row.configId)}
             onChange={checked => void toggleEnabled(row, checked)}
         /> : null
-    }, {
-        title: '操作',
-        width: 90,
-        align: 'center',
-        render: (_, row) => row.configId == null ? null : <Popconfirm
-            title="确认删除该时段配置？"
-            description="删除后该时段将恢复默认可预约规则。"
-            onConfirm={() => void confirmDelete(row.configId!)}>
-            <PermissionButton type="link" size="small" danger
-                              permission="sunpalaceartspace:reservationConfig:remove">删除</PermissionButton>
-        </Popconfirm>
-    }];
+    }, 
+    // {
+    //     title: '操作',
+    //     width: 90,
+    //     align: 'center',
+    //     render: (_, row) => row.configId == null ? null : <Popconfirm
+    //         title="确认删除该时段配置？"
+    //         description="删除后该时段将恢复默认可预约规则。"
+    //         onConfirm={() => void confirmDelete(row.configId!)}>
+    //         <PermissionButton type="link" size="small" danger
+    //                           permission="sunpalaceartspace:reservationConfig:remove">删除</PermissionButton>
+    //     </Popconfirm>
+    // }
+];
 
     return <div>
         <div style={{marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
@@ -217,7 +219,7 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
             />
         </Spin>
 
-        <div style={{
+        {/* <div style={{
             marginTop: 16,
             padding: '12px 16px',
             border: '1px dashed #d9d9d9',
@@ -279,7 +281,7 @@ export function ReservationConfigModal({open, project, onClose}: Props) {
                 <InfoCircleOutlined style={{marginTop: 3}}/>
                 <span>新时段默认「可预约」，保存后可在上方列表中随时开关；同一项目不允许重复的开始时间。</span>
             </div>
-        </div>
+        </div> */}
     </div>;
 }
 

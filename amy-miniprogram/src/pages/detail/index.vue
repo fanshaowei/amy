@@ -131,6 +131,37 @@ function openNotice() {
 function onNoticeConfirm() {
   noticeShow.value = false
   datePickerShow.value = true
+  autoSelectDateTime()
+}
+
+/**
+ * 须知确认后自动预选日期时段：
+ *  - 无可预约日期 → 不选任何内容
+ *  - 找到第一个有余号的日期 → 自动选中它，并选中该日第一个可预约时段
+ *  - 所有日期均无可预约时段 → 只选中最后一个日期，不选时段
+ */
+async function autoSelectDateTime() {
+  selectedDate.value = ''
+  selectedTime.value = ''
+  if (!dates.value.length) return
+  for (const date of dates.value) {
+    let list: TimeSlot[] = []
+    try {
+      list = await getSlots(activityId.value, date)
+    } catch (e) {
+      continue
+    }
+    const ok = list.find((s) => !s.full)
+    if (ok) {
+      selectedDate.value = date
+      selectedTime.value = ok.time
+      slots.value = list
+      return
+    }
+  }
+  selectedDate.value = dates.value[dates.value.length - 1]
+  selectedTime.value = ''
+  loadSlots()
 }
 
 function onPickDate(date: string) {

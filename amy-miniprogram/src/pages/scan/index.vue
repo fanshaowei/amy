@@ -17,9 +17,9 @@ const confirming = ref(false)
 /** 本次扫码解析出的核销码（旧格式二维码为空，核销时兜底用查询返回的） */
 const scannedVerifyCode = ref('')
 
-/** 预约状态（后端：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中） */
+/** 预约状态（后端：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
-/** 是否已完成核销 */
+/** 是否已核销核销 */
 const verified = computed(() => record.value?.reservationStatus === 1)
 
 /** 入场日期 */

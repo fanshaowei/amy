@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import type { Activity, NextDayReservation } from '@/types'
+import type { Activity, NextDayReservation, NoticeItem } from '@/types'
 import { getActivities } from '@/api/activity'
 import { getNextDayReservations } from '@/api/reserve'
+import { getNotices } from '@/api/notice'
 import { useUserStore } from '@/stores/user'
 import { maskName } from '@/utils'
 import { showError } from '@/utils/request'
@@ -76,13 +77,42 @@ async function load() {
     uni.stopPullDownRefresh()
   }
   loadNotice()
+  loadAnnouncements()
 }
 
-function onBook(id: number) {
-  // 未登录先跳登录
+/* ---------- 通知公告：Hero 下方细条，单条滚动展示 ---------- */
+const announcements = ref<NoticeItem[]>([])
+
+/** 拉取通知公告：公开接口，未登录也可看；失败静默，不影响首页 */
+async function loadAnnouncements() {
+  try {
+    announcements.value = await getNotices(5)
+  } catch (e) {
+    announcements.value = []
+  }
+}
+
+/** 点击公告标题 → 公告列表页 */
+function goNoticeList() {
+  uni.navigateTo({ url: '/pages/notice/list/index' })
+}
+
+/** 点击预约：先在首页完成登录/实名校验，通过后才进预约详情页 */
+async function onBook(id: number) {
+  // 未登录 → 登录页（登录成功后回跳详情页）
   if (!userStore.loggedIn) {
     uni.navigateTo({ url: `/pages/login/index?redirect=/pages/detail/index?id=${id}` })
     return
+  }
+  // 已登录 → 校验实名状态（静默刷新，缓存兜底；失败不阻断，详情页仍会兜底校验）
+  try {
+    const user = (await userStore.fetchProfile(true)) || userStore.user
+    if (!user?.isVerified) {
+      uni.navigateTo({ url: `/pages/verify/index?redirect=/pages/detail/index?id=${id}` })
+      return
+    }
+  } catch (e) {
+    // 忽略，交由详情页兜底
   }
   uni.navigateTo({ url: `/pages/detail/index?id=${id}` })
 }
@@ -133,9 +163,34 @@ onPullDownRefresh(() => {
           </view>
         </view>
       </view>
+      <!-- ============ 通知公告条：紧贴 Hero 下方，单条滚动 ============ -->
+    <view v-if="announcements.length" class="announce anim-up notic">
+      <view class="announce__icon">
+        <AppIcon name="horn" :size="26" color="#f0cf94" />
+      </view>
+      <text class="announce__label">通知公告：</text>
+      <swiper
+        class="announce__swiper"
+        vertical
+        autoplay
+        circular
+        :interval="3200"
+        :duration="480"
+      >
+        <swiper-item v-for="n in announcements" :key="n.noticeId">
+          <view class="announce__item" @tap="goNoticeList">
+            <text class="announce__text text-ellipsis">{{ n.noticeTitle }}</text>
+            <text class="announce__date">{{ (n.createTime || '').slice(5, 10) }}</text>
+          </view>
+        </swiper-item>
+      </swiper>
+    </view>
       <view class="hero__emblem"><ArtEmblem :size="196" /></view>
       <view class="hero__corner"></view>
+      
     </view>
+
+    
 
     <!-- ============ 搜索 ============ -->
     <view class="home__search anim-up--1">
@@ -156,7 +211,7 @@ onPullDownRefresh(() => {
     </view>
 
     <!-- ============ 快捷入口 ============ -->
-    <view class="quick anim-up--1">
+    <!-- <view class="quick anim-up--1">
       <view class="quick__item" @tap="goRecords">
         <view class="quick__icon quick__icon--gold">
           <AppIcon name="ticket" :size="36" color="#f0cf94" />
@@ -185,7 +240,7 @@ onPullDownRefresh(() => {
         <text class="quick__label">我的资料</text>
         <text class="quick__en">PROFILE</text>
       </view>
-    </view>
+    </view> -->
 
     <!-- ============ 项目卡片 ============ -->
     <view v-if="loading" class="home__skeletons">
@@ -215,7 +270,7 @@ onPullDownRefresh(() => {
           <AppIcon name="bell" :size="28" color="#f0cf94" />
         </view>
         <view class="notice__titles">
-          <text class="notice__title">明日预约动态</text>
+          <text class="notice__title">预约动态</text>
           <text class="notice__en">UPCOMING RESERVATIONS</text>
         </view>
         <text class="notice__count">{{ noticeItems.length }} 人已约</text>
@@ -243,6 +298,7 @@ onPullDownRefresh(() => {
         </view>
       </view>
     </view>
+
 
     <!-- 页脚落款 -->
     <view class="home__footer">
@@ -552,6 +608,52 @@ onPullDownRefresh(() => {
   50% { opacity: 0.4; transform: scale(0.7); }
 }
 
+/* ==================== 通知公告条（紧贴 Hero 下方） ==================== */
+.announce {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 0 22rpx;
+  height: 68rpx;
+  @include art-dark-glass(20rpx);
+  overflow: hidden;
+}
+.announce__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.announce__label {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  color: #f0cf94;
+}
+.announce__swiper {
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+}
+.announce__item {
+  height: 68rpx;
+  display: flex;
+  align-items: center;
+}
+.announce__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.78);
+}
+.announce__date {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.4);
+}
+
 /* ==================== 页脚 ==================== */
 .home__footer {
   display: flex;
@@ -570,5 +672,14 @@ onPullDownRefresh(() => {
 .home__footer-star {
   color: $art-gold;
   font-size: 22rpx;
+}
+.notic {
+    background-color: rgba(0,0,0,0.5);
+    padding: 0rpx 10rpx;
+    margin-top: 8rpx;
+    margin-bottom: 0rpx;
+    margin-right: 0rpx;
+    margin-left: 0rpx;
+    height: 56rpx;
 }
 </style>

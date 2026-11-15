@@ -18,7 +18,7 @@ const buildQrcodeValue = (reservationNum: string) => reservationNum;
 
 const STATUS_TEXT: Record<number, string> = {
     0: '待核销',
-    1: '已完成',
+    1: '已核销',
     2: '已过期',
     3: '已取消'
 };

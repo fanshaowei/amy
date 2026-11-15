@@ -28,6 +28,7 @@ export type IconName =
   | 'plus'
   | 'close'
   | 'note'
+  | 'horn'
   | 'sun'
   | 'feather'
 
@@ -70,14 +71,14 @@ export function cardTypeToIdType(id: CardType | number): string {
 
 /**
  * 预约订单状态（与后端 ReservationOrderStatus 一致）
- * -1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中
+ * -1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中
  */
 export type ReserveStatus = -1 | 0 | 1 | 2 | 3 | 4
 
 export const RESERVE_STATUS: Record<number, { text: string; type: string }> = {
   [-1]: { text: '预约失败', type: 'fail' },
   0: { text: '待核销', type: 'pending' },
-  1: { text: '已完成', type: 'done' },
+  1: { text: '已核销', type: 'done' },
   2: { text: '已过期', type: 'expired' },
   3: { text: '已取消', type: 'cancel' },
   4: { text: '预约中', type: 'booking' },
@@ -231,6 +232,24 @@ export interface NextDayReservation {
   phone: string
   /** 预约时间 yyyy-MM-dd HH:mm:ss */
   reservationTime: string
+}
+
+/**
+ * 通知公告列表项（对应后端 MinaNoticeItemResp）
+ * 数据源为后台管理的 sys_notice 表（只读）
+ */
+export interface NoticeItem {
+  noticeId: number
+  noticeTitle: string
+  /** 公告类型 1通知 2公告 */
+  noticeType: string
+  /** 发布时间 yyyy-MM-dd HH:mm:ss */
+  createTime: string
+}
+
+/** 通知公告详情（对应后端 MinaNoticeDetailResp，正文为 HTML 富文本） */
+export interface NoticeDetail extends NoticeItem {
+  noticeContent: string
 }
 
 /** 会员信息（对应后端 MinaReservationUserInfoResp） */
