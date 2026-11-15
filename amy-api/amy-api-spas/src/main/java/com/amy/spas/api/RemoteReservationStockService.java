@@ -30,6 +30,19 @@ public interface RemoteReservationStockService
     @PostMapping("/inner/reservationStock/releaseBatch2")
     R<Boolean> releaseBatch2(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 
+    /**
+     * 定时更新过期库存为不可预约
+     * @param source
+     * @return
+     */
     @PostMapping("/inner/reservationStock/updateExpireStock")
     R<Boolean> updateExpireStock(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
+
+    /**
+     * 定时更新过期未核销订单为过期
+     * @param source
+     * @return
+     */
+    @PostMapping("/inner/reservationOrder/batch/update/unverify/expire")
+    R<Boolean> batchUpdateUnVerifyOrderToExpire(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 }

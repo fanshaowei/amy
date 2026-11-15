@@ -152,5 +152,16 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      */
     boolean cancelReservationOrder(Long reservationOrderId);
 
+    /**
+     * 手动生成订单
+     * @param req
+     * @return
+     */
     ReservationOrder manualGenerateOrder(ReservationOrderManualReq req);
+
+    /**
+     * 更新当天之前所有「待核销」状态的预约订单为「已过期」状态。
+     * <p>用于定时任务，扫描所有「待核销」状态的
+     */
+    void batchUpdateUnVerifyOrderToExpire();
 }

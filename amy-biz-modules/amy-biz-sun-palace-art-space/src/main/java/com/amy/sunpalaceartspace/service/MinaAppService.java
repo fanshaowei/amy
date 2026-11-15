@@ -262,6 +262,11 @@ public class MinaAppService {
         if (vo == null) {
             throw new ServiceException("未找到该预约单");
         }
+        // 如果订单已经核销，不再返回核销码
+        if(Objects.equals(ReservationOrderStatus.COMPLETED.getStatus(), vo.getReservationStatus())) {
+            return vo;
+        }
+
         String key = String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum);
         Object verifyCode = redisService.getCacheObject(key);
         if(null == verifyCode) {

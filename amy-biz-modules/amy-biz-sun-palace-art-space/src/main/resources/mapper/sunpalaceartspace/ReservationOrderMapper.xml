@@ -211,4 +211,15 @@
           and r.reservation_time &lt; #{end}
         order by r.reservation_time asc, r.project_id asc
     </select>
+
+    <update id="batchUpdateUnVerifyOrderToExpire">
+        update biz_spas_reservation_order
+        set reservation_status = '2',
+            status_msg = '已过期',
+            update_time = now(),
+            update_by = 'system'
+        where del_flag = '0'
+          and reservation_status = '0'
+          and reservation_time &lt; #{now}
+    </update>
 </mapper>

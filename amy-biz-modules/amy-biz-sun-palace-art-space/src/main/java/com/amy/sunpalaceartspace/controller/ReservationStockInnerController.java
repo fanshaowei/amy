@@ -2,6 +2,7 @@ package com.amy.sunpalaceartspace.controller;
 
 import com.amy.common.core.domain.R;
 import com.amy.common.security.annotation.InnerAuth;
+import com.amy.sunpalaceartspace.service.IReservationOrderService;
 import com.amy.sunpalaceartspace.timetask.ReservationStockTask;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,18 +16,21 @@ import org.springframework.web.bind.annotation.RestController;
  * @author fantasyfan
  */
 @RestController
-@RequestMapping("/inner/reservationStock")
+@RequestMapping("/inner")
 public class ReservationStockInnerController
 {
     private final ReservationStockTask reservationStockTask;
+    private final IReservationOrderService reservationOrderService;
 
-    public ReservationStockInnerController(ReservationStockTask reservationStockTask)
+    public ReservationStockInnerController(ReservationStockTask reservationStockTask,
+                                           IReservationOrderService reservationOrderService)
     {
         this.reservationStockTask = reservationStockTask;
+        this.reservationOrderService = reservationOrderService;
     }
 
     @InnerAuth
-    @PostMapping("/releaseBatch1")
+    @PostMapping("/reservationStock/releaseBatch1")
     public R<Boolean> releaseBatch1()
     {
         reservationStockTask.releaseBatch1();
@@ -34,7 +38,7 @@ public class ReservationStockInnerController
     }
 
     @InnerAuth
-    @PostMapping("/releaseBatch2")
+    @PostMapping("/reservationStock/releaseBatch2")
     public R<Boolean> releaseBatch2()
     {
         reservationStockTask.releaseBatch2();
@@ -42,10 +46,18 @@ public class ReservationStockInnerController
     }
 
     @InnerAuth
-    @PostMapping("/updateExpireStock")
+    @PostMapping("/reservationStock/updateExpireStock")
     public R<Boolean> updateExpireStock()
     {
         reservationStockTask.updateExpireStock();
+        return R.ok(true);
+    }
+
+
+    @InnerAuth
+    @PostMapping("/reservationOrder/batch/update/unverify/expire")
+    public R<Boolean> batchUpdateUnVerifyOrderToExpire() {
+        reservationOrderService.batchUpdateUnVerifyOrderToExpire();
         return R.ok(true);
     }
 }
