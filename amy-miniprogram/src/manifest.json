@@ -1,6 +1,6 @@
 {
   "name": "预约门票",
-  "appid": "",
+  "appid": "wx5560514fdc2eea97",
   "description": "活动预约小程序",
   "versionName": "1.0.0",
   "versionCode": "100",
@@ -13,7 +13,7 @@
     }
   },
   "mp-weixin": {
-    "appid": "touristappid",
+    "appid": "wx5560514fdc2eea97",
     "setting": {
       "urlCheck": false,
       "es6": true,
