@@ -96,4 +96,6 @@ public interface ReservationOrderMapper extends BaseMapper<ReservationOrder> {
      */
     List<ReservationOrderVO> selectNextDayReservationOrder(@Param("start") Date start,
                                                                     @Param("end") Date end);
+
+    void batchUpdateUnVerifyOrderToExpire(@Param("now") Date now);
 }

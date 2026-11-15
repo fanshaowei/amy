@@ -43,4 +43,11 @@ public class AmyBizSunPlaceArtSpaceTask {
     public void updateStockExpire() {
         remoteReservationStockService.updateExpireStock(SecurityConstants.INNER);
     }
+
+    /**
+     * 批量将「待核销」状态的预约订单更新为「已过期」状态。
+     */
+    public void batchUpdateUnVerifyOrderToExpire() {
+        remoteReservationStockService.batchUpdateUnVerifyOrderToExpire(SecurityConstants.INNER);
+    }
 }

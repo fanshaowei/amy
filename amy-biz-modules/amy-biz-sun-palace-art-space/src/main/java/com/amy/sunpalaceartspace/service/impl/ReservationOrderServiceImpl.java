@@ -4,7 +4,6 @@ import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
-import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.FollowerReq;
@@ -29,6 +28,7 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -47,6 +47,7 @@ import java.util.Objects;
  * @author fantasyfan
  * @date 2026-09-13
  */
+@Slf4j
 @AllArgsConstructor
 @Service
 public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMapper, ReservationOrder>
@@ -325,5 +326,14 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         BeanUtils.copyProperties(req, orderReq);
         orderReq.setStatusMsg("后台手动添加");
         return this.doSaveReservationOrder(orderReq, OrderSource.MANUAL);
+    }
+
+    @Override
+    public void batchUpdateUnVerifyOrderToExpire() {
+        log.info("开始批量更新待核销订单为已过期状态");
+        // 扫描所有「待核销」状态的预约订单，若预约时间 < 当天 00:00:00，则更新为「已过期」
+        Date todayStart = DateUtils.parseDate(DateUtils.getDate() + " " + "00:00:00");
+        baseMapper.batchUpdateUnVerifyOrderToExpire(todayStart);
+        log.info("批量更新待核销订单为已过期状态完成");
     }
 }

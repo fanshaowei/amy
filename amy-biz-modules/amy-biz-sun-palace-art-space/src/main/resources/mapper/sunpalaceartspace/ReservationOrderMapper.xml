@@ -211,4 +211,10 @@
           and r.reservation_time &lt; #{end}
         order by r.reservation_time asc, r.project_id asc
     </select>
+
+    <update id="batchUpdateUnVerifyOrderToExpire">
+        update biz_spas_reservation_order
+        set reservation_status = 2, status_msg = '系统自动过期'
+        where reservation_status = 0 and reservation_time &lt; #{now}
+    </update>
 </mapper>
