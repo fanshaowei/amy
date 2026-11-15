@@ -11,7 +11,7 @@ import { showError } from '@/utils/request'
 
 const record = ref<ReserveRecord | null>(null)
 
-/** 预约状态（后端：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中） */
+/** 预约状态（后端：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
 
 /** status_msg 与状态中文文案相同（或为空）时不重复显示 */

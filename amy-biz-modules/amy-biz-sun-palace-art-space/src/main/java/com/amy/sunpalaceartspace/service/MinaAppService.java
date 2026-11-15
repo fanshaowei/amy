@@ -8,6 +8,8 @@ import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaNoticeDetailResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.MinaNoticeItemResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
 import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
@@ -15,6 +17,7 @@ import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.*;
+import com.amy.sunpalaceartspace.mapper.MinaNoticeMapper;
 import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
@@ -29,6 +32,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +60,7 @@ public class MinaAppService {
     private final AliIdCheckUtil aliIdCheckUtil;
     private final UserIdentityServiceImpl userIdentityServiceImpl;
     private final IReservationStockService reservationStockService;
+    private final MinaNoticeMapper minaNoticeMapper;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -535,5 +540,61 @@ public class MinaAppService {
             respList.add(resp);
         }
         return respList;
+    }
+
+    /** 公告状态（sys_notice.status）：0=正常，1=关闭 */
+    private static final String NOTICE_STATUS_NORMAL = "0";
+    /** 公告列表单次返回上限，防止恶意传大 limit 拖库 */
+    private static final int NOTICE_MAX_LIMIT = 50;
+
+    /**
+     * 小程序公告列表：只取「正常」状态的公告，按发布时间倒序，不带正文
+     *
+     * <p>数据源为后台管理的 {@code sys_notice} 表，只读。limit 会被收敛到 1~50。</p>
+     *
+     * @param limit 期望条数（首页卡片传 2，公告列表页传 50）
+     * @return 公告列表（标题/类型/发布时间）
+     */
+    public List<MinaNoticeItemResp> listMinaNotices(Integer limit) {
+        int safeLimit = limit == null ? 10 : Math.min(Math.max(limit, 1), NOTICE_MAX_LIMIT);
+        List<MinaNotice> list = minaNoticeMapper.selectList(new LambdaQueryWrapper<MinaNotice>()
+                .select(MinaNotice::getNoticeId,
+                        MinaNotice::getNoticeTitle,
+                        MinaNotice::getNoticeType,
+                        MinaNotice::getCreateTime)
+                .eq(MinaNotice::getStatus, NOTICE_STATUS_NORMAL)
+                .orderByDesc(MinaNotice::getCreateTime)
+                .orderByDesc(MinaNotice::getNoticeId)
+                .last("limit " + safeLimit));
+        return list.stream().map(notice -> MinaNoticeItemResp.builder()
+                .noticeId(notice.getNoticeId())
+                .noticeTitle(notice.getNoticeTitle())
+                .noticeType(notice.getNoticeType())
+                .createTime(notice.getCreateTime())
+                .build()).toList();
+    }
+
+    /**
+     * 小程序公告详情（含正文，longblob 按 UTF-8 解码为 HTML 富文本）
+     *
+     * @param noticeId 公告ID
+     * @return 公告详情
+     */
+    public MinaNoticeDetailResp getMinaNoticeDetail(Long noticeId) {
+        MinaNotice notice = minaNoticeMapper.selectById(noticeId);
+        if (notice == null || !NOTICE_STATUS_NORMAL.equals(notice.getStatus())) {
+            throw new ServiceException("公告不存在或已关闭");
+        }
+        String content = "";
+        if (notice.getNoticeContent() != null) {
+            content = new String(notice.getNoticeContent(), StandardCharsets.UTF_8);
+        }
+        return MinaNoticeDetailResp.builder()
+                .noticeId(notice.getNoticeId())
+                .noticeTitle(notice.getNoticeTitle())
+                .noticeType(notice.getNoticeType())
+                .noticeContent(content)
+                .createTime(notice.getCreateTime())
+                .build();
     }
 }

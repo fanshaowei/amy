@@ -24,7 +24,7 @@ export interface ReservationOrderRecord {
     guestsNum?: number;
     /** 预约时间（yyyy-MM-dd HH:mm:ss） */
     reservationTime?: string;
-    /** 状态码：0待核销 1已完成 2已过期 3已取消 */
+    /** 状态码：0待核销 1已核销 2已过期 3已取消 */
     reservationStatus?: number;
     /** 状态中文名 */
     reservationStatusName?: string;

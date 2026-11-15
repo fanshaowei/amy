@@ -79,6 +79,22 @@
         "navigationBarBackgroundColor": "#14264C",
         "navigationBarTextStyle": "white"
       }
+    },
+    {
+      "path": "pages/notice/list/index",
+      "style": {
+        "navigationBarTitleText": "通知公告",
+        "navigationBarBackgroundColor": "#14264C",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/notice/detail/index",
+      "style": {
+        "navigationBarTitleText": "公告详情",
+        "navigationBarBackgroundColor": "#14264C",
+        "navigationBarTextStyle": "white"
+      }
     }
   ],
   "globalStyle": {
