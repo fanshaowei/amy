@@ -140,7 +140,7 @@ public class SubmitReservationOrderService {
      * 2) 1 个月内预约次数（上述 4 种状态均计数）达 2 次 → 当月次数用尽；
      * 3) 1 个月内取消达 2 次 → 当月禁止再预约。
      */
-    private void validateReservationFrequency(Projects project, Long userId, String idNum) {
+    public void validateReservationFrequency(Projects project, Long userId, String idNum) {
         Date now = new Date();
         // 当月（自然月）起始：由 now 推导本月 1 号 00:00:00（只读取一次当前时间，避免重复取时钟/时区不一致）
         Date monthStart = DateUtils.toDate(now.toInstant()

@@ -39,8 +39,8 @@ public class UserIdentityServiceImpl extends ServiceImpl<UserIdentityMapper, Use
     }
 
     @Override
-    public List<UserIdentityVO> selectUserIdentityById(Long userIdentityId, List<Boolean> isFollower) {
-        return baseMapper.selectUserIdentityById(userIdentityId, isFollower);
+    public List<UserIdentityVO> selectUserIdentityByReservationUserId(Long reservationUserId, List<Boolean> isFollower) {
+        return baseMapper.selectUserIdentityByReservationUserId(reservationUserId, isFollower);
     }
 
     @Override

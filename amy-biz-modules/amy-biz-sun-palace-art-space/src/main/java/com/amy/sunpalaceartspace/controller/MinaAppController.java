@@ -22,6 +22,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.validation.annotation.Validated;
@@ -45,6 +46,7 @@ public class MinaAppController extends BaseController {
     private final IReservationUserService reservationUserService;
     private final MinaAppLoginService minaAppLoginService;
     private final SubmitReservationOrderService submitReservationOrderService;
+    private final IProjectsService projectsService;
 
     /**
      * 上传预约用户微信头像
@@ -103,6 +105,21 @@ public class MinaAppController extends BaseController {
     ) {
         MinaProjectReservationInfoResp resp = minaAppService.extractProjectReservationInfo(projectId);
         return R.ok(resp);
+    }
+
+    /**
+     * 预约订单前的校验, 主要是校验预约次数是否超限，减少不必要的提交订单请求
+     * @param projectId
+     * @return
+     */
+    @MinaApiAuth
+    @GetMapping("/reservation/submit/pre/check")
+    public R<Boolean> submitPreCheck(@RequestHeader("Authorization") String token,
+            @RequestParam("projectId") Long projectId) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        Projects projects = projectsService.selectProjectById(projectId);
+        submitReservationOrderService.validateReservationFrequency(projects, user.getReservationUserId(), user.getIdNum());
+        return R.ok(true);
     }
 
     /**

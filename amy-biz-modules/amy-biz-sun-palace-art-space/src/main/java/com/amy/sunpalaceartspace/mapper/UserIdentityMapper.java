@@ -40,9 +40,9 @@ public interface UserIdentityMapper extends BaseMapper<UserIdentity> {
     /**
      * 详情
      *
-     * @param userIdentityId 记录ID
+     * @param reservationUserId 预约用户ID
      * @return 详情
      */
-    List<UserIdentityVO> selectUserIdentityById(@Param("userIdentityId") Long userIdentityId,
-                                                @Param("isFollower") List<Boolean> isFollower);
+    List<UserIdentityVO> selectUserIdentityByReservationUserId(@Param("reservationUserId") Long reservationUserId,
+                                                               @Param("isFollower") List<Boolean> isFollower);
 }

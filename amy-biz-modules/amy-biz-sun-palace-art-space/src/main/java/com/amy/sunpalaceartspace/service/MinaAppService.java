@@ -241,7 +241,7 @@ public class MinaAppService {
     public MinaReservationUserInfoResp extractReservationUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
         ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
-        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityById(userInfo.getReservationUserId(), List.of( Boolean.FALSE));
+        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityByReservationUserId(userInfo.getReservationUserId(), List.of( Boolean.FALSE));
         UserIdentityVO userIdentityVO = userIdentityVOs.isEmpty() ? null: userIdentityVOs.getFirst();
         return MinaReservationUserInfoResp.builder()
                 .reservationUserId(userInfo.getReservationUserId())
@@ -253,7 +253,6 @@ public class MinaAppService {
                 .idType(null != userIdentityVO ? userIdentityVO.getIdType() : null)
                 .avatarImgUrl(userInfo.getAvatarImgUrl())
                 .isVerified(userInfo.getIsVerified())
-                .openId((String) openId)
                 .build();
     }
 

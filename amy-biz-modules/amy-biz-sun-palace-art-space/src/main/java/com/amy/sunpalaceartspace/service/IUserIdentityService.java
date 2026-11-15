@@ -30,7 +30,7 @@ public interface IUserIdentityService extends IService<UserIdentity> {
     /**
      * 详情
      */
-    List<UserIdentityVO> selectUserIdentityById(Long userIdentityId, List<Boolean> isFollower);
+    List<UserIdentityVO> selectUserIdentityByReservationUserId(Long reservationUserId, List<Boolean> isFollower);
 
     /**
      * 新增

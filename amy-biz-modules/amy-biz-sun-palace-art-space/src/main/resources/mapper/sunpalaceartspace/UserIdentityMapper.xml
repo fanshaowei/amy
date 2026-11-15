@@ -76,9 +76,9 @@
         order by create_time desc
     </select>
 
-    <select id="selectUserIdentityById" parameterType="Long" resultMap="UserIdentityResult">
+    <select id="selectUserIdentityByReservationUserId" parameterType="Long" resultMap="UserIdentityResult">
         <include refid="selectUserIdentityVo"/>
-        where user_identity_id = #{userIdentityId}
+        where reservation_user_id = #{reservationUserId}
         <if test="isFollower != null">
             and is_follower in (#{isFollower})
         </if>

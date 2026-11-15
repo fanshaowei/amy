@@ -73,10 +73,10 @@ public class UserIdentityController extends BaseController {
      * 详情
      */
     @RequiresPermissions("sunpalaceartspace:userIdentity:query")
-    @GetMapping(value = "/{userIdentityId}")
-    public R<List<UserIdentityVO>> getInfo(@PathVariable("userIdentityId") Long userIdentityId)
+    @GetMapping(value = "/{reservationUserId}")
+    public R<List<UserIdentityVO>> getInfo(@PathVariable("reservationUserId") Long reservationUserId)
     {
-        return R.ok(userIdentityService.selectUserIdentityById(userIdentityId, null));
+        return R.ok(userIdentityService.selectUserIdentityByReservationUserId(reservationUserId, null));
     }
 
     /**
