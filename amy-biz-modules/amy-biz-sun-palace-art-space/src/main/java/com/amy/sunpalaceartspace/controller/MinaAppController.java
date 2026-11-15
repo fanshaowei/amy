@@ -258,4 +258,24 @@ public class MinaAppController extends BaseController {
     public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder() {
         return R.ok(minaAppService.getNextDayReservationOrder());
     }
+
+    /**
+     * 小程序通知公告列表（公开信息，游客可见；只返回「正常」状态公告，不带正文）
+     * @param limit 期望条数，默认 10，最大 50
+     * @return 公告列表（标题/类型/发布时间）
+     */
+    @GetMapping("/notice/list")
+    public R<List<MinaNoticeItemResp>> noticeList(@RequestParam(value = "limit", defaultValue = "10") Integer limit) {
+        return R.ok(minaAppService.listMinaNotices(limit));
+    }
+
+    /**
+     * 小程序公告详情（公开信息，游客可见；正文为 HTML 富文本，小程序端用 rich-text 渲染）
+     * @param noticeId 公告ID
+     * @return 公告详情
+     */
+    @GetMapping("/notice/{noticeId}")
+    public R<MinaNoticeDetailResp> noticeDetail(@PathVariable("noticeId") @NotNull @Min(1) Long noticeId) {
+        return R.ok(minaAppService.getMinaNoticeDetail(noticeId));
+    }
 }
