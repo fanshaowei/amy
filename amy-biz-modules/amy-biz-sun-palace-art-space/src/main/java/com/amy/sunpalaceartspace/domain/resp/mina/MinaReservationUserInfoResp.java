@@ -1,8 +1,5 @@
 package com.amy.sunpalaceartspace.domain.resp.mina;
 
-import com.amy.common.core.annotation.Excel;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Builder;
 import lombok.Data;
 
