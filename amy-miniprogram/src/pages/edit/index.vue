@@ -12,7 +12,6 @@ const firstTime = ref(false)
 const nickname = ref('')
 const avatarUrl = ref('')
 const saving = ref(false)
-const binding = ref(false)
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 
@@ -71,24 +70,6 @@ async function onSave() {
     saving.value = false
   }
 }
-
-/** 微信手机号授权后绑定（open-type="getPhoneNumber"） */
-async function onGetPhoneNumber(e: any) {
-  const jsCode = e?.detail?.code
-  if (!jsCode) {
-    uni.showToast({ title: '已取消手机号授权', icon: 'none' })
-    return
-  }
-  binding.value = true
-  try {
-    const phone = await userStore.updatePhone(jsCode)
-    uni.showToast({ title: `已绑定 ${phone}`, icon: 'none' })
-  } catch (err) {
-    showError(err, '绑定失败')
-  } finally {
-    binding.value = false
-  }
-}
 </script>
 
 <template>
@@ -121,16 +102,6 @@ async function onGetPhoneNumber(e: any) {
     <view class="save-btn" :class="{ disabled: saving }" @tap="onSave">
       {{ saving ? '保存中...' : '保存' }}
     </view>
-
-    <button
-      v-if="!firstTime"
-      class="phone-btn"
-      :class="{ disabled: binding }"
-      open-type="getPhoneNumber"
-      @getphonenumber="onGetPhoneNumber"
-    >
-      {{ binding ? '绑定中...' : userStore.phone ? '更换手机号' : '微信一键绑定手机号' }}
-    </button>
   </view>
 </template>
 
@@ -220,20 +191,5 @@ async function onGetPhoneNumber(e: any) {
 }
 .save-btn.disabled {
   opacity: 0.6;
-}
-.phone-btn {
-  @include art-chip();
-  color: $art-text;
-  padding: 26rpx;
-  border-radius: 56rpx;
-  text-align: center;
-  font-size: 30rpx;
-  margin-top: $art-gap;
-}
-.phone-btn.disabled {
-  opacity: 0.6;
-}
-.phone-btn::after {
-  border: none;
 }
 </style>
