@@ -13,7 +13,7 @@ import {
 import type { UserIdentityPayload } from '@/api/user'
 import type { UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
-import { isValidIdCard, isValidPhone, decodeRedirect } from '@/utils'
+import { idCardCheckDigit, isValidIdCard, isValidPhone, decodeRedirect } from '@/utils'
 import { showError } from '@/utils/request'
 import CardPicker from '@/components/CardPicker.vue'
 
@@ -89,7 +89,10 @@ function checkPhone(phone: string): string {
 function checkIdNum(idNum: string, idType: number): string {
   if (!idNum) return '请输入证件号码'
   if (idType === 1 && !isValidIdCard(idNum)) {
-    return '身份证号格式不正确：18 位且校验位需相符'
+    const expected = idCardCheckDigit(idNum)
+    return expected
+      ? `身份证校验位不符：按前 17 位末位应为 ${expected}，请核对证件号码`
+      : '身份证号格式不正确：应为 18 位，前 17 位数字、末位数字或 X'
   }
   if (idType !== 1 && idNum.length < 5) {
     return '证件号码过短，请核对后重新输入'

@@ -133,19 +133,29 @@ export function isValidPhone(tel: string): boolean {
 }
 
 /**
- * 校验第二代居民身份证号：18 位，前 17 位数字、末位数字或 X，
- * 并按 GB 11643 加权算法校验末位校验码
+ * 按 GB 11643 的 MOD 11-2 加权算法，算出 18 位身份证应有的末位校验码。
+ * 格式不符合（非 18 位 / 前 17 位含非数字）时返回空串。
+ * 注意：返回值只代表「按当前前 17 位算出的末位」，不代表前 17 位本身抄写无误。
  */
-export function isValidIdCard(id: string): boolean {
+export function idCardCheckDigit(id: string): string {
   const idc = (id || '').trim().toUpperCase()
-  if (!/^\d{17}[\dX]$/.test(idc)) return false
+  if (!/^\d{17}[\dX]$/.test(idc)) return ''
   const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
   const checkCodes = '10X98765432'
   let sum = 0
   for (let i = 0; i < 17; i++) {
     sum += Number(idc[i]) * weights[i]
   }
-  return checkCodes[sum % 11] === idc[17]
+  return checkCodes[sum % 11]
+}
+
+/**
+ * 校验第二代居民身份证号：18 位，前 17 位数字、末位数字或 X，
+ * 并按 GB 11643 加权算法校验末位校验码
+ */
+export function isValidIdCard(id: string): boolean {
+  const expected = idCardCheckDigit(id)
+  return expected !== '' && expected === (id || '').trim().toUpperCase()[17]
 }
 
 /** 显示姓名（多人时） */

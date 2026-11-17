@@ -386,7 +386,7 @@ public class MinaAppService {
         if(!verify) {
             throw new ServiceException("证件号码格式不正确，请检查后重新输入");
         }
-        boolean exitUserIdentity = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), true);
+        boolean exitUserIdentity = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), false);
         if(exitUserIdentity) {
             throw new ServiceException("与预约人信息相同，请勿重复添加");
         }

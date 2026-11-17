@@ -120,7 +120,7 @@ public class SubmitReservationOrderService {
         Date cutOffTime = DateUtils.parseDate(String.format("%s %s", DateUtils.getDate(), project.getReservationEndTime()));
         Date nowDate = new Date();
         if(nowDate.after(cutOffTime) && DateUtils.isSameDay(reservationTime, nowDate)) {
-            String msg = String.format("超过当天预约截止时间（%s），无法预约当天的号", project.getReservationEndTime());
+            String msg = String.format("已经过了当天可预约时间(%s)", project.getReservationEndTime());
             throw new ServiceException(msg);
         }
 
