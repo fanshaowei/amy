@@ -12,7 +12,7 @@ const showStatusMsg = computed(() => {
   const msg = (props.record.statusMsg || '').trim()
   if (!msg) return false
   const statusText = RESERVE_STATUS[props.record.reservationStatus]?.text || ''
-  return msg !== statusText
+  return msg !== statusText && (msg != '已完成' && msg != '已取消' && msg != '已过期' && msg != '已核销')
 })
 </script>
 

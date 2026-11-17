@@ -9,6 +9,20 @@ export function pad(n: number): string {
   return n.toString().padStart(2, '0')
 }
 
+/**
+ * 解码页面间传递的 redirect 参数。
+ * 发送方需 encodeURIComponent（redirect 里嵌套了 ?id= 等 query，
+ * 小程序端 onLoad 解析不会自动解码，不编码会被截断导致回跳失败）。
+ */
+export function decodeRedirect(raw?: string): string {
+  if (!raw) return ''
+  try {
+    return decodeURIComponent(raw)
+  } catch {
+    return raw
+  }
+}
+
 /** 格式化日期为 YYYY-MM-DD */
 export function formatDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`

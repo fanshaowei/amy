@@ -28,7 +28,6 @@ export type IconName =
   | 'plus'
   | 'close'
   | 'note'
-  | 'horn'
   | 'sun'
   | 'feather'
 

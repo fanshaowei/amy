@@ -101,14 +101,29 @@ function goNoticeList() {
 async function onBook(id: number) {
   // 未登录 → 登录页（登录成功后回跳详情页）
   if (!userStore.loggedIn) {
-    uni.navigateTo({ url: `/pages/login/index?redirect=/pages/detail/index?id=${id}` })
+    uni.navigateTo({
+      url: `/pages/login/index?redirect=${encodeURIComponent(`/pages/home/index`)}`,
+    })
     return
   }
   // 已登录 → 校验实名状态（静默刷新，缓存兜底；失败不阻断，详情页仍会兜底校验）
   try {
     const user = (await userStore.fetchProfile(true)) || userStore.user
     if (!user?.isVerified) {
-      uni.navigateTo({ url: `/pages/verify/index?redirect=/pages/detail/index?id=${id}` })
+      // 未实名不自动跳转，先让用户确认
+      uni.showModal({
+        title: '需要实名认证',
+        content: '预约前需先完成实名认证，认证完成将自动返回继续预约',
+        confirmText: '去认证',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({
+              url: `/pages/verify/index?redirect=${encodeURIComponent(`/pages/home/index`)}`,
+            })
+          }
+        },
+      })
       return
     }
   } catch (e) {
@@ -165,9 +180,7 @@ onPullDownRefresh(() => {
       </view>
       <!-- ============ 通知公告条：紧贴 Hero 下方，单条滚动 ============ -->
     <view v-if="announcements.length" class="announce anim-up notic">
-      <view class="announce__icon">
-        <AppIcon name="horn" :size="26" color="#f0cf94" />
-      </view>
+      <image class="announce__icon" src="/static/公告.png" mode="aspectFit" />
       <text class="announce__label">通知公告：</text>
       <swiper
         class="announce__swiper"
@@ -620,9 +633,9 @@ onPullDownRefresh(() => {
   overflow: hidden;
 }
 .announce__icon {
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
+  width: 36rpx;
+  height: 44rpx;
 }
 .announce__label {
   flex-shrink: 0;
@@ -676,7 +689,7 @@ onPullDownRefresh(() => {
 .notic {
     background-color: rgba(0,0,0,0.5);
     padding: 0rpx 10rpx;
-    margin-top: 8rpx;
+    margin-top: 16rpx;
     margin-bottom: 0rpx;
     margin-right: 0rpx;
     margin-left: 0rpx;
