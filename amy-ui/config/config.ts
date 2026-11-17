@@ -93,13 +93,13 @@ export default defineConfig({
     { path: '*', component: '@/pages/PagePlaceholder' }
   ],
   proxy: {
-    '/dev-api': {
+    '/api': {
       target: 'http://localhost:18080',
       changeOrigin: true,
-      pathRewrite: { '^/dev-api': '' }
+      pathRewrite: { '^/api': '' }
     }
   },
   define: {
-    API_BASE_URL: process.env.API_BASE_URL || '/dev-api'
+    API_BASE_URL: process.env.API_BASE_URL || '/api'
   }
 });
