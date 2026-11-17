@@ -90,7 +90,7 @@ async function loadIdentity() {
     if (!user?.isVerified) {
       // 未实名 → 先去实名认证，完成后回跳本页
       uni.redirectTo({
-        url: `/pages/verify/index?redirect=/pages/detail/index?id=${activityId.value}`,
+        url: `/pages/verify/index?redirect=${encodeURIComponent(`/pages/detail/index?id=${activityId.value}`)}`,
       })
       return
     }
@@ -407,7 +407,9 @@ onLoad((query) => {
 
   // 未登录拦截
   if (!userStore.loggedIn) {
-    uni.navigateTo({ url: `/pages/login/index?redirect=/pages/detail/index?id=${id}` })
+    uni.navigateTo({
+      url: `/pages/login/index?redirect=${encodeURIComponent(`/pages/detail/index?id=${id}`)}`,
+    })
     return
   }
 

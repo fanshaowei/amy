@@ -624,50 +624,6 @@ withDefaults(
   }
 }
 
-/* ---------- 喇叭 ---------- */
-.ai--horn {
-  .ai__p1 {
-    display: block;
-    left: 0.1em;
-    top: 0.38em;
-    width: 0.15em;
-    height: 0.24em;
-    border-radius: 0.03em;
-    background: currentColor;
-  }
-  .ai__p2 {
-    display: block;
-    left: 0.24em;
-    top: 0.3em;
-    width: 0;
-    height: 0;
-    border-top: 0.2em solid transparent;
-    border-bottom: 0.2em solid transparent;
-    border-right: 0.26em solid currentColor;
-  }
-  .ai__p3 {
-    display: block;
-    left: 0.56em;
-    top: 0.3em;
-    width: 0.26em;
-    height: 0.4em;
-    border: 0.07em solid currentColor;
-    border-left: none;
-    border-radius: 0 0.2em 0.2em 0;
-  }
-  .ai__p4 {
-    display: block;
-    left: 0.56em;
-    top: 0.4em;
-    width: 0.13em;
-    height: 0.2em;
-    border: 0.06em solid currentColor;
-    border-left: none;
-    border-radius: 0 0.1em 0.1em 0;
-    opacity: 0.65;
-  }
-}
-
 /* ---------- 孔雀翎眼（艺术元素） ---------- */
 .ai--feather {
   .ai__p1 {

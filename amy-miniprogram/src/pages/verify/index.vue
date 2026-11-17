@@ -13,7 +13,7 @@ import {
 import type { UserIdentityPayload } from '@/api/user'
 import type { UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
-import { isValidIdCard, isValidPhone } from '@/utils'
+import { isValidIdCard, isValidPhone, decodeRedirect } from '@/utils'
 import { showError } from '@/utils/request'
 import CardPicker from '@/components/CardPicker.vue'
 
@@ -199,7 +199,13 @@ async function onSubmitVerify() {
     uni.showToast({ title: '实名认证成功', icon: 'success' })
     if (redirect.value) {
       // 从预约页跳来：实名完成后直接回去（预约页会重新拉取实名信息）
-      setTimeout(() => uni.redirectTo({ url: redirect.value }), 800)
+      setTimeout(() => {
+        if(redirect.value.includes('home')) {
+          uni.switchTab({ url: redirect.value })
+        } else {
+          uni.redirectTo({ url: redirect.value })
+        }
+      }, 800)
       return
     }
     await refresh()
@@ -276,9 +282,11 @@ function onDeleteFollower(item: UserIdentityRow) {
 }
 
 onLoad((query) => {
-  redirect.value = (query?.redirect as string) || ''
+  redirect.value = decodeRedirect(query?.redirect as string)
   if (!userStore.loggedIn) {
-    uni.redirectTo({ url: '/pages/login/index?redirect=/pages/verify/index' })
+    // 未登录先去登录：带原始 redirect（通常是预约详情页），登录后直接回详情页再由其兜底跳回实名
+    const back = redirect.value || '/pages/verify/index'
+    uni.redirectTo({ url: `/pages/login/index?redirect=${encodeURIComponent(back)}` })
     return
   }
 })
