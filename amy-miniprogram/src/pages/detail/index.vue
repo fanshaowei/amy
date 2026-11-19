@@ -15,6 +15,7 @@ import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
 import CardPicker from '@/components/CardPicker.vue'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 
 const userStore = useUserStore()
 const reserveStore = useReserveStore()
@@ -26,6 +27,8 @@ const activity = ref<Activity | null>(null)
 const noticeShow = ref(false)
 const datePickerShow = ref(false)
 const followerPickerShow = ref(false)
+/** 提交前滑动拼图验证码弹窗 */
+const captchaShow = ref(false)
 
 /* 时间选择 */
 const dates = ref<string[]>([])
@@ -345,7 +348,11 @@ function onTimeout() {
   }, 800)
 }
 
-async function onSubmit() {
+/**
+ * 点击提交：仅做本地校验，全部通过后弹出滑动拼图验证码，
+ * 校验通过（onCaptchaSuccess）后才真正提交预约数据。
+ */
+function onSubmit() {
   if (!selectedDate.value || !selectedTime.value) {
     uni.showToast({ title: '请选择预约日期', icon: 'none' })
     return
@@ -373,7 +380,11 @@ async function onSubmit() {
       return
     }
   }
+  captchaShow.value = true
+}
 
+/** 滑块校验通过 → 携带一次性 captchaVerification 提交预约 */
+async function onCaptchaSuccess(captchaVerification: string) {
   submitting.value = true
   try {
     await reserveStore.create({
@@ -392,6 +403,7 @@ async function onSubmit() {
         idNum: c.idNum.trim(),
         phone: c.phone || bookerTel.value,
       })),
+      captchaVerification,
     })
     uni.showToast({ title: '预约成功', icon: 'success' })
     setTimeout(() => {
@@ -500,6 +512,9 @@ onUnload(() => {
     <view class="submit-btn" :class="{ disabled: submitting }" @tap="onSubmit">
       {{ submitting ? '提交中...' : '提交' }}
     </view>
+
+    <!-- 提交前滑动拼图验证码 -->
+    <SliderCaptcha v-model:show="captchaShow" @success="onCaptchaSuccess" />
 
     <!-- 随行人选择弹窗 -->
     <view v-if="followerPickerShow" class="modal-mask" @tap="followerPickerShow = false">

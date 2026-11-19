@@ -15,9 +15,11 @@
     "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5020520260829001",
     "pinia": "^2.1.7",
     "qrcode-generator": "^1.4.4",
+    "crypto-js": "^4.2.0",
     "vue": "^3.4.21"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@dcloudio/types": "^3.4.31",
     "@dcloudio/uni-cli-shared": "3.0.0-alpha-5020520260829001",
     "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5020520260829001",

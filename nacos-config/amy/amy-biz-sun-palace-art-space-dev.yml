@@ -8,6 +8,30 @@ ali:
     # appSecret: PV4JnCCmlQjv0zYOlVJLYoJyhDbGxxPO
     # appCode: 2bac354a66ce4403adda0a229097ed9d
 
+# 滑动拼图验证码（aj-captcha）：小程序端预约提交前人机校验
+aj:
+  captcha:
+    # 验证码类型：滑动拼图
+    type: blockPuzzle
+    # 缓存类型：redis（多实例部署安全）；若仅单实例可改 local
+    cache-type: redis
+    # 右下角水印文字
+    water-mark: 太阳宫艺术空间
+    # 滑动校验允许误差（像素）
+    slip-offset: 5
+    # 坐标 AES 加密
+    aes-status: true
+    # 滑块干扰项（0/1/2）
+    interference-options: 1
+    # 分钟级频控开关（开启后 /captcha/get、/captcha/check、verification 均受限流保护）
+    req-frequency-limit-enable: true
+    req-get-lock-limit: 5
+    req-get-lock-seconds: 300
+    req-get-minute-limit: 60
+    req-check-minute-limit: 60
+    req-verify-minute-limit: 60
+
+
 wx:
   miniapp:
     # 小程序配置(必填)

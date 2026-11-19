@@ -63,4 +63,11 @@ public class SubmitReservationReq {
      * 自动序列化为 JSON 数组字符串存入 {@code comp_users} 列。</p>
      */
     private List<FollowerReq> compUsers;
+
+    /**
+     * 滑动拼图验证码二次校验凭证（/mina/app/captcha/check 通过后返回，
+     * token 一次性，防脚本刷预约）。必填。
+     */
+    @NotBlank(message = "请先完成滑块验证")
+    private String captchaVerification;
 }

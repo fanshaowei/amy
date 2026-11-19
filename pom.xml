@@ -24,6 +24,7 @@
         <mybatis-spring-boot.version>4.0.1</mybatis-spring-boot.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <kaptcha.version>2.3.3</kaptcha.version>
+        <captcha.version>1.4.0</captcha.version>
         <pagehelper.boot.version>4.1.0</pagehelper.boot.version>
         <druid.version>1.2.28</druid.version>
         <dynamic-ds.version>4.5.0</dynamic-ds.version>
@@ -83,6 +84,13 @@
                 <groupId>pro.fessional</groupId>
                 <artifactId>kaptcha</artifactId>
                 <version>${kaptcha.version}</version>
+            </dependency>
+
+            <!-- 行为验证码（滑块拼图），小程序端预约提交使用 -->
+            <dependency>
+                <groupId>com.anji-plus</groupId>
+                <artifactId>captcha</artifactId>
+                <version>${captcha.version}</version>
             </dependency>
 
             <!-- pagehelper 分页插件 -->

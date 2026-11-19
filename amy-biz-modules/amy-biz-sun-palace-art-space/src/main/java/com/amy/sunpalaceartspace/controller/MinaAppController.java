@@ -6,6 +6,9 @@ import com.amy.common.core.web.page.PageDomain;
 import com.amy.common.core.web.page.TableDataInfo;
 import com.amy.common.core.web.page.TableSupport;
 import com.amy.sunpalaceartspace.annotation.MinaApiAuth;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
+import com.anji.captcha.service.CaptchaService;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
@@ -46,6 +49,7 @@ public class MinaAppController extends BaseController {
     private final MinaAppLoginService minaAppLoginService;
     private final SubmitReservationOrderService submitReservationOrderService;
     private final IProjectsService projectsService;
+    private final CaptchaService captchaService;
 
     /**
      * 上传预约用户微信头像
@@ -122,7 +126,7 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 提交预约记录
+     * 提交预约记录（需先通过滑动拼图验证码：captchaVerification 为 /mina/app/captcha/check 的一次性凭证）
      * @param request
      * @return
      */
@@ -130,6 +134,13 @@ public class MinaAppController extends BaseController {
     @PostMapping("/reservation/submit")
     public R<ReservationOrder> submitReservation(@RequestHeader("Authorization") String token,
             @RequestBody @Validated SubmitReservationReq request) {
+        // 滑块验证码二次校验（token 一次性，防脚本重放/刷单）
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(request.getCaptchaVerification());
+        ResponseModel captchaResult = captchaService.verification(captchaVO);
+        if (!captchaResult.isSuccess()) {
+            return R.fail("滑块验证失败或已过期，请重新验证");
+        }
         return R.ok(submitReservationOrderService.submitReservationOrder(token, request));
     }
 

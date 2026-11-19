@@ -29,6 +29,8 @@ export interface CreateReservePayload {
   idNum: string
   /** 随行人员（不含本人） */
   companions: ReservePerson[]
+  /** 滑动拼图验证码二次校验凭证（滑块校验通过后返回，必传） */
+  captchaVerification: string
 }
 
 /** 后端订单 VO：compUsers 为 JSON 字符串列表 */
@@ -101,6 +103,8 @@ export async function createReserve(payload: CreateReservePayload): Promise<bool
         idNum: item.idNum,
         phone: item.phone || payload.phone,
       })),
+      // 滑动拼图验证码二次校验凭证（后端校验 token 一次性）
+      captchaVerification: payload.captchaVerification,
     },
   })
 }

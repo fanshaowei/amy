@@ -127,6 +127,12 @@
             <groupId>com.amy</groupId>
             <artifactId>amy-api-system</artifactId>
         </dependency>
+
+        <!-- 行为验证码（滑动拼图）：小程序端预约提交前人机校验；无 servlet 依赖，兼容 Boot 4 -->
+        <dependency>
+            <groupId>com.anji-plus</groupId>
+            <artifactId>captcha</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
