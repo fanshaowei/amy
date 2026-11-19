@@ -14,11 +14,13 @@ const serial = computed(() => String(props.index + 1).padStart(2, '0'))
 const dateRange = computed(() => {
   const { reservationStartDate, reservationEndDate } = props.activity
   if (!reservationStartDate || !reservationEndDate) return ''
+  if(reservationStartDate == reservationEndDate) return `${reservationStartDate}`
   return `${reservationStartDate} ~ ${reservationEndDate}`
 })
 
 /** 每日开放时段 */
 const timeRange = computed(() =>
+  hmsToHm(props.activity.reservationStartTime) == hmsToHm(props.activity.reservationEndTime) ? `${hmsToHm(props.activity.reservationStartTime)}`:
   `${hmsToHm(props.activity.reservationStartTime)} ~ ${hmsToHm(props.activity.reservationEndTime)}`
 )
 

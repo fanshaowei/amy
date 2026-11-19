@@ -250,9 +250,10 @@ onShow(async () => {
   color: #7fe0a8;
 }
 .logout-btn {
+  background-color: rgba(200,38,76,1)!important;
   margin: $art-gap-lg 24rpx $art-page-bottom;
   @include art-chip();
-  color: #ff9c9c;
+  color: #ffffff;
   padding: 28rpx;
   border-radius: 56rpx;
   text-align: center;

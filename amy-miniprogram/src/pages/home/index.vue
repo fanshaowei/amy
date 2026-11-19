@@ -198,6 +198,15 @@ onPullDownRefresh(() => {
         </swiper-item>
       </swiper>
     </view>
+
+    <view v-else class="announce anim-up notic">
+      <image class="announce__icon" src="/static/公告.png" mode="aspectFit" />
+      <text class="announce__label">通知公告：</text>
+      <view class="announce__item" @tap="goNoticeList">
+        <text class="announce__text text-ellipsis">暂无公告</text>
+        <text class="announce__date"> </text>
+      </view>
+    </view>
       <view class="hero__emblem"><ArtEmblem :size="196" /></view>
       <view class="hero__corner"></view>
       
@@ -309,6 +318,23 @@ onPullDownRefresh(() => {
         <view v-for="(item, i) in noticeItems" :key="i" class="notice__item text-ellipsis">
           <text class="notice__bullet"></text>{{ item }}
         </view>
+      </view>
+    </view>
+    <view v-else class="notice anim-up--3">
+      <view class="notice__head">
+        <view class="notice__icon">
+          <AppIcon name="bell" :size="28" color="#f0cf94" />
+        </view>
+        <view class="notice__titles">
+          <text class="notice__title">预约动态</text>
+          <text class="notice__en">UPCOMING RESERVATIONS</text>
+        </view>
+        <text class="notice__count">{{ noticeItems.length }} 人已约</text>
+      </view>
+      <view class="notice__divider"></view>
+      <view class="notice__item text-ellipsis">
+        <text class="notice__bullet"></text>
+        <text>暂无预约动态</text>
       </view>
     </view>
 
