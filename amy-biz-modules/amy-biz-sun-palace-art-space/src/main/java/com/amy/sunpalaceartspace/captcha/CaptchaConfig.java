@@ -1,7 +1,9 @@
 package com.amy.sunpalaceartspace.captcha;
 
 import com.anji.captcha.model.common.Const;
+import com.anji.captcha.service.CaptchaCacheService;
 import com.anji.captcha.service.CaptchaService;
+import com.anji.captcha.service.impl.CaptchaCacheServiceMemImpl;
 import com.anji.captcha.service.impl.CaptchaServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +19,9 @@ import java.util.Properties;
  * 滑动拼图验证码装配（aj-captcha 核心 jar）。
  *
  * <p>底图使用核心包内置 defaultImages，无需额外资源；
- * 缓存实现由 META-INF/services SPI 注册（redis/local 均内置可选）。</p>
+ * 缓存实现直接实例化注册到 {@link CaptchaServiceFactory}，
+ * 不依赖 META-INF/services SPI（Spring Boot fat jar 嵌套结构下
+ * ServiceLoader 加载 BOOT-INF/classes 中的 services 文件不可靠，服务器部署曾因此启动失败）。</p>
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(CaptchaProperties.class)
@@ -28,12 +32,16 @@ public class CaptchaConfig {
     @Bean
     @ConditionalOnMissingBean
     public CaptchaService captchaService(CaptchaProperties prop, StringRedisTemplate stringRedisTemplate) {
-        // redis 缓存由 SPI（ServiceLoader）实例化后注入连接工厂
+        // redis：多实例部署安全；local：核心包内存实现，仅适合单实例
+        CaptchaCacheService cache;
         if ("redis".equals(prop.getCacheType())) {
-            CaptchaCacheServiceRedisImpl redisCache =
-                    (CaptchaCacheServiceRedisImpl) CaptchaServiceFactory.getCache("redis");
+            CaptchaCacheServiceRedisImpl redisCache = new CaptchaCacheServiceRedisImpl();
             redisCache.setStringRedisTemplate(stringRedisTemplate);
+            cache = redisCache;
+        } else {
+            cache = new CaptchaCacheServiceMemImpl();
         }
+        CaptchaServiceFactory.cacheService.put(cache.type(), cache);
 
         Properties config = new Properties();
         config.put(Const.CAPTCHA_CACHETYPE, prop.getCacheType());
