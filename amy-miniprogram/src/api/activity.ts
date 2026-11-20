@@ -117,7 +117,7 @@ export async function getActivityDetail(projectId: number): Promise<Activity> {
     reservationNotes: info.reservationNotes,
     reservationDates: details.map((item) => item.reservationDate),
     intervalMinutes,
-    desc: `开放时间 ${hmsToHm(base.reservationStartTime)}-${hmsToHm(base.reservationEndTime)}，每时段 ${perSlotCount} 人，每日 ${base.totalReservationCount} 人`,
+    desc: `开放时间 ${hmsToHm(base.reservationStartTime) == hmsToHm(base.reservationEndTime) ? hmsToHm(base.reservationStartTime): (hmsToHm(base.reservationStartTime) + '-' + hmsToHm(base.reservationEndTime)) }，每时段 ${perSlotCount} 人，每日 ${base.totalReservationCount} 人`,
   }
 }
 

@@ -15,12 +15,17 @@ const STORAGE_KEY = 'reservation_user'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    loggedIn: false,
     token: '',
     user: null as User | null,
   }),
 
   getters: {
+    /**
+     * 是否已登录：以本地缓存中是否存在 spas_token 为唯一标准（实时读取）。
+     * token 被请求层清理（登录过期）后，所有页面判断立即视为未登录，
+     * 不依赖内存 state 的同步时机。
+     */
+    loggedIn: () => !!getToken(),
     /** 是否核销员 */
     isVerifier: (state) => state.user?.type === 2,
     /** 显示昵称 */
@@ -34,13 +39,12 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    /** 从本地缓存恢复登录态 */
+    /** 从本地缓存恢复登录态（登录与否由 getter loggedIn 实时读缓存判断，这里只恢复用户资料） */
     restore() {
       try {
         const token = getToken()
         const cached = uni.getStorageSync(STORAGE_KEY)
         if (token && cached) {
-          this.loggedIn = true
           this.token = token
           this.user = cached as User
         }
@@ -60,7 +64,6 @@ export const useUserStore = defineStore('user', {
       this.token = token
       const user = await userApi.getProfile()
       this.user = user
-      this.loggedIn = true
       uni.setStorageSync(STORAGE_KEY, user)
       return { user, fistTimeLogin }
     },
@@ -77,7 +80,8 @@ export const useUserStore = defineStore('user', {
 
     /** 刷新会员信息；silent=true 时失败不弹统一提示（用于页面无感刷新） */
     async fetchProfile(silent = false) {
-      if (!this.token) return null
+      // 以缓存 token 为准，避免内存 token 残留导致过期后仍发请求
+      if (!getToken()) return null
       const user = await userApi.getProfile(silent)
       this.user = user
       uni.setStorageSync(STORAGE_KEY, user)
@@ -96,7 +100,6 @@ export const useUserStore = defineStore('user', {
 
     /** 退出登录 */
     logout() {
-      this.loggedIn = false
       this.token = ''
       this.user = null
       clearToken()

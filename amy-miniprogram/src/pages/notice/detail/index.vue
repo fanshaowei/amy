@@ -40,7 +40,7 @@ onLoad((query) => {
 
 <template>
   <view class="notice-detail">
-    <PageHero title="公告详情" eyebrow="NOTICE · SUN PALACE" compact />
+    <PageHero title="公告详情" eyebrow="NOTICE · SUN PALACE" compact flush />
 
     <view v-if="loading" class="notice-detail__loading">
       <view class="skeleton-line skeleton-line--title"></view>
@@ -75,7 +75,8 @@ onLoad((query) => {
 }
 .notice-detail__loading {
   @include art-card(0.62, 16px, 32rpx);
-  padding: 40rpx;
+  /* 左右 28rpx 与 PageHero 的 28rpx 内边距一致，卡片内文字与页头标题左对齐 */
+  padding: 40rpx 28rpx;
   margin-top: $art-gap;
 }
 .skeleton-line {
@@ -97,7 +98,8 @@ onLoad((query) => {
 .notice-detail__card {
   @include art-card(0.62, 16px, 32rpx);
   margin-top: $art-gap;
-  padding: 40rpx;
+  /* 左右 28rpx 与 PageHero 的 28rpx 内边距一致，卡片内文字与页头标题左对齐 */
+  padding: 40rpx 28rpx;
   color: $art-text;
 }
 .notice-detail__card--empty {

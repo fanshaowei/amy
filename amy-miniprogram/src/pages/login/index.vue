@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { uploadAvatar } from '@/api/user'
-import { decodeRedirect } from '@/utils'
 import { showError } from '@/utils/request'
 import ArtEmblem from '@/components/ArtEmblem.vue'
 
@@ -18,21 +16,12 @@ const needProfile = ref(false)
 
 /** 本次会话已上传到后端的头像持久化地址（换头像后重置，避免重复上传） */
 const uploadedAvatarUrl = ref('')
-const redirect = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 
-/** 登录成功后回跳来源页 */
+/** 登录成功后统一回首页（不再按来源页 redirect 回跳） */
 function goBack() {
-  if (redirect.value) {
-    if(redirect.value.includes('home')) {
-      uni.switchTab({ url: redirect.value })
-    } else {
-      uni.redirectTo({ url: redirect.value })
-    }
-  } else {
-    uni.navigateBack()
-  }
+  uni.switchTab({ url: '/pages/home/index' })
 }
 
 /** 调起微信登录拿 code（仅小程序端有效） */
@@ -123,10 +112,6 @@ async function onSaveProfile() {
     loading.value = false
   }
 }
-
-onLoad((query) => {
-  redirect.value = decodeRedirect(query?.redirect as string)
-})
 </script>
 
 <template>
