@@ -202,13 +202,21 @@
     </select>
 
     <!--
-        查询预约了「次日（明天）」当天的号的订单。
+        小程序「预约动态」：按生效放号库存（status=1）推导出的「项目 + 日期」范围查订单。
+        每个 scope 用裸列半开区间 [startTime, endTime)，不对 reservation_time 套函数，
+        保证 (project_id, reservation_time) 上的范围索引可用。
+        注意：scopes 必须非空；空集合由 Service 层拦截，否则 foreach 为空会拼出非法 SQL。
     -->
-    <select id="selectNextDayReservationOrder" resultMap="ReservationOrderResult">
+    <select id="selectReservationOrdersByStockScopes" resultMap="ReservationOrderResult">
         <include refid="selectReservationOrderVo"/>
         where r.del_flag = '0'
-          and r.reservation_time &gt;= #{start}
-          and r.reservation_time &lt; #{end}
+          and (
+            <foreach collection="scopes" item="scope" separator=" OR ">
+                (r.project_id = #{scope.projectId}
+                 and r.reservation_time &gt;= #{scope.startTime}
+                 and r.reservation_time &lt; #{scope.endTime})
+            </foreach>
+          )
         order by r.reservation_time asc, r.project_id asc
     </select>
 

@@ -276,12 +276,19 @@ public class MinaAppController extends BaseController {
     }
 
     /**
-     * 获取第二天预约记录,用于小程序实时数据看板
-     * @return
+     * 小程序「预约动态」实时数据看板。
+     *
+     * <p>不再固定取「第二天」：先查 biz_spas_reservation_stock 中 status=1 的生效放号库存，
+     * 取这些库存的 reservation_time，按「项目 + 日期」匹配 biz_spas_reservation_order 的订单；
+     * 没有任何生效库存时返回空列表。</p>
+     *
+     * @param projectId 预留的项目过滤（非必填，前端当前不传；不传 = 所有项目）
+     * @return 预约订单列表
      */
     @GetMapping("/reservation/next/day/order")
-    public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder() {
-        return R.ok(minaAppService.getNextDayReservationOrder());
+    public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder(
+            @RequestParam(value = "projectId", required = false) Long projectId) {
+        return R.ok(minaAppService.getNextDayReservationOrder(projectId));
     }
 
     /**

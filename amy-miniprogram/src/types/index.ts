@@ -221,7 +221,7 @@ export interface ReserveRecord {
 }
 
 /**
- * 次日预约订单（对应后端 NextDayReservationOrderResp）
+ * 预约动态订单（对应后端 NextDayReservationOrderResp
  * 用于首页「预约动态」公开信息滚动展示
  */
 export interface NextDayReservation {

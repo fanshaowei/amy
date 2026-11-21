@@ -9,7 +9,7 @@ import { getFollowers, addFollower } from '@/api/user'
 import type { UserIdentityPayload } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
-import { hmsToHm, idCardCheckDigit, isValidIdCard, isValidPhone } from '@/utils'
+import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
 import { showError } from '@/utils/request'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
@@ -250,10 +250,7 @@ function checkPhone(phone: string): string {
 function checkIdNum(idNum: string, idType: number): string {
   if (!idNum) return '请输入证件号码'
   if (idType === 1 && !isValidIdCard(idNum)) {
-    const expected = idCardCheckDigit(idNum)
-    return expected
-      ? `身份证校验位不符：按前 17 位末位应为 ${expected}，请核对证件号码`
-      : '身份证号格式不正确：应为 18 位，前 17 位数字、末位数字或 X'
+    return '身份证号输入不正确'
   }
   if (idType !== 1 && idNum.length < 5) {
     return '证件号码过短，请核对后重新输入'
@@ -758,7 +755,7 @@ onUnload(() => {
 .submit-btn {
   margin: $art-gap 24rpx $art-page-bottom;
   @include art-gold-button();
-  
+
   padding: 28rpx;
   border-radius: 56rpx;
   text-align: center;
@@ -847,7 +844,7 @@ onUnload(() => {
 .sheet__confirm {
   margin-top: 32rpx;
   @include art-gold-button();
-  
+
   padding: 24rpx;
   border-radius: 56rpx;
   text-align: center;

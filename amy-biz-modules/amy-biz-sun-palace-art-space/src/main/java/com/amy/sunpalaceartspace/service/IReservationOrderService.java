@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.service;
 
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
@@ -124,10 +125,16 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
     List<ReservationOrderStatisticByProjectVO> selectReservationOrderStatisticByProject(ReservationOrderStatisticCriteria criteria);
 
     /**
-     * 查询预约了<b>次日（明天）</b>当天的号的订单。
-     * @return 次日预约订单列表，按预约时间、项目ID升序
+     * 按「生效库存放号日期」查询预约订单（小程序预约动态看板）。
+     *
+     * <p>scopes 由 {@code MinaAppService} 从 status=1 的库存行的 reservation_time 推导，
+     * 每项是一个「项目 + 自然日的左闭右开区间」；只返回同项目、同日期的订单。
+     * 传空集合直接返回空列表（避免 Mapper 的 &lt;foreach&gt; 拼出非法 SQL）。</p>
+     *
+     * @param scopes 放号日期范围，非空
+     * @return 订单列表，按预约时间、项目ID升序
      */
-    List<ReservationOrderVO> selectNextDayReservationOrder();
+    List<ReservationOrderVO> selectReservationOrdersByStockScopes(List<ReservationOrderStockScope> scopes);
 
     /**
      * 后台手动添加预约订单的入参校验。

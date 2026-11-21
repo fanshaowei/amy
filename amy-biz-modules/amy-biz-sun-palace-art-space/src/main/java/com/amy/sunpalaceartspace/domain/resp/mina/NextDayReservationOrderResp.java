@@ -9,16 +9,13 @@ import lombok.NoArgsConstructor;
 import java.util.Date;
 
 /**
- * 次日（明天）预约订单响应对象
+ * 小程序「预约动态」订单响应对象。
  *
- * <p>用于「查询预约了第二天（明天）的号的订单」，典型场景是<b>次日到访提醒</b>
- * （定时任务拉取明天的订单 → 按会员推送微信订阅消息）。</p>
- *
- * <p>字段由 {@code ReservationOrderMapper.xml} 的 {@code NextDayReservationOrderResult}
- * resultMap 直接映射（含项目名、会员姓名两张 LEFT JOIN）。</p>
+ * <p>数据口径：先取 {@code biz_spas_reservation_stock} 中 status=1 的生效放号库存的
+ * {@code reservation_time}，再按「项目 + 日期」去订单表匹配，因此日期由放号库存决定</p>
  *
  * @ClassName NextDayReservationOrderResp
- * @Description 次日预约订单返回对象
+ * @Description 生效放号日期下的预约订单返回对象
  * @Author fantasyfan
  * @Date 2026-10-26 01:07
  */

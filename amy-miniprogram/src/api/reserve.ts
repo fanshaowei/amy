@@ -4,7 +4,7 @@
  * 后端：MinaAppController
  *  - POST /spas/mina/app/reservation/submit                     提交预约（需登录）
  *  - GET  /spas/mina/app/user/reservation/records               我的预约记录（需登录）
- *  - GET  /spas/mina/app/reservation/next/day/order             明日预约动态（需登录，首页滚动展示）
+ *  - GET  /spas/mina/app/reservation/next/day/order             预约动态（按生效放号日期，首页滚动展示）
  *  - GET  /spas/mina/app/reservation/{orderNum}                 预约详情（按预约单号）
  *  - POST /spas/mina/app/reservation/cancel/{orderNum}          取消预约（仅待核销状态）
  */
@@ -123,7 +123,8 @@ export async function getRecords(): Promise<ReserveRecord[]> {
 }
 
 /**
- * 次日（明天）预约订单列表，用于首页「预约动态」滚动展示
+ * 预约动态列表：后端按「生效放号库存 → 对应日期」返回订单，
+ * 用于首页「预约动态」滚动展示
  * GET /spas/mina/app/reservation/next/day/order
  *
  * 说明：该接口需登录（@MinaApiAuth），未登录时静默失败（skipAuthRedirect），

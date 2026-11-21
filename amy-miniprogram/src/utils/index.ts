@@ -71,9 +71,9 @@ export function genTimes(startHour: string, endHour: string, interval: number): 
  * 与后端 MinaAppService#calculateReservationTimes 规则保持一致
  */
 export function genTimesBySecond(
-  startTime: string,
-  endTime: string,
-  intervalSecond: number
+    startTime: string,
+    endTime: string,
+    intervalSecond: number
 ): string[] {
   const times: string[] = []
   if (!startTime || !endTime || !intervalSecond || intervalSecond <= 0) return times
@@ -82,7 +82,7 @@ export function genTimesBySecond(
     return h * 3600 + m * 60 + s
   }
   const toHms = (sec: number) =>
-    `${pad(Math.floor(sec / 3600))}:${pad(Math.floor((sec % 3600) / 60))}:${pad(sec % 60)}`
+      `${pad(Math.floor(sec / 3600))}:${pad(Math.floor((sec % 3600) / 60))}:${pad(sec % 60)}`
   let cur = toSecond(startTime)
   const end = toSecond(endTime)
   while (cur < end) {
@@ -133,29 +133,19 @@ export function isValidPhone(tel: string): boolean {
 }
 
 /**
- * 按 GB 11643 的 MOD 11-2 加权算法，算出 18 位身份证应有的末位校验码。
- * 格式不符合（非 18 位 / 前 17 位含非数字）时返回空串。
- * 注意：返回值只代表「按当前前 17 位算出的末位」，不代表前 17 位本身抄写无误。
+ * 校验第二代居民身份证号：18 位，前 17 位数字、末位数字或 X，
+ * 并按 GB 11643 加权算法校验末位校验码
  */
-export function idCardCheckDigit(id: string): string {
+export function isValidIdCard(id: string): boolean {
   const idc = (id || '').trim().toUpperCase()
-  if (!/^\d{17}[\dX]$/.test(idc)) return ''
+  if (!/^\d{17}[\dX]$/.test(idc)) return false
   const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
   const checkCodes = '10X98765432'
   let sum = 0
   for (let i = 0; i < 17; i++) {
     sum += Number(idc[i]) * weights[i]
   }
-  return checkCodes[sum % 11]
-}
-
-/**
- * 校验第二代居民身份证号：18 位，前 17 位数字、末位数字或 X，
- * 并按 GB 11643 加权算法校验末位校验码
- */
-export function isValidIdCard(id: string): boolean {
-  const expected = idCardCheckDigit(id)
-  return expected !== '' && expected === (id || '').trim().toUpperCase()[17]
+  return checkCodes[sum % 11] === idc[17]
 }
 
 /** 显示姓名（多人时） */

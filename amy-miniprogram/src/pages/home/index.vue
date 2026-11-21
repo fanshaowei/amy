@@ -18,7 +18,7 @@ const activities = ref<Activity[]>([])
 const loading = ref(true)
 const keyword = ref('')
 
-/* 首页「预约动态」：明日已预约名单（公开信息，姓名脱敏） */
+/* 首页「预约动态」：当前生效放号日期下的已预约名单（公开信息，姓名脱敏） */
 const nextDayReservations = ref<NextDayReservation[]>([])
 
 /** 顶部日期胶囊：本地时区，不依赖后端 */
@@ -48,7 +48,7 @@ const noticeItems = computed(() =>
   })
 )
 
-/** 拉取明日预约动态：需登录，未登录/失效时静默失败，不影响首页展示 */
+/** 拉取预约动态（日期由后端生效放号库存决定）：需登录，未登录/失效时静默失败，不影响首页展示 */
 async function loadNotice() {
   if (!userStore.loggedIn) {
     nextDayReservations.value = []

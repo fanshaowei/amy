@@ -4,6 +4,7 @@ import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -550,17 +552,57 @@ public class MinaAppService {
         return data;
     }
 
-    public List<NextDayReservationOrderResp> getNextDayReservationOrder() {
-        List<ReservationOrderVO> reservationOrderVOS = reservationOrderService.selectNextDayReservationOrder();
-        List<NextDayReservationOrderResp> respList = new ArrayList<>();
-        for (ReservationOrderVO vo : reservationOrderVOS) {
+    /**
+     * 小程序端「预约动态」：返回<b>当前有生效放号库存</b>的项目，在这些放号日期下的预约订单。
+     * <ol>
+     *   <li>查 {@code biz_spas_reservation_stock} 中 status=1（正常可预约）的库存行；
+     *       MP 的 @TableLogic 会自动排除软删行；</li>
+     *   <li>一行生效库存都没有 → 直接返回空列表，不再去查订单表；</li>
+     *   <li>取库存行的 {@code reservation_time}，按「项目 + 自然日」去重，生成左闭右开的日期区间；</li>
+     *   <li>用这些区间去 {@code biz_spas_reservation_order} 匹配<b>同项目、同日期</b>的订单。</li>
+     * </ol>
+     *
+     * @param projectId 预留的项目过滤条件，前端当前不传；null 表示取所有有生效库存的项目
+     * @return 订单列表（姓名、脱敏手机号、预约时间），按预约时间、项目ID升序
+     */
+    public List<NextDayReservationOrderResp> getNextDayReservationOrder(Long projectId) {
+        List<ReservationStock> stocks = reservationStockService
+                .selectAllByStatus(ReservationStockStatus.AVAILABLE);
+        if (stocks == null || stocks.isEmpty()) {
+            return List.of();
+        }
+
+        ZoneId zone = ZoneId.systemDefault();
+        // 同一项目同一天会有多个时段，用 Set 去重，避免生成重复的日期区间
+        Set<ReservationOrderStockScope> scopes = new LinkedHashSet<>();
+        for (ReservationStock stock : stocks) {
+            if (stock.getProjectId() == null || stock.getReservationTime() == null) {
+                continue;
+            }
+            // 预留过滤能力：不传 projectId 时不做任何项目限制
+            if (projectId != null && !projectId.equals(stock.getProjectId())) {
+                continue;
+            }
+            LocalDate day = stock.getReservationTime().toInstant().atZone(zone).toLocalDate();
+            scopes.add(ReservationOrderStockScope.builder()
+                    .projectId(stock.getProjectId())
+                    .startTime(Date.from(day.atStartOfDay(zone).toInstant()))
+                    .endTime(Date.from(day.plusDays(1).atStartOfDay(zone).toInstant()))
+                    .build());
+        }
+        if (scopes.isEmpty()) {
+            return List.of();
+        }
+
+        List<ReservationOrderVO> orders = reservationOrderService
+                .selectReservationOrdersByStockScopes(new ArrayList<>(scopes));
+        return orders.stream().map(vo -> {
             NextDayReservationOrderResp resp = new NextDayReservationOrderResp();
             BeanUtils.copyProperties(vo, resp);
-            // 手机号脱敏：这个接口面向小程序端展示，不应暴露完整号码
+            // 手机号脱敏：这个接口面向小程序端公开展示，不应暴露完整号码
             resp.setPhone(PhoneVerifyUtil.maskPhone(vo.getPhone()));
-            respList.add(resp);
-        }
-        return respList;
+            return resp;
+        }).toList();
     }
 
     /** 公告状态（sys_notice.status）：0=正常，1=关闭 */

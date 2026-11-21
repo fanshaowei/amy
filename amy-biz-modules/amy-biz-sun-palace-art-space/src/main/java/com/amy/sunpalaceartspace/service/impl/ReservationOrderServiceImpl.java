@@ -4,6 +4,7 @@ import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.req.FollowerReq;
@@ -34,8 +35,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -188,13 +187,12 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    public List<ReservationOrderVO> selectNextDayReservationOrder() {
-        // 次日 = 明天 00:00:00（含） ～ 后天 00:00:00（不含）。
-        LocalDate nextDay = LocalDate.now().plusDays(1);
-        Date startTime = Date.from(nextDay.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        Date endTime = Date.from(nextDay.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
-
-        List<ReservationOrderVO> list = baseMapper.selectNextDayReservationOrder(startTime, endTime);
+    public List<ReservationOrderVO> selectReservationOrdersByStockScopes(List<ReservationOrderStockScope> scopes) {
+        // Mapper 里的 <foreach> 遇空集合会拼出非法 SQL，这里必须挡住
+        if (scopes == null || scopes.isEmpty()) {
+            return List.of();
+        }
+        List<ReservationOrderVO> list = baseMapper.selectReservationOrdersByStockScopes(scopes);
         list.forEach(ReservationOrderVO::fillOrderSourceName);
         return list;
     }

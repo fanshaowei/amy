@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.mapper;
 
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
+import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
@@ -85,17 +86,15 @@ public interface ReservationOrderMapper extends BaseMapper<ReservationOrder> {
     List<ReservationOrderStatisticByProjectVO> selectReservationOrderStatisticByProject(ReservationOrderStatisticCriteria criteria);
 
     /**
-     * 查询预约了「次日（明天）」当天的号的所有订单。
-     * <p>
-     * 用 <b>半开区间</b> {@code [start, end)}（明天 00:00:00 含，后天 00:00:00 不含），
-     * 而不是 {@code date(reservation_time) = ...}——后者对列做函数运算会让索引失效，大表全表扫描。
+     * 按「生效库存放号日期」查询同项目、同日期的预约订单。
+     * <p>每个 scope 是 {@code [当天 00:00:00, 次日 00:00:00)} 的<b>裸列半开区间</b>，
      *
-     * @param start 起始时间（含），即明天 00:00:00
-     * @param end   结束时间（不含），即后天 00:00:00
-     * @return 次日预约订单列表，按预约时间、项目ID升序
+     * @param scopes 由 status=1 的库存行推导出的「项目 + 日期」范围，<b>必须非空</b>
+     *               （调用方需在空集合时直接返回，否则 &lt;foreach&gt; 会拼出非法 SQL）
+     * @return 订单列表，按预约时间、项目ID升序
      */
-    List<ReservationOrderVO> selectNextDayReservationOrder(@Param("start") Date start,
-                                                                    @Param("end") Date end);
+    List<ReservationOrderVO> selectReservationOrdersByStockScopes(
+            @Param("scopes") List<ReservationOrderStockScope> scopes);
 
     void batchUpdateUnVerifyOrderToExpire(@Param("now") Date now);
 }

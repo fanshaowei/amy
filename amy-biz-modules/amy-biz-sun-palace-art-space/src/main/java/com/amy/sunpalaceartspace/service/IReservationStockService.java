@@ -53,7 +53,10 @@ public interface IReservationStockService extends IService<ReservationStock> {
     boolean incrementReservedCount(Long projectId, Date reservationTime);
 
     /**
-     * 查询指定状态的全部库存（用于只把「正常可预约」的时段重建到 Redis 缓存）
+     * 查询指定状态的全部库存：既用于把「正常可预约」的时段重建到 Redis 缓存，
+     * 也用于小程序预约动态看板判断「当前哪些项目/日期有生效放号库存」。
+     *
+     * <p>继承 {@code BaseEntity} 的 @TableLogic 会自动过滤软删行。</p>
      *
      * @param status 状态枚举（非空）
      * @return 库存列表
