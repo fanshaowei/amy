@@ -322,7 +322,7 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                  bodyStyle={{padding: '16px 16px 4px'}}
                  title={<SectionHead icon={<IdcardOutlined/>} title="预约人信息"
                                     hint={locked ? '请先选择预约项目' : '用于到馆核销时核验身份'}/>}
-                 extra={<Tag bordered={false} color="default" style={{margin: 0, fontSize: 11}}>本人</Tag>}>
+                >
             <Row gutter={16}>
                 <Col span={12}>
                     <ProFormText name="name" label="姓名" placeholder="请输入预约人姓名"

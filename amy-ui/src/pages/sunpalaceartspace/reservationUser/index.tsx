@@ -171,6 +171,14 @@ export default function ReservationUserPage() {
         });
     };
 
+    /**
+     * 表格横向滚动宽度：<b>必须等于所有列宽之和</b>。
+     * 小于列宽之和时 antd 会在右侧补一段空白滚动区，滚动到最右后表头右侧
+     * 会多出一块永远滚不到内容的空白格。
+     * 64+220+110+150+180+120+110+190+170+200 = 1514；改列宽时同步改这里。
+     */
+    const TABLE_TOTAL_WIDTH = 1514;
+
     const columns: ProColumns<ReservationUserRecord>[] = [{
         title: '序号',
         dataIndex: 'index',
@@ -270,7 +278,10 @@ export default function ReservationUserPage() {
         title: '操作',
         valueType: 'option',
         fixed: 'right',
-        width: 160,
+        // 两个按钮实测占 107 + 66 + 单元格左右 padding 16 ≈ 189px。
+        // 原先给 160px 时内容会向右溢出 29px，把 table 的 scrollWidth 从 1474 撑到 1503，
+        // 于是滚动到最右时表头右侧多出一块永远滚不到内容的空白（看起来像多了一个空列）。
+        width: 200,
         render: (_, row) => [
             <PermissionButton key="type" type="link" size="small" icon={<SwapOutlined/>}
                               permission="sunpalaceartspace:reservationUser:edit"
@@ -335,7 +346,7 @@ export default function ReservationUserPage() {
                     rowKey="reservationUserId"
                     actionRef={tableRef}
                     columns={columns}
-                    scroll={{x: 1460}}
+                    scroll={{x: TABLE_TOTAL_WIDTH}}
                     cardProps={{bodyStyle: {padding: '14px 16px'}}}
                     // 身份筛选作为额外参数传入：变化后自动回到第一页并重新请求
                     params={{type: typeFilter ? Number(typeFilter) : undefined}}
