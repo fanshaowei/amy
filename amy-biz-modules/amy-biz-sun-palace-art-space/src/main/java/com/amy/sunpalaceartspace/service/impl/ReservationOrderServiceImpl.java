@@ -2,6 +2,7 @@ package com.amy.sunpalaceartspace.service.impl;
 
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.redis.service.RedisService;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
@@ -35,10 +36,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_VERIFY_CODE;
 
 /**
  * 预约订单 服务层实现（MyBatis-Plus 模式）
@@ -56,6 +57,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     private final ObjectMapper objectMapper;
     private final IProjectsService projectsService;
     private final AliIdCheckUtil aliIdCheckUtil;
+    private final RedisService redisService;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -68,6 +70,19 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             vo.fillReservationStatusName();
             vo.fillOrderSourceName();
             vo.fillCompUsersText();
+            if(ReservationOrderStatus.WAIT_VERIFY.getStatus().equals(vo.getReservationStatus())) {
+                if(OrderSource.MINA.getCode().equals(vo.getOrderSource())) {
+                    String key = String.format(RESERVATION_ORDER_VERIFY_CODE, vo.getReservationNum());
+                    Object verifyCode = redisService.getCacheObject(key);
+                    if(null == verifyCode) {
+                        verifyCode = UUID.randomUUID().toString();
+                        redisService.setCacheObject(key, verifyCode, 1L, TimeUnit.MINUTES);
+                    }
+                    vo.setVerifyCode(verifyCode.toString());
+                }else {
+                    vo.setVerifyCode(vo.getReservationNum());
+                }
+            }
         });
         return result;
     }

@@ -119,23 +119,6 @@ public class MinaAppService {
         return pageResp;
     }
 
-    private Integer calculateDateReservationCount(Long projectId, Integer dayInterval) {
-        ReservationOrderStatisticCriteria criteria = ReservationOrderStatisticCriteria.builder()
-                .projectId(projectId)
-                .reservationTimeStart(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 00:00:00"), 1))
-                .reservationTimeEnd(DateUtils.addDays(DateUtils.parseDate(DateUtils.getDate() + " 23:59:59"), dayInterval))
-                .build();
-        List<ReservationOrderStatisticByProjectVO> vos = reservationOrderService.selectReservationOrderStatisticByProject(criteria);
-        if(vos.isEmpty()) return 0;
-        else
-            return Optional.ofNullable(vos.getFirst()).map(ReservationOrderStatisticByProjectVO::getCount).orElse(0);
-    }
-
-    private Integer calculateTotalReservationCount(String startTime, String endTime, Integer interval, Integer count){
-        List<String> result = reservationUtil.extractReservationTimes(startTime, endTime, interval);
-        return result.size() * count;
-    }
-
     /**
      * 由「总量 + 已占用」推导拥挤度：充足(1) / 紧张(2) / 已满(3)
      *
@@ -277,7 +260,7 @@ public class MinaAppService {
             throw new ServiceException("未找到该预约单");
         }
         // 如果订单已经核销，不再返回核销码
-        if(Objects.equals(ReservationOrderStatus.COMPLETED.getStatus(), vo.getReservationStatus())) {
+        if(!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), vo.getReservationStatus())) {
             return vo;
         }
 
@@ -297,12 +280,12 @@ public class MinaAppService {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
         Integer orderSource = reservationOrder.getOrderSource();
         // 小程序订单的核销码有效期验证
-//        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
-//            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
-//            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
-//                throw new ServiceException("无效核销码");
-//            }
-//        }
+        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
+            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
+            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
+                throw new ServiceException("无效核销码");
+            }
+        }
         Date reservationTime = reservationOrder.getReservationTime();
         Date reservationDate = DateUtils.toDate(reservationTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         Date nowDate = DateUtils.parseDate(DateUtils.getDate());
