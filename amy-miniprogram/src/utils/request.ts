@@ -23,8 +23,8 @@ export const TOKEN_KEY = 'spas_token'
  * - 正式环境：需替换为 HTTPS 域名，并在微信公众平台「开发管理 - 服务器域名」中配置为 request 合法域名
  * - 若网关路由为该模块配置了前缀 / StripPrefix，请在此处同步调整
  */
-//export const BASE_URL = 'http://amy.we-link.com.cn/api'
-export const BASE_URL = 'http://127.0.0.1:18080'
+export const BASE_URL = 'https://amy.we-link.com.cn/api'
+//export const BASE_URL = 'http://127.0.0.1:18080'
 
 /** 后端 R 的成功码 */
 const SUCCESS_CODE = 200
@@ -123,16 +123,25 @@ function rejectWith(
   reject(err)
 }
 
-/** 登录态失效时清理缓存并跳转登录页 */
+/** 登录态失效时清理缓存并跳转登录页（并发请求只跳一次） */
+let redirectingLogin = false
 function handleUnauthorized(msg: string) {
   clearToken()
   notifyError(msg)
+  if (redirectingLogin) return
+  redirectingLogin = true
   setTimeout(() => {
+    redirectingLogin = false
     uni.navigateTo({ url: '/pages/login/index' })
   }, 800)
 }
 
 const LOGIN_EXPIRED_RE = /未登录|登录已过期|token|鉴权/i
+/**
+ * Spring 参数校验抛出的「缺少 Authorization 请求头」异常（code 500）：
+ * 属于登录态缺失/失效，同样静默跳登录，不向用户展示英文原始报错。
+ */
+const MISSING_AUTH_RE = /required request header .+ is not present/i
 
 /** 网关/服务端返回非 R 结构（HTML、纯文本）时，按 HTTP 状态码给出可读文案 */
 function httpErrorMessage(statusCode: number): string {
@@ -197,6 +206,21 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
     const needAuth = options.auth !== false
     const skipAuthRedirect = options.skipAuthRedirect === true
     const silent = options.silent === true
+
+    // 需要登录态但本地缓存无 spas_token：直接视为未登录，不发请求
+    if (needAuth && !token) {
+      const msg = '登录已过期，请重新登录'
+      const err = new RequestError(msg, { statusCode: 401 })
+      err.notified = true
+      if (!skipAuthRedirect) {
+        handleUnauthorized(msg)
+      } else if (!silent) {
+        notifyError(msg)
+      }
+      reject(err)
+      return
+    }
+
     uni.request({
       url: BASE_URL + options.url,
       method: options.method || 'GET',
@@ -249,7 +273,8 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         const err = new RequestError(msg, { code: body.code, statusCode })
         if (
           !skipAuthRedirect &&
-          (body.code === 401 || (needAuth && LOGIN_EXPIRED_RE.test(msg)))
+          (body.code === 401 ||
+            (needAuth && (LOGIN_EXPIRED_RE.test(msg) || MISSING_AUTH_RE.test(msg))))
         ) {
           err.notified = true
           handleUnauthorized('登录已过期，请重新登录')

@@ -112,14 +112,12 @@ withDefaults(
   text-shadow: 0 2rpx 12rpx rgba(12, 28, 70, 0.3);
 }
 .ph__sub {
-  margin-top: 8rpx;
+  margin-top: 1rpx;
   font-size: 21rpx;
   letter-spacing: 1rpx;
   color: rgba(255, 255, 255, 0.72);
   /* 组件样式隔离，不能依赖 App.vue 的全局 text-ellipsis，这里内聚一份 */
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .ph__emblem {
   position: absolute;
