@@ -89,14 +89,26 @@ export default function RolePage() {
     const normalDict = useDict('sys_normal_disable');
 
     const openRoleForm = async (record?: RoleRecord) => {
+        let initial: RoleRecord;
         if (record?.roleId) {
             const [roleResult, treeResult] = await Promise.all([getRole(record.roleId), getRoleMenuTree(record.roleId)]);
-            setEditing({...roleResult.data, menuIds: treeResult.checkedKeys || []});
+            initial = {...roleResult.data, menuIds: treeResult.checkedKeys || []};
             setMenuTree(treeResult.menus || []);
         } else {
-            setEditing({roleName: '', roleKey: '', roleSort: 0, status: '0', menuCheckStrictly: true, menuIds: []});
+            // 新增必须显式列出所有字段：漏掉的字段（如 remark）会留在 form store 里，
+            // 关掉「修改」再点「新增」时被带出来。
+            initial = {
+                roleName: '', roleKey: '', roleSort: 0, status: '0',
+                menuCheckStrictly: true, menuIds: [], remark: ''
+            };
             setMenuTree((await getMenuTree()).data || []);
         }
+        setEditing(initial);
+        // roleForm 是页面级实例：ModalForm 的 initialValues 只在 Form 首次挂载时读取，
+        // 弹窗 destroyOnHidden 后 form store 仍在，光靠 setEditing 清不掉上次的值。
+        // 每次打开都先 reset 再回填，保证「修改 → 关闭 → 新增」拿到干净表单。
+        roleForm.resetFields();
+        roleForm.setFieldsValue(initial);
         setFormOpen(true);
     };
 
@@ -223,10 +235,18 @@ export default function RolePage() {
                                form={roleForm}
                                modalProps={{destroyOnHidden: true, onCancel: () => setFormOpen(false)}}
                                onFinish={async (values) => {
-                                   const data = {
+                                   // 只取表单实际字段：resetFields 后 store 可能仍留着上一次编辑的
+                                   // roleId / createTime 等未注册字段，直接展开 ...values 会把旧 roleId
+                                   // 带进新增请求（被后端当成修改或造成脏数据）。
+                                   const data: RoleRecord = {
                                        ...editing,
-                                       ...values,
-                                       menuIds: withAncestorIds(values.menuIds, menuTree)
+                                       roleName: values.roleName,
+                                       roleKey: values.roleKey,
+                                       roleSort: values.roleSort,
+                                       status: values.status,
+                                       menuCheckStrictly: values.menuCheckStrictly,
+                                       menuIds: withAncestorIds(values.menuIds, menuTree),
+                                       remark: values.remark
                                    };
                                    if (editing?.roleId) await updateRole(data); else await addRole(data);
                                    message.success(editing?.roleId ? '修改成功' : '新增成功');
