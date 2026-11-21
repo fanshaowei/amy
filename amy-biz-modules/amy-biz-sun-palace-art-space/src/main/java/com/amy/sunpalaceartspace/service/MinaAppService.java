@@ -259,7 +259,7 @@ public class MinaAppService {
     public MinaReservationUserInfoResp extractReservationUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
         ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
-        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityByReservationUserId(userInfo.getReservationUserId(), List.of( Boolean.FALSE));
+        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityByReservationUserId(userInfo.getReservationUserId(), List.of(Boolean.FALSE));
         UserIdentityVO userIdentityVO = userIdentityVOs.isEmpty() ? null: userIdentityVOs.getFirst();
         return MinaReservationUserInfoResp.builder()
                 .reservationUserId(userInfo.getReservationUserId())
@@ -404,8 +404,8 @@ public class MinaAppService {
         if(!verify) {
             throw new ServiceException("证件号码格式不正确，请检查后重新输入");
         }
-        boolean exitUserIdentity = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), false);
-        if(exitUserIdentity) {
+        boolean conflictWithReservationUserIdentity = userIdentityService.checkExistReservationUser(user.getReservationUserId(), req.getIdNum(), false);
+        if(conflictWithReservationUserIdentity) {
             throw new ServiceException("与预约人信息相同，请勿重复添加");
         }
 
