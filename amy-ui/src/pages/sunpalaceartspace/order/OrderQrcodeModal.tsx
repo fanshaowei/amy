@@ -2,19 +2,21 @@ import {DownloadOutlined, InfoCircleOutlined, QrcodeOutlined} from '@ant-design/
 import {App, Button, Col, Divider, Modal, QRCode, Row, Space, Typography, theme} from 'antd';
 import {useRef} from 'react';
 import type {ReactNode} from 'react';
-import {getOrderSourceName} from '@/services/sunpalaceartspace/order';
+import {getOrderSourceName, getOrderVerifyCode} from '@/services/sunpalaceartspace/order';
 import type {ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import styles from '../spas.less';
 
 /**
  * 预约订单二维码弹窗。
  *
- * 二维码内容就是订单号本身（23 位数字），不含链接、不含 token。
- * 口径与小程序「扫码核销」页一致：uni.scanCode 的 res.result 直接当订单号，
- * 交给 GET /spas/mina/app/reservation/{orderNum} 查询详情后再确认核销。
+ * 二维码内容与小程序 QrcodeCard.vue 保持同一格式：JSON 携带「预约单号 + 核销码」。
+ * 核销端 scan/index.vue#parseQrContent 会拆出两个字段，
+ * 交给 POST /spas/mina/app/reservation/verify/{orderNum}/{verifyCode} 确认核销。
+ * 若只放裸核销码，扫码端会按「旧格式 = 内容即订单号」去查详情，反而查不到订单。
  * 若后续改成「扫链接核销」，只需修改 buildQrcodeValue 一处。
  */
-const buildQrcodeValue = (reservationNum: string) => reservationNum;
+const buildQrcodeValue = (orderNum: string, verifyCode: string): string =>
+    JSON.stringify({orderNum, verifyCode});
 
 const STATUS_TEXT: Record<number, string> = {
     0: '待核销',
@@ -44,6 +46,9 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
     const qrRef = useRef<HTMLDivElement>(null);
 
     const num = order?.reservationNum || '';
+    const verifyCode = getOrderVerifyCode(order);
+    /** 两个字段都齐备才生成二维码；verifyCode 为空时连弹窗都不打开 */
+    const qrValue = num && verifyCode ? buildQrcodeValue(num, verifyCode) : '';
 
     /** antd QRCode 默认 type='canvas'，可直接取 canvas 导出 PNG */
     const handleDownload = () => {
@@ -68,7 +73,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
             }}><QrcodeOutlined/></span>
             <span style={{fontWeight: 600}}>订单二维码</span>
         </Space>}
-        open={open && !!num}
+        open={open && !!qrValue}
         width={620}
         centered
         destroyOnHidden
@@ -78,7 +83,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
             <Button type="primary" icon={<DownloadOutlined/>} onClick={handleDownload}>下载二维码</Button>
         </Space>}
     >
-        <Row gutter={24} align="middle" style={{padding: '4px 0 8px'}}>
+        <Row gutter={24} align="middle" wrap={false} style={{padding: '4px 0 8px'}}>
             <Col flex="0 0 236px">
                 <div ref={qrRef} style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
@@ -87,7 +92,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                     boxShadow: token.boxShadowTertiary
                 }}>
                     <QRCode
-                        value={buildQrcodeValue(num)}
+                        value={qrValue || '-'}
                         size={196}
                         errorLevel="M"
                         bordered={false}
@@ -99,7 +104,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                     </Typography.Text>
                 </div>
             </Col>
-            <Col flex="auto">
+            <Col flex="auto" style={{minWidth: 0}}>
                 <div style={{color: token.colorTextSecondary, fontSize: 12, marginBottom: 6}}>订单号</div>
                 <Typography.Text
                     className={styles.mono}
@@ -124,7 +129,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
             background: token.colorFillQuaternary, color: token.colorTextSecondary
         }}>
             <InfoCircleOutlined style={{marginTop: 2, color: token.colorPrimary}}/>
-            <span>二维码内容仅为订单号本身，不含任何链接或会员信息；下载的图片为白底 PNG，可直接打印。</span>
+            <span>二维码含预约单号与核销码，核销码 1 分钟有效；下载的图片为白底 PNG，可直接打印。</span>
         </div>
     </Modal>;
 }

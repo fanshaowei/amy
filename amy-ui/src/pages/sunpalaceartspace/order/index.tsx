@@ -26,7 +26,7 @@ import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
 import {pruneQueryParams} from '@/utils/exportParams';
-import {cancelOrder, deleteOrders, getOrderSourceName, listOrders} from '@/services/sunpalaceartspace/order';
+import {cancelOrder, deleteOrders, getOrderSourceName, getOrderVerifyCode, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import {ManualOrderModal} from './ManualOrderModal';
 import {OrderQrcodeModal} from './OrderQrcodeModal';
@@ -262,10 +262,11 @@ export default function OrderPage() {
                                  style={{flex: 1, minWidth: 0}}>
                     {row.reservationNum}
                 </Typography.Text>
-                <Tooltip title="生成二维码">
+                {/* 后端仅在「待核销」订单返回 verifyCode；无核销码时不展示二维码入口，避免生成一个核销端无法使用的二维码 */}
+                {getOrderVerifyCode(row) ? <Tooltip title="查看核销二维码">
                     <Button type="text" size="small" icon={<QrcodeOutlined/>}
-                            aria-label="生成二维码" onClick={() => setQrOrder(row)}/>
-                </Tooltip>
+                            aria-label="查看核销二维码" onClick={() => setQrOrder(row)}/>
+                </Tooltip> : null}
             </div>
             : '-'
     }, {

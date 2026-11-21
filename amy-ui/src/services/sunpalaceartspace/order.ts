@@ -35,9 +35,19 @@ export interface ReservationOrderRecord {
     verifyBy?: string;
     verifyTime?: string;
     createTime?: string;
+    /**
+     * 核销码：后端 selectReservationOrderList 仅在「待核销」状态查询时生成并返回，
+     * 已核销 / 已过期 / 已取消订单为 null。前端据此决定是否展示订单二维码。
+     * 小程序订单为 Redis 中的一次性码（1 分钟有效），手动添加订单则为订单号本身。
+     */
+    verifyCode?: string | null;
     /** 随行人信息，每个元素为 UserIdentity JSON 字符串 */
     compUsers?: string[];
 }
+
+/** 取核销码：null / 非字符串 / 纯空白统一归一为空串，供列表与弹窗共用同一判空口径 */
+export const getOrderVerifyCode = (order?: Pick<ReservationOrderRecord, 'verifyCode'> | null): string =>
+    typeof order?.verifyCode === 'string' ? order.verifyCode.trim() : '';
 
 /** 订单来源码 -> 中文名（与后端 OrderSource 枚举保持一致） */
 export const ORDER_SOURCE_TEXT: Record<number, string> = {
