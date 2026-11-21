@@ -19,18 +19,20 @@
     </resultMap>
 
     <sql id="selectReservationUserVo">
-        select reservation_user_id,
-               nickname,
-               name,
-               phone,
-               avatar_img_url,
-               open_id,
-               id_num,
+        select u.reservation_user_id,
+               u.nickname,
+               i.name,
+               i.phone,
+               u.avatar_img_url,
+               u.open_id,
+               i.id_num,
                status + 0 as status,
-               type,
-               is_verified,
-               create_time
-        from biz_spas_reservation_user
+               u.type,
+               u.is_verified,
+               u.create_time
+        from biz_spas_reservation_user u
+        left join biz_spas_user_identity i
+        on u.reservation_user_id = i.reservation_user_id
     </sql>
 
     <!--
@@ -42,10 +44,10 @@
     -->
     <sql id="createTimeRange">
         <if test="entity.params != null and entity.params.beginTime != null and entity.params.beginTime != ''">
-            and create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
+            and u.create_time &gt;= concat(#{entity.params.beginTime}, ' 00:00:00')
         </if>
         <if test="entity.params != null and entity.params.endTime != null and entity.params.endTime != ''">
-            and create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
+            and u.create_time &lt;= concat(#{entity.params.endTime}, ' 23:59:59')
         </if>
     </sql>
 
@@ -58,27 +60,27 @@
         条件统一通过 @Param("entity") 传入；${entity.params.dataScope} 由 @DataScope 切面注入。
     -->
     <sql id="reservationUserWhere">
-        del_flag = '0'
+        u.del_flag = '0'
         <if test="entity.openId != null and entity.openId != ''">
-            and open_id = #{entity.openId}
+            and u.open_id = #{entity.openId}
         </if>
         <if test="entity.nickname != null and entity.nickname != ''">
-            and nickname like concat('%', #{entity.nickname}, '%')
+            and u.nickname like concat('%', #{entity.nickname}, '%')
         </if>
         <if test="entity.name != null and entity.name != ''">
-            and name like concat('%', #{entity.name}, '%')
+            and i.name like concat('%', #{entity.name}, '%')
         </if>
         <if test="entity.phone != null and entity.phone != ''">
-            and phone like concat('%', #{entity.phone}, '%')
+            and i.phone like concat('%', #{entity.phone}, '%')
         </if>
         <if test="entity.status != null">
-            and status = #{entity.status}
+            and u.status = #{entity.status}
         </if>
         <if test="entity.type != null">
-            and type = #{entity.type}
+            and u.type = #{entity.type}
         </if>
         <if test="entity.isVerified != null">
-            and is_verified = #{entity.isVerified}
+            and u.is_verified = #{entity.isVerified}
         </if>
         <include refid="createTimeRange"/>
         <!-- 数据权限 -->
@@ -96,7 +98,7 @@
         <where>
             <include refid="reservationUserWhere"/>
         </where>
-        order by create_time desc
+        order by u.create_time desc
     </select>
 
     <!-- 导出列表：不分页。条件与列表共用 <include>，避免两处写法漂移 -->
@@ -105,7 +107,7 @@
         <where>
             <include refid="reservationUserWhere"/>
         </where>
-        order by create_time desc
+        order by u.create_time desc
     </select>
 
     <!--
@@ -116,7 +118,9 @@
         条件与列表、导出完全一致，保证「看到多少条就能导出多少条」。
     -->
     <select id="selectReservationUserExportCount" resultType="long">
-        select count(1) from biz_spas_reservation_user
+        select count(1) from biz_spas_reservation_user u
+        left join biz_spas_user_identity i
+        on u.reservation_user_id = i.reservation_user_id
         <where>
             <include refid="reservationUserWhere"/>
         </where>
@@ -124,6 +128,6 @@
 
     <select id="selectReservationUserById" parameterType="Long" resultMap="ReservationUserResult">
         <include refid="selectReservationUserVo"/>
-        where reservation_user_id = #{reservationUserId} and del_flag = '0'
+        where u.reservation_user_id = #{reservationUserId} and u.del_flag = '0'
     </select>
 </mapper>
