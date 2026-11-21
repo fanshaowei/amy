@@ -46,6 +46,16 @@ public class ReservationOrder extends BaseEntity {
     @NotNull(message = "预约项目不能为空")
     private Long projectId;
 
+    /**
+     * 预约项目名称（<b>非订单表字段</b>，仅作列表/导出的查询条件）。
+     *
+     * <p>Mapper 的 {@code @Param("entity")} 传的是本实体，XML 里需要 {@code entity.projectName}
+     * 才能拼出项目名称模糊条件。必须标注 {@code exist = false}，否则 MP 的 insert/update
+     * 会把 project_name 当成订单表列写进 SQL，直接报 Unknown column。</p>
+     */
+    @TableField(exist = false)
+    private String projectName;
+
     /** 预约会员ID（关联 biz_spas_reservation_user.reservation_user_id；可空表示匿名预约） */
     @Excel(name = "会员ID", cellType = ColumnType.NUMERIC)
     private Long reservationUserId;

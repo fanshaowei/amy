@@ -70,6 +70,11 @@
         <if test="entity.projectId != null">
             and r.project_id = #{entity.projectId}
         </if>
+        <!-- 预约项目「按名称模糊查」：前端 ProTable 该列传 projectName，条件落在 LEFT JOIN 的项目表上。
+             concat 只作用在参数上，不对列套函数；放在公共 where 中，列表分页与导出自动同口径。 -->
+        <if test="entity.projectName != null and entity.projectName != ''">
+            and p.project_name like concat('%', #{entity.projectName}, '%')
+        </if>
         <if test="entity.name != null and entity.name != ''">
             and r.name like concat('%', #{entity.name}, '%')
         </if>

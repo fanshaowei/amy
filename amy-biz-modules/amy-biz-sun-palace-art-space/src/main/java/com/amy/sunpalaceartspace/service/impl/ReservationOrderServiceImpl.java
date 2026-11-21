@@ -206,6 +206,9 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         order.setReservationOrderId(req.getReservationOrderId());
         order.setReservationNum(req.getReservationNum());
         order.setProjectId(req.getProjectId());
+        // 项目名称是查询条件（订单表无此列）：空白串归一成 null，避免拼出 like '%%' 把条件吃掉
+        String projectName = req.getProjectName();
+        order.setProjectName(projectName == null || projectName.isBlank() ? null : projectName.trim());
         order.setReservationUserId(req.getReservationUserId());
         order.setName(req.getName());
         order.setPhone(req.getPhone());

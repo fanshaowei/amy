@@ -32,6 +32,14 @@ public class ReservationOrderReq {
     private Long projectId;
 
     /**
+     * 预约项目名称（仅用于列表/导出的模糊查询，前端 ProTable「预约项目」搜索框传入）。
+     *
+     * <p>预约订单表本身不存项目名称，条件会落到 LEFT JOIN 的 {@code biz_spas_projects.project_name}。
+     * 新增/修改订单时不参与校验，也不会写入订单表。</p>
+     */
+    private String projectName;
+
+    /**
      * 预约会员ID（关联 biz_spas_reservation_user.reservation_user_id）。
      * 预约时前端不用传,非空时后端不会校验会员是否存在
      */
