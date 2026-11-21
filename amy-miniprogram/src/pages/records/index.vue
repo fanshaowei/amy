@@ -6,6 +6,7 @@ import type { ReserveRecord } from '@/types'
 import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
 import { showError } from '@/utils/request'
+import { requireLogin } from '@/utils/authGuard'
 import RecordCard from '@/components/RecordCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
@@ -16,10 +17,6 @@ const records = ref<ReserveRecord[]>([])
 const loading = ref(true)
 
 async function load() {
-  if (!userStore.loggedIn) {
-    uni.navigateTo({ url: '/pages/login/index' })
-    return
-  }
   loading.value = true
   try {
     await reserveStore.fetchList()
@@ -37,10 +34,17 @@ function onCardClick(orderNum: string) {
 }
 
 onShow(() => {
+  // 未登录 → 跳授权登录页；从登录页放弃授权返回 → 统一回首页
+  if (!requireLogin()) return
   load()
 })
 
 onPullDownRefresh(() => {
+  // 下拉只在已登录时重载，避免重复触发守卫
+  if (!userStore.loggedIn) {
+    uni.stopPullDownRefresh()
+    return
+  }
   load()
 })
 </script>

@@ -15,6 +15,7 @@ import type { UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
 import { isValidIdCard, isValidPhone, decodeRedirect } from '@/utils'
 import { showError } from '@/utils/request'
+import { requireLogin } from '@/utils/authGuard'
 import CardPicker from '@/components/CardPicker.vue'
 
 const userStore = useUserStore()
@@ -282,16 +283,14 @@ function onDeleteFollower(item: UserIdentityRow) {
 }
 
 onLoad((query) => {
+  // redirect 仅用于「实名认证完成后」的回跳，与登录流程无关
   redirect.value = decodeRedirect(query?.redirect as string)
-  if (!userStore.loggedIn) {
-    // 未登录先去登录：带原始 redirect（通常是预约详情页），登录后直接回详情页再由其兜底跳回实名
-    const back = redirect.value || '/pages/verify/index'
-    uni.redirectTo({ url: `/pages/login/index?redirect=${encodeURIComponent(back)}` })
-    return
-  }
 })
 
 onShow(() => {
+  // 未登录 → 授权登录页；从登录页放弃授权返回 → 统一回首页
+  // 登录成功也统一回首页，不再尝试回跳本页
+  if (!requireLogin()) return
   refresh()
 })
 </script>

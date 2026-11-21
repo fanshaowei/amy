@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { RESERVE_STATUS } from '@/types'
 import { getRecordDetail, cancelReserve } from '@/api/reserve'
 import QrcodeCard from '@/components/QrcodeCard.vue'
 import { hmsToHm } from '@/utils'
 import { showError } from '@/utils/request'
+import { requireLogin } from '@/utils/authGuard'
 
 const record = ref<ReserveRecord | null>(null)
+const orderNum = ref('')
+/** 首屏只加载一次，避免 onShow 重复请求 */
+let initialLoaded = false
 
 /** 预约状态（后端：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
@@ -78,7 +82,15 @@ function onCancel() {
 }
 
 onLoad((query) => {
-  load(query?.orderNum || '')
+  orderNum.value = query?.orderNum || ''
+})
+
+onShow(() => {
+  // 未登录 → 授权登录页；从登录页放弃授权返回 → 统一回首页
+  if (!requireLogin()) return
+  if (initialLoaded) return
+  initialLoaded = true
+  load(orderNum.value)
 })
 </script>
 

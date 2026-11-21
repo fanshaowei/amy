@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { showError } from '@/utils/request'
+import { requireLogin } from '@/utils/authGuard'
 
 const userStore = useUserStore()
 
@@ -20,7 +21,8 @@ onLoad((query) => {
 })
 
 onShow(async () => {
-  if (!userStore.loggedIn) return
+  // 未登录 → 授权登录页；从登录页放弃授权返回 → 统一回首页
+  if (!requireLogin()) return
   try {
     const user = await userStore.fetchProfile(true) // 无感刷新，失败不弹提示
     if (user) {

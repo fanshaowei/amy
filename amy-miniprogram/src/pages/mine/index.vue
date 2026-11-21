@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { maskTel } from '@/utils'
+import { openLogin, backHomeIfLoginAbandoned } from '@/utils/authGuard'
 import AppIcon from '@/components/AppIcon.vue'
 
 const userStore = useUserStore()
@@ -27,7 +28,8 @@ function onCardClick() {
   if (userStore.loggedIn) {
     uni.navigateTo({ url: '/pages/edit/index' })
   } else {
-    uni.navigateTo({ url: '/pages/login/index' })
+    // 主动登录入口：记下待授权状态，放弃授权返回时统一回首页
+    openLogin()
   }
 }
 
@@ -85,6 +87,8 @@ function onClearCache() {
 }
 
 onShow(async () => {
+  // 从登录页放弃授权返回 → 统一回首页（本页保持游客可见，作为主动登录入口）
+  if (backHomeIfLoginAbandoned()) return
   if (!userStore.loggedIn) return
   try {
     await userStore.fetchProfile()

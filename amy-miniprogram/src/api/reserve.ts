@@ -127,12 +127,14 @@ export async function getRecords(): Promise<ReserveRecord[]> {
  * 用于首页「预约动态」滚动展示
  * GET /spas/mina/app/reservation/next/day/order
  *
- * 说明：该接口需登录（@MinaApiAuth），未登录时静默失败（skipAuthRedirect），
- * 不影响首页其他内容展示；手机号后端已脱敏。
+ * 说明：后端该接口未加 @MinaApiAuth，属于首页公开信息，游客也要能看到预约动态；
+ * 因此显式 auth:false（否则 request() 默认索要登录态，游客请求发不出，播报恒为空）。
+ * 失败时静默降级为空，不影响首页其他内容展示；手机号后端已脱敏。
  */
 export async function getNextDayReservations(): Promise<NextDayReservation[]> {
   const list = await request<NextDayReservation[]>({
     url: '/spas/mina/app/reservation/next/day/order',
+    auth: false,
     skipAuthRedirect: true,
     // 首页滚动播报属于展示增强，失败时静默降级为空，不弹全局错误提示
     silent: true,

@@ -8,6 +8,7 @@ import { getNotices } from '@/api/notice'
 import { useUserStore } from '@/stores/user'
 import { maskName } from '@/utils'
 import { showError } from '@/utils/request'
+import { clearLoginPending, LOGIN_URL } from '@/utils/authGuard'
 import ActivityCard from '@/components/ActivityCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -48,12 +49,8 @@ const noticeItems = computed(() =>
   })
 )
 
-/** 拉取预约动态（日期由后端生效放号库存决定）：需登录，未登录/失效时静默失败，不影响首页展示 */
+/** 拉取预约动态（日期由后端生效放号库存决定）：公开接口，游客同样展示；失败静默降级 */
 async function loadNotice() {
-  if (!userStore.loggedIn) {
-    nextDayReservations.value = []
-    return
-  }
   try {
     const list = await getNextDayReservations()
     nextDayReservations.value = list
@@ -99,11 +96,10 @@ function goNoticeList() {
 
 /** 点击预约：先在首页完成登录/实名校验，通过后才进预约详情页 */
 async function onBook(id: number) {
-  // 未登录 → 登录页（登录成功后回跳详情页）
+  // 未登录 → 授权登录页。登录成功由登录页统一回首页；
+  // 不授权返回本来就是回到首页（本页即为首页）。redirect 参数已废弃，不再传。
   if (!userStore.loggedIn) {
-    uni.navigateTo({
-      url: `/pages/login/index?redirect=${encodeURIComponent(`/pages/home/index`)}`,
-    })
+    uni.navigateTo({ url: LOGIN_URL })
     return
   }
   // 已登录 → 校验实名状态（静默刷新，缓存兜底；失败不阻断，详情页仍会兜底校验）
@@ -143,10 +139,13 @@ function goAbout() {
   uni.navigateTo({ url: '/pages/about/index' })
 }
 function goProfile() {
-  uni.navigateTo({ url: userStore.loggedIn ? '/pages/edit/index' : '/pages/login/index' })
+  uni.navigateTo({ url: userStore.loggedIn ? '/pages/edit/index' : LOGIN_URL })
 }
 
 onShow(() => {
+  // 回到首页时清掉「待授权」标记：用户从任意入口放弃登录后都收敛到首页，
+  // 下一次进入需登录的子页面才会重新拉起登录页
+  clearLoginPending()
   load()
 })
 

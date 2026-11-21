@@ -57,14 +57,20 @@ function toActivity(raw: MinaHomePageProjectResp): Activity {
 }
 
 /**
- * 首页可预约项目列表
+ * 首页可预约项目列表（公开接口，游客可见）
  * GET /spas/mina/app/homepage/project
+ *
+ * 后端该接口未加 @MinaApiAuth；必须显式 auth:false，
+ * 否则 request() 默认需要登录态，游客连请求都发不出，还会被误判为「登录过期」跳登录页。
  */
 export async function getActivities(): Promise<Activity[]> {
   const page = await requestPage<MinaHomePageProjectResp>({
     url: '/spas/mina/app/homepage/project',
     pageNum: 1,
     pageSize: 100,
+    auth: false,
+    skipAuthRedirect: true,
+    silent: true,
   })
   cachedProjects = (page.rows || []).map(toActivity)
   return cachedProjects

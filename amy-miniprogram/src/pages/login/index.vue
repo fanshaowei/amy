@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { uploadAvatar } from '@/api/user'
 import { showError } from '@/utils/request'
+import { clearLoginPending, HOME_URL } from '@/utils/authGuard'
 import ArtEmblem from '@/components/ArtEmblem.vue'
 
 const userStore = useUserStore()
@@ -19,9 +20,13 @@ const uploadedAvatarUrl = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 
-/** 登录成功后统一回首页（不再按来源页 redirect 回跳） */
+/**
+ * 登录成功后统一回首页（不再按来源页 redirect 回跳）。
+ * 用户放弃授权直接返回时，由来源页的 requireLogin() 守卫统一 switchTab 回首页。
+ */
 function goBack() {
-  uni.switchTab({ url: '/pages/home/index' })
+  clearLoginPending()
+  uni.switchTab({ url: HOME_URL })
 }
 
 /** 调起微信登录拿 code（仅小程序端有效） */

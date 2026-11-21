@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLaunch } from '@dcloudio/uni-app'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 
 onLaunch(() => {
@@ -7,6 +7,12 @@ onLaunch(() => {
   const userStore = useUserStore()
   userStore.restore()
   console.log('App Launch')
+})
+
+onShow(() => {
+  // 从后台回到前台时重新对齐 storage：开发者工具/系统直接清空数据缓存时，
+  // 内存里的 token 会与实际登录态不一致，导致「看似已登录，进子页面又跳登录」。
+  useUserStore().restore()
 })
 </script>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import type { Activity, TimeSlot, UserIdentity as UserIdentityRow } from '@/types'
 import { cardTypeTitle } from '@/types'
 import { getActivityDetail, getSlots } from '@/api/activity'
@@ -11,6 +11,7 @@ import { useUserStore } from '@/stores/user'
 import { useReserveStore } from '@/stores/reserve'
 import { hmsToHm, isValidIdCard, isValidPhone } from '@/utils'
 import { showError } from '@/utils/request'
+import { requireLogin } from '@/utils/authGuard'
 import CountdownBar from '@/components/CountdownBar.vue'
 import NoticeModal from '@/components/NoticeModal.vue'
 import DatePickerModal from '@/components/DatePickerModal.vue'
@@ -413,19 +414,19 @@ async function onCaptchaSuccess(captchaVerification: string) {
   }
 }
 
+/** 首屏数据只加载一次；onShow 会被「从下级页返回」等场景重复触发 */
+let initialLoaded = false
+
 onLoad((query) => {
-  const id = Number(query?.id || 0)
-  activityId.value = id
+  activityId.value = Number(query?.id || 0)
+})
 
-  // 未登录拦截
-  if (!userStore.loggedIn) {
-    uni.navigateTo({
-      url: `/pages/login/index?redirect=${encodeURIComponent(`/pages/detail/index?id=${id}`)}`,
-    })
-    return
-  }
-
-  loadActivity(id)
+onShow(() => {
+  // 未登录 → 授权登录页；从登录页放弃授权返回 → 统一回首页
+  if (!requireLogin()) return
+  if (initialLoaded) return
+  initialLoaded = true
+  loadActivity(activityId.value)
   loadIdentity()
   // 进入后延迟弹出须知
   setTimeout(openNotice, 300)

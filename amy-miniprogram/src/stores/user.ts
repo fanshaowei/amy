@@ -10,6 +10,7 @@ import { defineStore } from 'pinia'
 import type { User } from '@/types'
 import * as userApi from '@/api/user'
 import { clearToken, getToken, setToken } from '@/utils/request'
+import { syncTokenFromStorage } from '@/utils/loginState'
 
 const STORAGE_KEY = 'reservation_user'
 
@@ -21,9 +22,10 @@ export const useUserStore = defineStore('user', {
 
   getters: {
     /**
-     * 是否已登录：以本地缓存中是否存在 spas_token 为唯一标准（实时读取）。
-     * token 被请求层清理（登录过期）后，所有页面判断立即视为未登录，
-     * 不依赖内存 state 的同步时机。
+     * 是否已登录：以 loginState 中的响应式 token 为唯一标准。
+     * getToken() 读取的是 Vue ref，因此登录写入 / 退出清理 / 请求层判定过期时，
+     * 这个 computed getter 会立即重算（不能改成直接读 uni.getStorageSync，
+     * 那样没有响应式依赖，首次求值会被永久缓存）。
      */
     loggedIn: () => !!getToken(),
     /** 是否核销员 */
@@ -39,14 +41,17 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    /** 从本地缓存恢复登录态（登录与否由 getter loggedIn 实时读缓存判断，这里只恢复用户资料） */
+    /** 从本地缓存恢复登录态；同时把外部清缓存后的 storage 状态同步回响应式 token */
     restore() {
       try {
+        syncTokenFromStorage()
         const token = getToken()
         const cached = uni.getStorageSync(STORAGE_KEY)
+        this.token = token
         if (token && cached) {
-          this.token = token
           this.user = cached as User
+        } else if (!token) {
+          this.user = null
         }
       } catch (e) {
         console.error('restore user failed', e)
@@ -62,9 +67,19 @@ export const useUserStore = defineStore('user', {
       const { token, fistTimeLogin } = await userApi.login(payload)
       setToken(token)
       this.token = token
-      const user = await userApi.getProfile()
-      this.user = user
-      uni.setStorageSync(STORAGE_KEY, user)
+      // 资料接口偶发失败不应推翻已成功的登录（token 已到手），
+      // 否则界面会停在登录页却已持有有效 token，头像/昵称也永远拉不到。
+      // 这里静默降级，页面 onShow 的 fetchProfile 会无感补拉。
+      let user: User | null = null
+      try {
+        user = await userApi.getProfile(true)
+      } catch (e) {
+        console.warn('[user] 登录后拉取资料失败，稍后自动重试', e)
+      }
+      if (user) {
+        this.user = user
+        uni.setStorageSync(STORAGE_KEY, user)
+      }
       return { user, fistTimeLogin }
     },
 

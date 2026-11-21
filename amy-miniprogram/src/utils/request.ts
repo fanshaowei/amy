@@ -13,9 +13,10 @@
  */
 
 import type { ApiResult, TableDataInfo } from '@/types'
+import { clearToken, getToken, setLoginPending } from './loginState'
 
-/** 登录 token 缓存 key（与 stores/user.ts 保持一致） */
-export const TOKEN_KEY = 'spas_token'
+// token 统一由 loginState 的响应式 ref 管理，这里转出给 stores/user.ts 等调用方使用
+export { getToken, setToken, clearToken, TOKEN_KEY } from './loginState'
 
 /**
  * 后端接口地址（统一走网关）
@@ -52,18 +53,6 @@ export interface RequestOptions {
   silent?: boolean
   /** 后端未返回 msg 时的兜底提示文案 */
   errorMessage?: string
-}
-
-export function getToken(): string {
-  return uni.getStorageSync(TOKEN_KEY) || ''
-}
-
-export function setToken(token: string) {
-  uni.setStorageSync(TOKEN_KEY, token)
-}
-
-export function clearToken() {
-  uni.removeStorageSync(TOKEN_KEY)
 }
 
 /**
@@ -123,15 +112,42 @@ function rejectWith(
   reject(err)
 }
 
-/** 登录态失效时清理缓存并跳转登录页（并发请求只跳一次） */
+/** 当前是否已停在登录页（避免重复压栈） */
+function isOnLoginPage(): boolean {
+  try {
+    const fn = (globalThis as any).getCurrentPages
+    const pages = typeof fn === 'function' ? fn() : []
+    const last = pages.length ? pages[pages.length - 1] : null
+    return last?.route === 'pages/login/index'
+  } catch (e) {
+    return false
+  }
+}
+
+/**
+ * 登录态失效时清理缓存并跳转登录页（并发请求只跳一次）。
+ *
+ * @param requestToken 发起这条失败请求时使用的 token（无 token 时为空串）。
+ *   只在同一 token 仍生效时才清理：游客期发出的在途请求、或退出登录前的旧请求，
+ *   返回 401 时不能把「刚重新登录写入的新 token」一起清掉。
+ */
 let redirectingLogin = false
-function handleUnauthorized(msg: string) {
+function handleUnauthorized(msg: string, requestToken: string) {
+  // 旧请求（游客期或退出登录前发出）延迟返回的 401，不能影响当前会话：
+  // 不清新写入的 token、不弹「登录已过期」、也不跳登录页
+  if (getToken() !== requestToken) return
   clearToken()
   notifyError(msg)
   if (redirectingLogin) return
   redirectingLogin = true
   setTimeout(() => {
     redirectingLogin = false
+    // 800ms 内用户可能已重新登录：此时不再弹登录页，也不再置「待授权」标记，
+    // 否则登录成功后仍会被守卫判定为未授权，反复跳登录页。
+    if (getToken()) return
+    if (isOnLoginPage()) return
+    // 纳入统一登录守卫：用户放弃授权返回时，来源页 onShow 会据此回首页
+    setLoginPending(true)
     uni.navigateTo({ url: '/pages/login/index' })
   }, 800)
 }
@@ -213,7 +229,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
       const err = new RequestError(msg, { statusCode: 401 })
       err.notified = true
       if (!skipAuthRedirect) {
-        handleUnauthorized(msg)
+        handleUnauthorized(msg, token)
       } else if (!silent) {
         notifyError(msg)
       }
@@ -240,7 +256,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
           const err = new RequestError(msg, { code: statusCode, statusCode })
           err.notified = true
           if (!skipAuthRedirect) {
-            handleUnauthorized(msg)
+            handleUnauthorized(msg, token)
           } else if (!silent) {
             notifyError(msg)
           }
@@ -277,7 +293,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
             (needAuth && (LOGIN_EXPIRED_RE.test(msg) || MISSING_AUTH_RE.test(msg))))
         ) {
           err.notified = true
-          handleUnauthorized('登录已过期，请重新登录')
+          handleUnauthorized('登录已过期，请重新登录', token)
           reject(err)
           return
         }

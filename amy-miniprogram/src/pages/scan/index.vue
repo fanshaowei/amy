@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { RESERVE_STATUS } from '@/types'
 import { queryOrder, confirm } from '@/api/scan'
-import { useUserStore } from '@/stores/user'
 import { hmsToHm } from '@/utils'
 import { showError } from '@/utils/request'
-
-const userStore = useUserStore()
+import { requireLogin } from '@/utils/authGuard'
 
 const view = ref<'scan' | 'result'>('scan')
 const record = ref<ReserveRecord | null>(null)
@@ -122,28 +120,14 @@ function rescan() {
   scannedVerifyCode.value = ''
 }
 
-/** 未登录跳登录页；加防重，避免重复压栈 */
-let navigatingLogin = false
-function requireLogin(): boolean {
-  if (userStore.loggedIn) return true
-  if (navigatingLogin) return false
-  navigatingLogin = true
-  uni.navigateTo({
-    url: '/pages/login/index',
-    complete: () => {
-      navigatingLogin = false
-    },
-  })
-  return false
-}
-
 /**
- * 登录态只在页面创建时校验一次，点击扫码时再兜底校验。
- * 不能放 onShow：真机扫码相机关闭会触发 onShow，未登录时会反复压入登录页；
- * 更不能在 onShow 里重置 view（见 doScan 注释，会导致结果页一闪而过）。
- * 扫码期间 token 若过期，由请求层统一提示并跳转登录页。
+ * 登录守卫放 onShow：未登录跳授权登录页，从登录页放弃授权返回时统一回首页。
+ *
+ * ⚠️ 这里只做登录态判断，【绝不】重置 view 或 record：
+ * 真机 scanCode 关闭相机会额外触发 onShow，若像旧代码那样把 result 改回 scan，
+ * 刚查出来的结果页就会一闪而过（见 doScan 注释）。守卫在已登录时是无副作用的纯判断。
  */
-onLoad(() => {
+onShow(() => {
   requireLogin()
 })
 </script>
