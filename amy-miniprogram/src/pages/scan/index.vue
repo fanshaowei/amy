@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { RESERVE_STATUS } from '@/types'
 import { queryOrder, confirm } from '@/api/scan'
@@ -16,6 +16,10 @@ const record = ref<ReserveRecord | null>(null)
 const confirming = ref(false)
 /** 本次扫码解析出的核销码（旧格式二维码为空，核销时兜底用查询返回的） */
 const scannedVerifyCode = ref('')
+/** 原生扫码相机是否已调起：防止连点重复打开相机 */
+const scanning = ref(false)
+/** 扫码结果查询中：防止上一次查询结果被后一次覆盖 */
+const querying = ref(false)
 
 /** 预约状态（后端：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
@@ -27,16 +31,34 @@ const entryDate = computed(() => (record.value?.reservationTime || '').slice(0, 
 /** 入场时间 */
 const entryTime = computed(() => hmsToHm((record.value?.reservationTime || '').slice(11)))
 
+/**
+ * 调起扫码。
+ *
+ * ⚠️ 真机（尤其 iPhone）会打开微信原生相机页：本页 onHide，相机关闭回来又 onShow，
+ * 且 onShow 的派发时机不保证早于扫码结果查询完成，部分机型还会连续触发两次。
+ * 因此本页【不能】在 onShow 里重置 view —— 否则刚查出来的结果页会被这次 onShow
+ * 立刻打回扫码页，表现就是「结果一闪而过」。开发者工具是模拟扫码、不打开原生相机页，
+ * 所以只在真机复现。结果页仅由「重新扫码」按钮主动重置。
+ */
 function doScan() {
+  if (!requireLogin()) return
+  if (scanning.value || querying.value) return
+  scanning.value = true
   uni.scanCode({
     scanType: ['qrCode'],
-    success: async (res) => {
+    success: (res) => {
+      scanning.value = false
       const parsed = parseQrContent(res.result)
       scannedVerifyCode.value = parsed.verifyCode
-      await handleOrderCode(parsed.orderNum)
+      void handleOrderCode(parsed.orderNum)
     },
     fail: () => {
-      // 取消扫码
+      scanning.value = false
+      // 用户取消扫码：保持扫码页，不提示
+    },
+    complete: () => {
+      // 兜底复位：个别基础库可能不派发 complete
+      scanning.value = false
     },
   })
 }
@@ -62,20 +84,24 @@ function parseQrContent(raw: string): { orderNum: string; verifyCode: string } {
 /** 扫码后按预约单号查询（二维码内容携带预约单号） */
 async function handleOrderCode(orderNum: string) {
   const num = (orderNum || '').trim()
-  if (!num) return
+  if (!num || querying.value) return
+  querying.value = true
   uni.showLoading({ title: '查询中' })
   try {
-    record.value = await queryOrder(num)
+    const detail = await queryOrder(num)
+    record.value = detail
     view.value = 'result'
   } catch (e) {
+    // 查询失败保持在扫码页，提示后可重新扫码
     showError(e, '查询失败')
   } finally {
+    querying.value = false
     uni.hideLoading()
   }
 }
 
 async function onConfirm() {
-  if (!record.value) return
+  if (!record.value || confirming.value) return
   confirming.value = true
   try {
     // 优先用扫码得到的核销码，兜底用查询返回的
@@ -96,14 +122,29 @@ function rescan() {
   scannedVerifyCode.value = ''
 }
 
-onShow(() => {
-  // 核销功能需登录（后端按 token 鉴权并校验核销员身份）
-  if (!userStore.loggedIn) {
-    uni.navigateTo({ url: '/pages/login/index' })
-    return
-  }
-  // 回到扫码页时重置
-  if (view.value === 'result') view.value = 'scan'
+/** 未登录跳登录页；加防重，避免重复压栈 */
+let navigatingLogin = false
+function requireLogin(): boolean {
+  if (userStore.loggedIn) return true
+  if (navigatingLogin) return false
+  navigatingLogin = true
+  uni.navigateTo({
+    url: '/pages/login/index',
+    complete: () => {
+      navigatingLogin = false
+    },
+  })
+  return false
+}
+
+/**
+ * 登录态只在页面创建时校验一次，点击扫码时再兜底校验。
+ * 不能放 onShow：真机扫码相机关闭会触发 onShow，未登录时会反复压入登录页；
+ * 更不能在 onShow 里重置 view（见 doScan 注释，会导致结果页一闪而过）。
+ * 扫码期间 token 若过期，由请求层统一提示并跳转登录页。
+ */
+onLoad(() => {
+  requireLogin()
 })
 </script>
 
