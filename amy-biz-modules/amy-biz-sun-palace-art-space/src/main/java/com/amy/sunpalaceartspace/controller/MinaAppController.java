@@ -104,8 +104,7 @@ public class MinaAppController extends BaseController {
     @MinaApiAuth
     @GetMapping("/project/reservation/info/{projectId}")
     public R<MinaProjectReservationInfoResp> getProjectReservationInfo(
-            @PathVariable("projectId") @NotNull @Min(1) Long projectId
-    ) {
+            @PathVariable("projectId") @NotNull @Min(1) Long projectId) {
         MinaProjectReservationInfoResp resp = minaAppService.extractProjectReservationInfo(projectId);
         return R.ok(resp);
     }
@@ -280,7 +279,6 @@ public class MinaAppController extends BaseController {
      * 获取第二天预约记录,用于小程序实时数据看板
      * @return
      */
-    @MinaApiAuth
     @GetMapping("/reservation/next/day/order")
     public R<List<NextDayReservationOrderResp>> getNextDayReservationOrder() {
         return R.ok(minaAppService.getNextDayReservationOrder());

@@ -1,13 +1,10 @@
 package com.amy.sunpalaceartspace.service;
 
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
 import com.amy.sunpalaceartspace.domain.entity.ReservationStock;
 import com.amy.sunpalaceartspace.enums.ReservationStockStatus;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.IService;
 
 /**
@@ -41,10 +38,10 @@ public interface IReservationStockService extends IService<ReservationStock> {
      * <p>reservationTime DATETIME，传一个 Date 下界（含）即可筛出该时刻及之后的所有库存。</p>
      *
      * @param projectId 项目ID
-     * @param minTime   时间下界（含）
+     * @param minDate   时间下界（含）
      * @return 库存列表
      */
-    List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, Date minTime);
+    List<ReservationStock> selectValidStockByIdAndTimeGe(Long projectId, Date minDate);
 
     /**
      * 预约成功后累加已预约数（用于库存统计：可用 = 已放号 - 已预约）

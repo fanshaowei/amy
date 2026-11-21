@@ -67,40 +67,54 @@ public class MinaAppService {
         criteria.setStatus(ProjectStatus.NORMAL.getCode());
         IPage<Projects> projectsIPage = projectsService.selectProjectsList(page, criteria);
 
+        Date todayStart = DateUtils.toDate(LocalDate.now());
         IPage<MinaHomePageProjectResp> pageResp = new Page<>();
         List<MinaHomePageProjectResp> list = projectsIPage.getRecords()
                 .stream()
                 .filter(project -> Objects.equals(project.getStatus(), ProjectStatus.NORMAL.getCode()))
                 .map(project -> {
-            List<String> reservationDates = reservationUtil.extractReservationDatesFromCurrent(project.getAdvanceReservationDays());
-            // 可预约总数
-            Integer totalReservationCount = calculateTotalReservationCount(
-                    project.getReservationStartTime(),
-                    project.getReservationEndTime(),
-                    project.getReservationIntervalSecond(),
-                    project.getReservationCount());
-            //剩余可预约次数 = 预约总次数 - 已预约次数
-            Integer reservationCount = calculateDateReservationCount(project.getProjectId(), project.getAdvanceReservationDays());
-            Integer remainingReservationCount = totalReservationCount - reservationCount;
-            Integer reservationStatus = calculateReservationStatus(totalReservationCount, reservationCount);
+                    List<ReservationStock> stocks = reservationStockService.selectValidStockByIdAndTimeGe(project.getProjectId(), todayStart);
+                    TreeMap<String, List<ReservationStock>> stringListTreeMap = this.groupStocksByDate(stocks);
 
-            MinaHomePageProjectResp resp = MinaHomePageProjectResp.builder()
-                    .projectId(project.getProjectId())
-                    .projectName(project.getProjectName())
-                    .coverArtUrl(project.getCoverArtUrl())
-                    .reservationStartDate(reservationDates.getFirst())
-                    .reservationEndDate(reservationDates.getLast())
-                    .reservationStartTime(project.getReservationStartTime())
-                    .reservationEndTime(project.getReservationEndTime())
-                    .totalReservationCount(totalReservationCount)
-                    .remainingReservationCount(remainingReservationCount)
-                    .reservationStatus(reservationStatus)
-                    .cutOffTime(project.getCutOffTime())
-                    .reservationStaySecond(project.getReservationStaySecond())
-                    .build();
+                    Integer totalReservationCount = stocks.stream()
+                            .mapToInt(ReservationStock::getReleaseCount)
+                            .sum();
+                    Integer reservationCount = stocks.stream()
+                            .mapToInt(ReservationStock::getReservedCount)
+                            .sum();
+                    Integer remainingReservationCount = stocks.stream()
+                            .mapToInt(stock -> stock.getReleaseCount() - stock.getReservedCount())
+                            .sum();
 
-            BeanUtils.copyProperties(project, resp);
-            return resp;
+                    List<String> reservationDates = List.of(
+                            stringListTreeMap.firstKey(),
+                            stringListTreeMap.lastKey()
+                    );
+
+                    List<String> reservationTimes = List.of(
+                            DateUtils.parseDateToStr(DateUtils.HH_MM_SS, stringListTreeMap.firstEntry().getValue().getFirst().getReservationTime()),
+                            DateUtils.parseDateToStr(DateUtils.HH_MM_SS, stringListTreeMap.firstEntry().getValue().getLast().getReservationTime())
+                    );
+
+                    Integer reservationStatus = calculateReservationStatus(totalReservationCount, reservationCount);
+
+                    MinaHomePageProjectResp resp = MinaHomePageProjectResp.builder()
+                            .projectId(project.getProjectId())
+                            .projectName(project.getProjectName())
+                            .coverArtUrl(project.getCoverArtUrl())
+                            .reservationStartDate(reservationDates.getFirst())
+                            .reservationEndDate(reservationDates.getLast())
+                            .reservationStartTime(reservationTimes.getFirst())
+                            .reservationEndTime(reservationTimes.getLast())
+                            .totalReservationCount(totalReservationCount)
+                            .remainingReservationCount(remainingReservationCount)
+                            .reservationStatus(reservationStatus)
+                            .cutOffTime(project.getCutOffTime())
+                            .reservationStaySecond(project.getReservationStaySecond())
+                            .build();
+
+                    BeanUtils.copyProperties(project, resp);
+                    return resp;
         }).toList();
         BeanUtils.copyProperties(projectsIPage, pageResp);
         pageResp.setRecords(list);
@@ -168,23 +182,13 @@ public class MinaAppService {
                 .build();
 
         Date todayStart = DateUtils.toDate(LocalDate.now());
-        List<ReservationStock> stocks = reservationStockService.selectByProjectIdAndTimeGe(projectId, todayStart);
+        List<ReservationStock> stocks = reservationStockService.selectValidStockByIdAndTimeGe(projectId, todayStart);
         if (stocks.isEmpty()) {
             log.info("项目当天及以后暂无库存记录: projectId:{} today:{}", projectId, todayStart);
             return resp;
         }
-
         // 按日期分组（TreeMap 保证日期升序）；日期 key 直接从 DATETIME 字段格式化得到 yyyy-MM-dd
-        Map<String, List<ReservationStock>> stocksByDate = new TreeMap<>();
-        for (ReservationStock stock : stocks) {
-            Date reservationTime = stock.getReservationTime();
-            if (reservationTime == null) {
-                log.warn("库存记录 reservation_time 为空，已跳过: stockId:{}", stock.getReservationStockId());
-                continue;
-            }
-            String dateKey = DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, reservationTime);
-            stocksByDate.computeIfAbsent(dateKey, key -> new LinkedList<>()).add(stock);
-        }
+        Map<String, List<ReservationStock>> stocksByDate = groupStocksByDate(stocks);
 
         stocksByDate.forEach((datePrefix, dayStocks) -> {
             // 同一天内按时段升序
@@ -200,6 +204,20 @@ public class MinaAppService {
             resp.getReservationDetails().add(reservationDetails);
         });
         return resp;
+    }
+
+    private TreeMap<String, List<ReservationStock>> groupStocksByDate(List<ReservationStock> stocks) {
+        TreeMap<String, List<ReservationStock>> stocksByDate = new TreeMap<>();
+        for (ReservationStock stock : stocks) {
+            Date reservationTime = stock.getReservationTime();
+            if (reservationTime == null) {
+                log.warn("库存记录 reservation_time 为空，已跳过: stockId:{}", stock.getReservationStockId());
+                continue;
+            }
+            String dateKey = DateUtils.parseDateToStr(DateUtils.YYYY_MM_DD, reservationTime);
+            stocksByDate.computeIfAbsent(dateKey, key -> new LinkedList<>()).add(stock);
+        }
+        return stocksByDate;
     }
 
     /**

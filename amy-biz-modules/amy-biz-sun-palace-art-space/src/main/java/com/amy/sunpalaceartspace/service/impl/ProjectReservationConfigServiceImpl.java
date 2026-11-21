@@ -8,8 +8,8 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigGroupVO;
 import com.amy.sunpalaceartspace.domain.vo.ProjectReservationConfigVO;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
+import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
 import com.amy.sunpalaceartspace.service.IProjectReservationConfigService;
-import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.ProjectReservationConfigChecker;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -51,7 +51,7 @@ public class ProjectReservationConfigServiceImpl
      * 只注入 Mapper，不反向依赖本类的 Service。红线是：ProjectsServiceImpl 里不要注入
      * IProjectReservationConfigService。</p>
      */
-    private final IProjectsService projectsService;
+    private final ProjectsMapper projectsMapper;
 
     @Override
     public IPage<ProjectReservationConfigVO> selectConfigList(Page<ProjectReservationConfigVO> page,
@@ -190,7 +190,7 @@ public class ProjectReservationConfigServiceImpl
      */
     private Map<Long, String> loadProjectNames(Collection<Long> ids) {
         try {
-            return projectsService.listByIds(ids).stream()
+            return projectsMapper.selectByIds(ids).stream()
                     .collect(Collectors.toMap(Projects::getProjectId, Projects::getProjectName,
                             (a, b) -> a, LinkedHashMap::new));
         } catch (Exception e) {

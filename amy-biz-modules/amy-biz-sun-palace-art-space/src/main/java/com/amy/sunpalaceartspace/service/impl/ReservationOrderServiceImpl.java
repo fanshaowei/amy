@@ -190,7 +190,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     @Override
     public List<ReservationOrderVO> selectNextDayReservationOrder() {
         // 次日 = 明天 00:00:00（含） ～ 后天 00:00:00（不含）。
-        // 用半开区间而不是 date(reservation_time) = date(...)：后者对列做函数运算会让索引失效，大表全表扫描。
         LocalDate nextDay = LocalDate.now().plusDays(1);
         Date startTime = Date.from(nextDay.atStartOfDay(ZoneId.systemDefault()).toInstant());
         Date endTime = Date.from(nextDay.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());

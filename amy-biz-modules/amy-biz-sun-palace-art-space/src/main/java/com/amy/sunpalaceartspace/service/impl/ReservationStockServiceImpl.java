@@ -50,10 +50,11 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
     }
 
     @Override
-    public List<ReservationStock> selectByProjectIdAndTimeGe(Long projectId, Date minTime) {
+    public List<ReservationStock> selectValidStockByIdAndTimeGe(Long projectId, Date minDate) {
         LambdaQueryWrapper<ReservationStock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationStock::getProjectId, projectId)
-                .ge(ReservationStock::getReservationTime, minTime)
+                .eq(ReservationStock::getStatus, ReservationStockStatus.AVAILABLE.getCode())
+                .ge(ReservationStock::getReservationTime, minDate)
                 .orderByAsc(ReservationStock::getReservationTime);
         return list(wrapper);
     }
