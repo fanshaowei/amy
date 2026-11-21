@@ -137,10 +137,16 @@ const TipBox = ({
     lineHeight: 1.8,
     display: 'flex',
     gap: 6,
-    alignItems: 'flex-start'
+    alignItems: 'center'
 }}>
-    <span style={{marginTop: 4}}>{icon}</span>
-    <span>{text}</span>
+    <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        lineHeight: 1
+    }}>{icon}</span>
+    <span style={{flex: 1, minWidth: 0}}>{text}</span>
 </div>;
 
 const pad = (value: number) => String(value).padStart(2, '0');

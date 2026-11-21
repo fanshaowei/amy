@@ -8,12 +8,7 @@ import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaHomePageProjectResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaNoticeDetailResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaNoticeItemResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaProjectReservationInfoResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.MinaReservationUserInfoResp;
-import com.amy.sunpalaceartspace.domain.resp.mina.NextDayReservationOrderResp;
+import com.amy.sunpalaceartspace.domain.resp.mina.*;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
@@ -302,11 +297,19 @@ public class MinaAppService {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
         Integer orderSource = reservationOrder.getOrderSource();
         // 小程序订单的核销码有效期验证
-        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
-            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
-            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
-                throw new ServiceException("无效核销码");
-            }
+//        if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
+//            Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
+//            if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
+//                throw new ServiceException("无效核销码");
+//            }
+//        }
+        Date reservationTime = reservationOrder.getReservationTime();
+        Date reservationDate = DateUtils.toDate(reservationTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        Date nowDate = DateUtils.parseDate(DateUtils.getDate());
+        if(nowDate.before(reservationDate)) {
+            throw new ServiceException("预约时间未到，无法核销");
+        }else if(nowDate.after(reservationDate)) {
+            throw new ServiceException("预约时间已过，无法核销");
         }
 
         //校验订单是否待核销状态

@@ -80,6 +80,15 @@ const toTimeStr = (value: unknown): string => {
     return short?.[1] ? `${short[1]}:00` : text;
 };
 
+/**
+ * 预约日期是否早于今天。
+ */
+const isBeforeToday = (value: unknown): boolean => {
+    if (!value) return false;
+    const date = dayjs.isDayjs(value) ? value : dayjs(String(value));
+    return date.isValid() && date.startOf('day').isBefore(dayjs().startOf('day'));
+};
+
 /** 分区标题：主色徽标 + 标题 + 右侧灰色说明，颜色全部取自当前主题 */
 function SectionHead({icon, title, hint}: { icon: ReactNode; title: string; hint?: string }) {
     const {token} = theme.useToken();
@@ -209,6 +218,10 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                 message.error('请选择预约日期和时段');
                 return false;
             }
+            if (isBeforeToday(date)) {
+                message.error('预约日期只能选择今天及之后的日期');
+                return false;
+            }
             try {
                 const result = await addManualOrder({
                     projectId: Number(values.projectId),
@@ -285,8 +298,23 @@ export function ManualOrderModal({open, onClose, onSuccess}: Props) {
                 <Col span={12}>
                     <ProFormDatePicker
                         name="reservationDate" label="预约日期" placeholder="请选择日期"
-                        fieldProps={{style: {width: '100%'}, disabled: locked}}
-                        rules={[{required: true, message: '请选择预约日期'}]}
+                        extra="仅可预约今天及之后的日期"
+                        fieldProps={{
+                            style: {width: '100%'},
+                            disabled: locked,
+                            // 日历面板里直接置灰所有过去的日期，按自然日比较以保留今天
+                            disabledDate: (current: dayjs.Dayjs) => !!current
+                                && current.startOf('day').isBefore(dayjs().startOf('day'))
+                        }}
+                        rules={[
+                            {required: true, message: '请选择预约日期'},
+                            {
+                                // 兜底：手动键入 / 粘贴 / 表单残留值绕过日历置灰时仍拦住
+                                validator: (_rule: unknown, value: unknown) => isBeforeToday(value)
+                                    ? Promise.reject(new Error('预约日期只能选择今天及之后'))
+                                    : Promise.resolve()
+                            }
+                        ]}
                     />
                 </Col>
                 <Col span={12}>
