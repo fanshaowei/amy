@@ -370,9 +370,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             return reservationNum;
         }
         // 与列表返回的 verifyCodeEffectiveDuration 使用同一份配置，前端倒计时才能与 TTL 对齐。
-        String key = String.format(RESERVATION_ORDER_VERIFY_CODE, reservationNum);
-        String verifyCode = UUID.randomUUID().toString();
-        redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
-        return verifyCode;
+        return getReservationVerifyCode(reservationNum);
     }
 }
