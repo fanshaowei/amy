@@ -274,25 +274,56 @@ public class ServletUtils
     }
 
     /**
-     * 设置webflux模型响应
+     * 网关错误响应（推荐入口）：HTTP 状态码与响应体业务码统一使用 status.value()。
+     *
+     * <p>响应体仍是标准 R 结构 R.fail(code, msg)，按 body.code / body.msg 判断的客户端
+     * （后台、小程序）无需同步改动；同时 HTTP 层正确表达 401/403/404/429/500 语义，
+     * 便于监控、缓存策略以及 axios/fetch 的 error 分支识别。</p>
+     *
+     * <p>下面两个以 int code 结尾的重载会把 HTTP 状态固定为 200，只把 code 写进响应体。
+     * 历史上 AuthFilter 传入 HttpStatus.UNAUTHORIZED（int 常量 401）命中的正是那个重载，
+     * 导致鉴权失败被伪装成 HTTP 200；网关侧「请求被拒绝 / 处理失败」请勿再使用它们。</p>
+     *
+     * @param response ServerHttpResponse
+     * @param status HTTP 状态码（Spring 枚举，如 HttpStatus.UNAUTHORIZED）
+     * @param msg 返回给调用方的中文提示
+     * @return Mono&lt;Void&gt;
+     */
+    public static Mono<Void> webFluxResponseWriter(ServerHttpResponse response, HttpStatus status, String msg)
+    {
+        String text = (msg == null || msg.isBlank()) ? status.getReasonPhrase() : msg;
+        return webFluxResponseWriter(response, MediaType.APPLICATION_JSON_VALUE, status,
+                text, status.value());
+    }
+
+    /**
+     * 设置webflux模型响应。
+     *
+     * @deprecated HTTP 状态固定为 200（失败也被当成成功响应），仅用于兼容旧调用；
+     *             网关错误请改用 {@link #webFluxResponseWriter(ServerHttpResponse, HttpStatus, String)}。
      *
      * @param response ServerHttpResponse
      * @param value 响应内容
-     * @return Mono<Void>
+     * @return Mono&lt;Void&gt;
      */
+    @Deprecated
     public static Mono<Void> webFluxResponseWriter(ServerHttpResponse response, Object value)
     {
         return webFluxResponseWriter(response, HttpStatus.OK, value, R.FAIL);
     }
 
     /**
-     * 设置webflux模型响应
+     * 设置webflux模型响应。
+     *
+     * @deprecated HTTP 状态固定为 200，第三个参数只是写进响应体的业务码，不是 HTTP 状态码；
+     *             网关错误请改用 {@link #webFluxResponseWriter(ServerHttpResponse, HttpStatus, String)}。
      *
      * @param response ServerHttpResponse
-     * @param code 响应状态码
+     * @param code 响应业务码
      * @param value 响应内容
-     * @return Mono<Void>
+     * @return Mono&lt;Void&gt;
      */
+    @Deprecated
     public static Mono<Void> webFluxResponseWriter(ServerHttpResponse response, Object value, int code)
     {
         return webFluxResponseWriter(response, HttpStatus.OK, value, code);
@@ -326,7 +357,8 @@ public class ServletUtils
     {
         response.setStatusCode(status);
         response.getHeaders().add(HttpHeaders.CONTENT_TYPE, contentType);
-        R<?> result = R.fail(code, value.toString());
+        // value 可能为 null（如 ValidateCodeFilter 里 e.getMessage() 为空），兜底避免 NPE
+        R<?> result = R.fail(code, String.valueOf(value));
         DataBuffer dataBuffer = response.bufferFactory().wrap(JSON.toJSONString(result).getBytes());
         return response.writeWith(Mono.just(dataBuffer));
     }

@@ -109,6 +109,53 @@ function extractBackendMessage(error: unknown): string | undefined {
     return undefined;
 }
 
+/**
+ * 登录态失效：收到第一个过期响应就提示一次并立即跳回登录页。
+ *
+ * 网关 AuthFilter 调用 webFluxResponseWriter(res, msg, HttpStatus.UNAUTHORIZED)，
+ * 命中的是「(response, value, int code)」重载：HTTP 状态仍是 200，401 写在响应体
+ * R.fail(401, msg) 里。因此 responseInterceptors 里判断 response.status === 401
+ * 的分支永远走不到；停留在页面上时一次操作会并发发出多个请求，旧逻辑每个响应
+ * 都走「code !== 200」各弹一次 message.error，屏幕上就叠出一串「登录状态已过期」，
+ * 且既不清 token 也不跳登录页。
+ *
+ * expiredToken 记录触发过期的那个 token：同一轮的并发 401 全部静默；
+ * 重新登录后 token 换发，自动复位，下次过期仍能正常处理。
+ */
+let expiredToken: string | null = null;
+const SESSION_EXPIRED_MESSAGE_KEY = 'session-expired';
+
+/**
+ * @returns true 表示已按「会话过期」处理（调用方应静默 reject）；
+ *          false 表示不属于会话过期（登录页 / 未登录），按普通业务错误处理。
+ */
+function handleSessionExpired(msg?: string): boolean {
+    const token = getToken();
+    if (expiredToken !== null) {
+        if (token && token !== expiredToken) {
+            // 期间已重新登录（换发新 token），复位以便下次过期继续生效
+            expiredToken = null;
+        } else {
+            // 本轮已处理过：清 session 后返回的并发请求 / 旧请求，全部静默
+            return true;
+        }
+    }
+    // 未登录（如登录页的公开接口报错）或已在登录页：不跳转，按普通错误提示
+    if (!token || history.location.pathname === '/login') return false;
+
+    expiredToken = token;
+    clearSession();
+    // 固定 key 兜底去重：即使并发响应漏过上面的判断，也只会显示一个提示
+    antdMessage.error({
+        content: msg || '登录状态已过期，请重新登录',
+        key: SESSION_EXPIRED_MESSAGE_KEY,
+        duration: 3,
+    });
+    const current = `${history.location.pathname}${history.location.search}`;
+    history.push(`/login?redirect=${encodeURIComponent(current)}`);
+    return true;
+}
+
 export const request: RequestConfig = {
     baseURL: API_BASE_URL,
     timeout: 10000,
@@ -126,15 +173,21 @@ export const request: RequestConfig = {
     ],
     responseInterceptors: [
         async (response) => {
-            if (response.status === 401) {
-                clearSession();
-                history.push(`/login?redirect=${encodeURIComponent(history.location.pathname)}`);
-                return Promise.reject(new Error('未登录'));
+            const body = response.data as { code?: number; msg?: string } | undefined;
+            // 登录态失效：网关返回 HTTP 200 + {code:401,msg:'登录状态已过期'}（兼容真 HTTP 401）。
+            // 首个 401 弹一次提示并立即跳登录页，同一次操作里并发的其余 401 静默拒绝，
+            // 避免一串重复 toast 堆在页面上、也不让页面继续停留在已失效的后台。
+            if (response.status === 401 || body?.code === 401) {
+                if (handleSessionExpired(body?.msg)) {
+                    const error = new Error(body?.msg || '登录状态已过期');
+                    // 标记已处理：errorHandler 不再提示、不再打日志
+                    (error as Error & { sessionExpired?: boolean }).sessionExpired = true;
+                    return Promise.reject(error);
+                }
             }
             // RuoYi 业务错误：code 非 200（如 601 菜单已分配不允许删除、500 通用失败等）。
             // umi-request 默认只对 data.success === false 触发 errorThrower，
             // RuoYi 后端无该字段，所以这里手动拦截并提示错误 + reject。
-            const body = response.data as { code?: number; msg?: string } | undefined;
             if (body && typeof body === 'object' && typeof body.code === 'number' && body.code !== 200 && body.code !== 0) {
                 const errorMsg = body.msg || '请求失败';
                 antdMessage.error(errorMsg);
@@ -153,6 +206,19 @@ export const request: RequestConfig = {
             }
         },
         errorHandler: (error) => {
+            // 响应拦截器已按「会话过期」处理过（提示一次 + 跳转），不再重复提示或打日志
+            if ((error as Error & { sessionExpired?: boolean }).sessionExpired) throw error;
+
+            // 真 HTTP 401 会被 axios 直接 reject、绕过响应拦截器，这里兜底走同一套过期处理
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            if (status === 401) {
+                const expiredMsg = extractBackendMessage(error);
+                if (handleSessionExpired(expiredMsg)) {
+                    (error as Error & { backendNotified?: boolean }).backendNotified = true;
+                    throw error;
+                }
+            }
+
             // 业务异常：后端以 HTTP 600(BUSINESS_ERROR) 返回 {code,msg}，axios 视为请求失败、
             // 绕过响应拦截器。这里补提示，并把中文 msg 写回 error.message，
             // 否则调用方 catch 里只会看到 "Request failed with status code 600"。

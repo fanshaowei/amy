@@ -6,11 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import com.amy.common.core.constant.CacheConstants;
-import com.amy.common.core.constant.HttpStatus;
 import com.amy.common.core.constant.SecurityConstants;
 import com.amy.common.core.constant.TokenConstants;
 import com.amy.common.core.utils.JwtUtils;
@@ -104,7 +104,9 @@ public class AuthFilter implements GlobalFilter, Ordered
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String msg)
     {
         log.error("[鉴权异常处理]请求路径:{},错误信息:{}", exchange.getRequest().getPath(), msg);
-        return ServletUtils.webFluxResponseWriter(exchange.getResponse(), msg, HttpStatus.UNAUTHORIZED);
+        // HTTP 401 + 响应体 R.fail(401, msg)：HTTP 语义正确，同时保留业务码供旧客户端识别。
+        // 注意别写成 webFluxResponseWriter(res, msg, 401)，那会把 401 当业务码并返回 HTTP 200。
+        return ServletUtils.webFluxResponseWriter(exchange.getResponse(), HttpStatus.UNAUTHORIZED, msg);
     }
 
     /**

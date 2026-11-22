@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.http.HttpStatus;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.stereotype.Component;
 import com.amy.common.core.utils.ServletUtils;
@@ -24,7 +25,7 @@ public class BlackListUrlFilter extends AbstractGatewayFilterFactory<BlackListUr
             String url = exchange.getRequest().getURI().getPath();
             if (config.matchBlacklist(url))
             {
-                return ServletUtils.webFluxResponseWriter(exchange.getResponse(), "请求地址不允许访问");
+                return ServletUtils.webFluxResponseWriter(exchange.getResponse(), HttpStatus.FORBIDDEN, "请求地址不允许访问");
             }
 
             return chain.filter(exchange);

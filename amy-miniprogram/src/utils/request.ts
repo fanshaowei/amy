@@ -159,11 +159,16 @@ const LOGIN_EXPIRED_RE = /未登录|登录已过期|token|鉴权/i
  */
 const MISSING_AUTH_RE = /required request header .+ is not present/i
 
-/** 网关/服务端返回非 R 结构（HTML、纯文本）时，按 HTTP 状态码给出可读文案 */
+/**
+ * 网关/服务端返回非 R 结构（HTML、纯文本）时，按 HTTP 状态码给出可读文案。
+ * 网关现在按语义返回 400/401/403/404/429/5xx，标准 R 结构会优先用后端 msg。
+ */
 function httpErrorMessage(statusCode: number): string {
+  if (statusCode === 400) return '请求参数有误，请检查后重试'
+  if (statusCode === 403) return '没有访问权限'
+  if (statusCode === 404) return '接口不存在，请联系管理员'
   if (statusCode === 429) return '操作过于频繁，请稍候再试'
   if (statusCode >= 500) return '服务暂时不可用，请稍后重试'
-  if (statusCode === 404) return '接口不存在，请联系管理员'
   return `请求失败（${statusCode}）`
 }
 
@@ -250,8 +255,10 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         const body = parseBody<T>(res.data)
         const statusCode = res.statusCode
 
-        // 1. 鉴权类 HTTP 状态：固定提示 + 清理登录态
-        if (statusCode === 401 || statusCode === 403) {
+        // 1. 仅 401 代表登录态失效：固定提示 + 清理登录态。
+        //    403（黑名单 / 无权限）不能复用这条，否则会被误判成登录过期、清掉 token 并跳登录页；
+        //    它会继续走下面的 R 结构解析，用后端返回的中文 msg 提示。
+        if (statusCode === 401) {
           const msg = '登录已过期，请重新登录'
           const err = new RequestError(msg, { code: statusCode, statusCode })
           err.notified = true

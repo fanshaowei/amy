@@ -3,6 +3,7 @@ package com.amy.gateway.handler;
 import com.alibaba.csp.sentinel.adapter.gateway.sc.callback.GatewayCallbackManager;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.amy.common.core.utils.ServletUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
@@ -17,7 +18,8 @@ public class SentinelFallbackHandler implements WebExceptionHandler
 {
     private Mono<Void> writeResponse(ServerResponse response, ServerWebExchange exchange)
     {
-        return ServletUtils.webFluxResponseWriter(exchange.getResponse(), "操作过于频繁，请稍候再试");
+        return ServletUtils.webFluxResponseWriter(exchange.getResponse(), HttpStatus.TOO_MANY_REQUESTS,
+                "操作过于频繁，请稍候再试");
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import com.alibaba.fastjson2.JSON;
@@ -58,7 +59,9 @@ public class ValidateCodeFilter extends AbstractGatewayFilterFactory<Object>
             }
             catch (Exception e)
             {
-                return ServletUtils.webFluxResponseWriter(exchange.getResponse(), e.getMessage());
+                // 验证码错误 / 已失效 / 请求体解析失败都属于客户端参数问题
+                return ServletUtils.webFluxResponseWriter(exchange.getResponse(), HttpStatus.BAD_REQUEST,
+                        StringUtils.isEmpty(e.getMessage()) ? "验证码校验失败" : e.getMessage());
             }
             return chain.filter(exchange);
         };
