@@ -57,6 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectProjectsList" resultMap="ProjectsResult">
         <include refid="selectProjectsVo"/>
         <where>
+            del_flag = '0'
             <if test="entity.projectName != null and entity.projectName != ''">
                 AND project_name like concat('%', #{entity.projectName}, '%')
             </if>
