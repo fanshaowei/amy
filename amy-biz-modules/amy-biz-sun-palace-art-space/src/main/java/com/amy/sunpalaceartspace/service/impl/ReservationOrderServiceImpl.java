@@ -353,9 +353,9 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
 
     public String getReservationVerifyCode(String reservationNum) {
         String key = String.format(RESERVATION_ORDER_VERIFY_CODE, reservationNum);
-        Object verifyCode = redisService.getCacheObject(key);
+        String verifyCode = UUID.randomUUID().toString();
         redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
-        return verifyCode.toString();
+        return verifyCode;
     }
 
     @Override
