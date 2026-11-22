@@ -377,6 +377,8 @@ public class MinaAppService {
         log.info("save/update user identify completed");
 
         log.info("update reservation user verify status, userId:{}", req.getUserIdentityId());
+        user.setName(req.getName());
+        user.setPhone(req.getPhone());
         user.setIsVerified(true);
         user.setIdNum(req.getIdNum());
         user.setType(IdType.ID_CARD.getType());
