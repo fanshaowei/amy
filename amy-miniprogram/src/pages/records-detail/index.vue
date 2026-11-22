@@ -103,7 +103,7 @@ onShow(() => {
           {{ statusInfo.text }}
         </view>
         <view class="result__status-meta">单号：{{ record.reservationNum }}</view>
-        <view v-if="showStatusMsg" class="result__status-msg">{{ record.statusMsg }}</view>
+        <view class="result__status-msg" v-if="showStatusMsg&&record.statusMsg!='已完成' && record.statusMsg!='已取消' && record.statusMsg!='已过期'">{{ record.statusMsg }}</view>
       </view>
 
       <view class="result__qr">
