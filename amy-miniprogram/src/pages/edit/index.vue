@@ -3,14 +3,16 @@ import PageHero from '@/components/PageHero.vue'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
+import { isLocalTempFile, uploadAvatar } from '@/api/user'
 import { showError } from '@/utils/request'
 import { requireLogin } from '@/utils/authGuard'
 
 const userStore = useUserStore()
 
-/** 首次登录流程：保存成功后直接进首页 */
+/** 兼容旧的「首次登录后跳编辑资料」入口；当前登录流程已不再使用该参数 */
 const firstTime = ref(false)
 const nickname = ref('')
+/** 当前待提交的头像：未换头像时是服务端的持久化 URL，重新选择后是微信临时路径 */
 const avatarUrl = ref('')
 const saving = ref(false)
 
@@ -26,7 +28,8 @@ onShow(async () => {
   try {
     const user = await userStore.fetchProfile(true) // 无感刷新，失败不弹提示
     if (user) {
-      // 仅在未填写时回填，避免覆盖用户正在编辑的内容
+      // 仅在未填写时回填，避免覆盖用户正在编辑的内容；
+      // 回填的 avatarImgUrl 是文件服务的持久化地址，未换头像时保存不再上传
       if (!nickname.value) nickname.value = user.nickname || ''
       if (!avatarUrl.value) avatarUrl.value = user.avatarImgUrl || ''
     }
@@ -35,13 +38,21 @@ onShow(async () => {
   }
 })
 
-/** 选择微信头像（open-type="chooseAvatar"） */
+/**
+ * 选择微信头像（open-type="chooseAvatar"）。
+ * 拿到的是 wxfile:// / http://tmp/ 临时路径，仅本次会话有效，
+ * 保存时必须先上传文件服务换成持久化 URL（见 onSave）。
+ */
 function onChooseAvatar(e: any) {
   const url = e?.detail?.avatarUrl
   if (url) avatarUrl.value = url
 }
 
-/** 保存头像/昵称 */
+/**
+ * 保存头像/昵称。
+ * 只有本次「重新选择了微信头像」才会上传文件服务并更新头像访问地址；
+ * 未换头像时直接复用服务端已有的持久化 URL，不产生重复上传。
+ */
 async function onSave() {
   if (saving.value) return
   const nick = nickname.value.trim()
@@ -49,13 +60,19 @@ async function onSave() {
     uni.showToast({ title: '请输入昵称', icon: 'none' })
     return
   }
-  if (!avatarUrl.value) {
+  // 未换头像时 avatarUrl 由 onShow 回填为服务端持久地址；再兜一层 store 避免空值
+  const current = avatarUrl.value || userStore.avatar
+  if (!current) {
     uni.showToast({ title: '请选择头像', icon: 'none' })
     return
   }
   saving.value = true
   try {
-    let avatar = avatarUrl.value
+    let avatar = current
+    if (isLocalTempFile(avatar)) {
+      avatar = await uploadAvatar(avatar)
+      avatarUrl.value = avatar
+    }
     await userStore.updateProfile(nick, avatar)
     uni.showToast({ title: '保存成功', icon: 'success' })
     setTimeout(() => {

@@ -1,9 +1,12 @@
 /**
  * 用户状态管理
  *
- * 登录流程：uni.login 取 code -> POST /spas/mina/app/auth/login（返回 token + fistTimeLogin）
- * -> GET /spas/mina/app/user/info 取会员信息
- * -> fistTimeLogin=true 时登录页引导用户设置头像/昵称（上传头像 + /reservation/user/update 保存）
+ * 登录流程：选择微信头像（仅首次需要）-> /user/avatar/upload 换持久化 URL
+ * -> uni.login 取 code -> POST /spas/mina/app/auth/login 携带头像/昵称一次保存
+ *    （返回 token + fistTimeLogin，后端只在新建会员时写入资料，老会员不覆盖）
+ * -> GET /spas/mina/app/user/info 取会员信息。
+ *
+ * 登录流程不再调用 /reservation/user/update；头像/昵称的主动更新只在编辑资料页发生。
  */
 
 import { defineStore } from 'pinia'
@@ -59,9 +62,10 @@ export const useUserStore = defineStore('user', {
     },
 
     /**
-     * 微信登录：仅携带 jsCode 换取 token 并拉取会员信息。
-     * 返回 { user, fistTimeLogin }：
-     * fistTimeLogin=true 时由登录页引导用户补全头像/昵称（走 updateProfile 保存）。
+     * 微信登录：携带 jsCode + 头像持久化地址 + 昵称，一次请求换取 token；
+     * 后端仅在新建会员时写入资料，老会员保持原资料不变。
+     * 返回 { user, fistTimeLogin }，fistTimeLogin 只是「本次新建会员」的标识，
+     * 前端不应据此再上传头像或调用 updateProfile 二次保存。
      */
     async login(payload: userApi.LoginPayload) {
       const { token, fistTimeLogin } = await userApi.login(payload)
@@ -83,7 +87,7 @@ export const useUserStore = defineStore('user', {
       return { user, fistTimeLogin }
     },
 
-    /** 修改头像/昵称并同步本地状态 */
+    /** 修改头像/昵称并同步本地状态（仅编辑资料页在用户主动保存时调用） */
     async updateProfile(nickName: string, avatarImgUrl: string) {
       // 对应 POST /spas/mina/app/reservation/user/update（MinaAppController#updateReservationUser）
       await userApi.updateReservationUser({ nickName, avatarImgUrl })

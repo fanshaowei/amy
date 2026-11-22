@@ -93,8 +93,9 @@ public class MinaAppLoginService {
         // 生成 spasToken
         String spasToken = generalJwt();
         saveMinaUserLoginCache(spasToken, openId, sessionKey);
-        // fistTimeLogin=true 表示首次登录（本次已创建会员）；
-        // false 表示老会员，头像等资料变更由小程序端调 /reservation/user/update 同步
+        // fistTimeLogin=true 表示本次新建了会员（本次提交的头像/昵称已随登录写入）；
+        // false 表示老会员，登录接口不覆盖其资料，也不重复上传头像；
+        // 头像/昵称仅在编辑资料页由用户主动调 /reservation/user/update 更新
         return WechatApiAuthLoginResp.builder()
                 .fistTimeLogin(firstTimeLogin)
                 .token(spasToken)

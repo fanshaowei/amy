@@ -23,7 +23,7 @@ import { BASE_URL, networkError, request, responseError } from '@/utils/request'
 export interface LoginPayload {
   /** 微信登录凭证 code（uni.login 获取） */
   jsCode: string
-  /** 微信头像地址（uploadAvatar 换来的持久化 URL） */
+  /** 微信头像地址（uploadAvatar 换来的持久化 URL，不能是 chooseAvatar 的临时路径） */
   avatarImgUrl?: string
   /** 微信昵称 */
   nickName?: string
@@ -31,8 +31,9 @@ export interface LoginPayload {
 
 /**
  * 登录接口响应（对应后端 WechatApiAuthLoginResp）
- * fistTimeLogin=true 表示首次登录（后端已创建会员并写入本次头像/昵称）；
- * false 表示老会员，资料变更需另调 /reservation/user/update 同步。
+ * fistTimeLogin=true 仅表示「本次新建了会员记录」，后端已把本次提交的头像/昵称写入；
+ * false 表示老会员，登录接口不会覆盖其资料，前端也不应再上传头像或调 update 二次保存。
+ * 头像/昵称的唯一主动更新入口是编辑资料页（/reservation/user/update）。
  * 注意：后端字段名拼写即为 fistTimeLogin（少一个 r），此处保持一致。
  */
 export interface LoginResult {
@@ -64,10 +65,26 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
 }
 
 /**
+ * 判断头像地址是否为「微信 chooseAvatar 返回的本地临时路径」。
+ *
+ * 临时路径（wxfile://tmp_xxx、http://tmp/xxx、file://...）仅本次会话有效，
+ * 直接入库会导致下次打开小程序头像空白；只有这种路径才需要上传文件服务换持久 URL。
+ * 文件服务的绝对 http(s) 地址、以及 /upload/... 这类服务端相对路径都视为持久地址，
+ * 直接复用、不重复上传（也不会把相对路径当本地文件误传）。
+ */
+export function isLocalTempFile(url: string): boolean {
+  if (!url) return false
+  if (/^https?:\/\//i.test(url)) return /^https?:\/\/tmp\//i.test(url)
+  if (url.startsWith('/')) return false
+  return true
+}
+
+/**
  * 上传微信头像，返回后端文件服务的持久化访问地址。
  *
  * chooseAvatar 返回的是 wxfile:// / http://tmp/ 临时路径，仅本次会话有效，
- * 必须先上传换成持久 URL，再随 /auth/login 一起提交给后端落库。
+ * 必须先上传换成持久 URL，再随 /auth/login 一起提交给后端落库；
+ * 编辑资料页重新选头像时同样用本接口换新地址，再调 /reservation/user/update。
  * 该接口无 @MinaApiAuth（网关白名单 /spas/mina/app/**），登录前调用无需 token。
  * POST /spas/mina/app/user/avatar/upload（multipart 表单，字段名 file）
  *
@@ -135,7 +152,9 @@ export interface UpdateReservationUserPayload {
  * 与 /user/info 返回的 MinaReservationUserInfoResp 不是同一套结构，
  * 不能当作前端 User 使用。这里只返回 void，本地会员信息由调用方合并或重新拉取。
  *
- * @param silent 登录时的资料同步属「失败可忽略」的后台请求，传 true 不弹提示、不打断登录
+ * 仅由「编辑资料页」在用户主动保存时调用；登录流程不再调用本接口做二次保存。
+ *
+ * @param silent 后台无感同步时传 true 不弹统一提示
  */
 export async function updateReservationUser(
   payload: UpdateReservationUserPayload,

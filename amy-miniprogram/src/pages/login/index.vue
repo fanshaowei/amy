@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import type { User } from '@/types'
 import { useUserStore } from '@/stores/user'
-import { uploadAvatar } from '@/api/user'
+import { isLocalTempFile, uploadAvatar } from '@/api/user'
 import { showError } from '@/utils/request'
 import { clearLoginPending, HOME_URL } from '@/utils/authGuard'
 import ArtEmblem from '@/components/ArtEmblem.vue'
 
+/** 本地会员资料缓存 key（与 stores/user.ts 保持一致） */
+const STORAGE_KEY = 'reservation_user'
+
 const userStore = useUserStore()
 
 const nickname = ref('')
+/** 当前待提交的头像：可能是 chooseAvatar 的临时路径，也可能是已持久化的文件服务 URL */
 const avatarUrl = ref('')
 const loading = ref(false)
 
-/** 登录接口返回 fistTimeLogin=true 后进入完善资料步骤，此时才展示头像/昵称编辑 */
-const needProfile = ref(false)
-
-/** 本次会话已上传到后端的头像持久化地址（换头像后重置，避免重复上传） */
+/** 本次会话已上传到文件服务的持久化地址（换头像后清空，避免重复上传） */
 const uploadedAvatarUrl = ref('')
 
 const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
@@ -58,41 +61,41 @@ function onChooseAvatar(e: any) {
 }
 
 /**
- * 确保头像已上传为持久化地址：
- * chooseAvatar 给的临时路径只在本次会话有效，直接落库必然失效，
- * 必须先调 /spas/mina/app/user/avatar/upload 换成后端文件服务的 URL。
- * 未选头像返回空串（后端首次登录也允许为空）。
+ * 把待提交的头像整理成可入库的持久化 URL：
+ * - 已是文件服务的 http(s) 地址（缓存里的老头像 / 本次已上传）→ 直接复用，不重复上传；
+ * - chooseAvatar 给的临时路径 → 调 /user/avatar/upload 换成文件服务 URL；
+ * - 未选择头像 → 返回空串（后端首次登录允许为空，之后可在编辑资料页补）。
  */
 async function ensureAvatarUploaded(): Promise<string> {
-  if (!avatarUrl.value) return ''
+  const url = avatarUrl.value
+  if (!url) return ''
+  if (!isLocalTempFile(url)) return url
   if (uploadedAvatarUrl.value) return uploadedAvatarUrl.value
-  const url = await uploadAvatar(avatarUrl.value)
-  uploadedAvatarUrl.value = url
-  return url
+  const persisted = await uploadAvatar(url)
+  uploadedAvatarUrl.value = persisted
+  avatarUrl.value = persisted
+  return persisted
 }
 
 async function onLogin() {
   if (loading.value) return
   loading.value = true
   try {
-    // 1. 取微信登录凭证（首次进入只授权，不携带头像/昵称）
+    // 1. 仅当本次选了微信头像（临时路径）才上传换持久化地址；老头像直接复用，不重复上传
+    const avatarImgUrl = await ensureAvatarUploaded()
+    // 2. 取微信登录凭证
     const jsCode = await fetchWxCode()
-
-    // 2. 授权登录；fistTimeLogin=true 表示首次登录，需要引导用户设置头像/昵称
-    const { fistTimeLogin } = await userStore.login({ jsCode })
-
-    if (fistTimeLogin) {
-      // 预填后端默认资料；头像已是持久化地址，无需重复上传
-      const user = userStore.user
-      nickname.value = user?.nickname || ''
-      avatarUrl.value = user?.avatarImgUrl || ''
-      uploadedAvatarUrl.value = avatarUrl.value
-      needProfile.value = true
-      uni.showToast({ title: '首次登录，请完善头像和昵称', icon: 'none' })
-      return
-    }
-
-    uni.showToast({ title: '登录成功', icon: 'success' })
+    // 3. 头像 + 昵称随登录接口一次提交。后端只在 fistTimeLogin（新建会员）时写入，
+    //    老会员不会被覆盖，因此这里绝不调用 /reservation/user/update 做二次保存。
+    const { fistTimeLogin } = await userStore.login({
+      jsCode,
+      nickName: nickname.value.trim() || '微信用户',
+      avatarImgUrl,
+    })
+    uni.showToast({
+      title: fistTimeLogin ? '登录成功，欢迎首次到访' : '登录成功',
+      icon: 'success',
+    })
     setTimeout(goBack, 600)
   } catch (e) {
     showError(e, '登录失败')
@@ -101,56 +104,51 @@ async function onLogin() {
   }
 }
 
-/** 完善资料步骤：上传头像 + 保存昵称，然后进入应用 */
-async function onSaveProfile() {
-  if (loading.value) return
-  loading.value = true
+onLoad(() => {
+  // 老会员重新授权：预填本地已有资料，并把已持久化的头像标记为「已上传」，
+  // 这样再次登录既不会重新上传头像，也不会二次保存资料。
+  // 预填昵称同时避免默认值「微信用户」被误提交覆盖。
   try {
-    // 头像上传为持久化地址（后端首次登录可能为空，允许不选）
-    const avatarImgUrl = await ensureAvatarUploaded()
-    await userStore.updateProfile(nickname.value.trim() || '微信用户', avatarImgUrl)
-    uni.showToast({ title: '登录成功', icon: 'success' })
-    setTimeout(goBack, 600)
+    const cached = uni.getStorageSync(STORAGE_KEY) as User | null
+    if (cached?.nickname) nickname.value = cached.nickname
+    if (cached?.avatarImgUrl && !isLocalTempFile(cached.avatarImgUrl)) {
+      avatarUrl.value = cached.avatarImgUrl
+      uploadedAvatarUrl.value = cached.avatarImgUrl
+    }
   } catch (e) {
-    showError(e, '保存失败')
-  } finally {
-    loading.value = false
+    /* 缓存不可用时忽略，用户可重新选择头像 */
   }
-}
+})
 </script>
 
 <template>
   <view class="login">
     <view class="login__logo"><ArtEmblem :size="132" /></view>
     <view class="login__title">太阳宫艺术空间</view>
-    <view class="login__sub">
-      {{ needProfile ? '请设置您的头像和昵称' : '请完成微信授权登录 · 开启艺术之约' }}
+    <view class="login__sub">请完成微信授权登录 · 开启艺术之约</view>
+
+    <!-- 首次登录在此设置头像/昵称，随登录接口一次保存；老会员已有资料可跳过 -->
+    <view class="login__avatar">
+      <!-- #ifdef MP-WEIXIN -->
+      <button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+        <image class="avatar" :src="avatarUrl || userStore.avatar || defaultAvatar" mode="aspectFill" />
+      </button>
+      <!-- #endif -->
+      <!-- #ifndef MP-WEIXIN -->
+      <image class="avatar" :src="avatarUrl || userStore.avatar || defaultAvatar" mode="aspectFill" />
+      <!-- #endif -->
+      <view class="login__avatar-tip">首次登录可点击设置微信头像，已有资料无需重选</view>
     </view>
 
-    <!-- 首次登录（fistTimeLogin=true）才展示头像/昵称编辑 -->
-    <template v-if="needProfile">
-      <view class="login__avatar">
-        <!-- #ifdef MP-WEIXIN -->
-        <button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-          <image class="avatar" :src="avatarUrl || defaultAvatar" mode="aspectFill" />
-        </button>
-        <!-- #endif -->
-        <!-- #ifndef MP-WEIXIN -->
-        <image class="avatar" :src="avatarUrl || defaultAvatar" mode="aspectFill" />
-        <!-- #endif -->
-        <view class="login__avatar-tip">点击选择微信头像</view>
+    <view class="login__form">
+      <view class="item">
+        <text class="lbl">昵称</text>
+        <input placeholder-class="art-ph" class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
       </view>
+    </view>
 
-      <view class="login__form">
-        <view class="item">
-          <text class="lbl">昵称</text>
-          <input placeholder-class="art-ph" class="val" v-model="nickname" type="nickname" placeholder="请输入昵称" />
-        </view>
-      </view>
-    </template>
-
-    <view class="login__btn" :class="{ disabled: loading }" @tap="needProfile ? onSaveProfile() : onLogin()">
-      {{ loading ? (needProfile ? '保存中...' : '登录中...') : (needProfile ? '保存' : '授权登录') }}
+    <view class="login__btn" :class="{ disabled: loading }" @tap="onLogin">
+      {{ loading ? '登录中...' : '授权登录' }}
     </view>
     <view class="login__tip">登录即表示同意《用户协议》和《隐私政策》</view>
   </view>
