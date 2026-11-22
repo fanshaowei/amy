@@ -137,10 +137,25 @@ onShow(() => {
     <PageHero title="核销" eyebrow="VERIFICATION" subtitle="扫描入场二维码完成核销" compact />
     <!-- 扫码界面 -->
     <view v-if="view === 'scan'" class="scan__view">
-      <view class="scan__box">
-        <view class="scan__line" />
+      <view class="scan__guide">
+        <view class="scan__guide-title">操作说明</view>
+        <view class="scan__step">
+          <view class="scan__step-no">1</view>
+          <view class="scan__step-text">请客户出示预约记录二维码，或指导客户在小程序中点击「预约记录」查看二维码</view>
+        </view>
+        <view class="scan__step">
+          <view class="scan__step-no">2</view>
+          <view class="scan__step-text">点击下方的「手动扫码」按钮</view>
+        </view>
+        <view class="scan__step">
+          <view class="scan__step-no">3</view>
+          <view class="scan__step-text">将镜头对准客户的二维码进行扫描</view>
+        </view>
+        <view class="scan__step">
+          <view class="scan__step-no">4</view>
+          <view class="scan__step-text">扫描正确会弹出订单信息，确认无误后点击「确认核销」即可完成核销操作</view>
+        </view>
       </view>
-      <view class="scan__tip">将二维码放入框内，自动扫描核销</view>
       <view class="scan__actions">
         <view class="btn-primary" @tap="doScan">手动扫码</view>
       </view>
@@ -209,65 +224,40 @@ onShow(() => {
 .scan__view {
   padding: $art-gap 24rpx 0;
 }
-.scan__box {
-  width: 100%;
-  max-width: 560rpx;
-  aspect-ratio: 1;
-  margin: 0 auto;
-  position: relative;
-  border: 4rpx solid $art-accent;
-  border-radius: 32rpx;
-  background: #1f2329;
-  overflow: hidden;
+.scan__guide {
+  @include art-card(0.66, 22px, 40rpx);
+  padding: 40rpx 32rpx;
 }
-.scan__box::before,
-.scan__box::after {
-  content: '';
-  position: absolute;
-  width: 64rpx;
-  height: 64rpx;
-  border: 8rpx solid $art-accent;
+.scan__guide-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: $art-text-strong;
+  margin-bottom: 24rpx;
 }
-.scan__box::before {
-  top: 0;
-  left: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-top-left-radius: 24rpx;
+.scan__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 16rpx 0;
 }
-.scan__box::after {
-  bottom: 0;
-  right: 0;
-  border-left: 0;
-  border-top: 0;
-  border-bottom-right-radius: 24rpx;
-}
-.scan__line {
-  position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  top: 24rpx;
-  height: 4rpx;
-  background: linear-gradient(90deg, transparent, $art-accent, transparent);
-  box-shadow: 0 0 16rpx rgba(240, 207, 148, 0.7);
-  animation: scan 1.6s linear infinite;
-}
-@keyframes scan {
-  0% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(480rpx);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-.scan__tip {
-  text-align: center;
-  color: $uni-text-color-grey;
+.scan__step-no {
+  flex-shrink: 0;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: rgba(240, 207, 148, 0.18);
+  color: $art-accent;
   font-size: 26rpx;
-  margin-top: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scan__step-text {
+  flex: 1;
+  font-size: 27rpx;
+  line-height: 1.7;
+  color: $art-text;
 }
 .scan__actions {
   margin-top: $art-gap-lg;

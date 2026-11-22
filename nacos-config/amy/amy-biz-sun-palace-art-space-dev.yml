@@ -15,8 +15,8 @@ aj:
     type: blockPuzzle
     # 缓存类型：redis（多实例部署安全）；若仅单实例可改 local
     cache-type: redis
-    # 右下角水印文字
-    water-mark: 太阳宫艺术空间
+    # 右下角水印文字：留空关闭（核心包画进底图的文字无抗锯齿，放大后边缘锯齿、过于锐利）
+    water-mark: ''
     # 滑动校验允许误差（像素）
     slip-offset: 5
     # 坐标 AES 加密
