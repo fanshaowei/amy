@@ -15,6 +15,8 @@
             mode="scaleToFill"
           />
           <view class="captcha-refresh" @tap="refresh">⟳</view>
+          <!-- 品牌字样：用 CSS 文字柔和渲染，替代后端画进底图的锯齿白字 -->
+          <text class="captcha-brand">太阳宫艺术空间</text>
           <text v-if="tipWords" class="captcha-tips" :class="passFlag ? 'captcha-tips--ok' : 'captcha-tips--err'">
             {{ tipWords }}
           </text>
@@ -368,6 +370,7 @@ const subBlockStyle = computed(() => ({
   width: 100%;
   height: 100%;
   display: block;
+  /* 保持默认平滑插值：锐化插值会把底图上的文字边缘放大成锯齿 */
 }
 .captcha-refresh {
   position: absolute;
@@ -382,6 +385,18 @@ const subBlockStyle = computed(() => ({
   color: #fff;
   background: rgba(0, 0, 0, 0.25);
   border-bottom-left-radius: 6px;
+}
+.captcha-brand {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.99);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 .captcha-tips {
   position: absolute;

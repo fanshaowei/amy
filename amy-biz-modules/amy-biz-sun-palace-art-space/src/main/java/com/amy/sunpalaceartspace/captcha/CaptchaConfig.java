@@ -45,7 +45,9 @@ public class CaptchaConfig {
 
         Properties config = new Properties();
         config.put(Const.CAPTCHA_CACHETYPE, prop.getCacheType());
-        config.put(Const.CAPTCHA_WATER_MARK, prop.getWaterMark());
+        // 后端核心包用 Java2D 把水印直接画进底图（粗体白字、无抗锯齿），
+        // 高分屏放大后笔画锯齿明显、过于锐利；品牌字样改由前端浮层柔和渲染，这里恒为空。
+        config.put(Const.CAPTCHA_WATER_MARK, "");
         config.put(Const.CAPTCHA_FONT_TYPE, prop.getWaterFont());
         config.put(Const.CAPTCHA_TYPE, prop.getType());
         config.put(Const.CAPTCHA_INTERFERENCE_OPTIONS, prop.getInterferenceOptions());

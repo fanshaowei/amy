@@ -18,8 +18,12 @@ public class CaptchaProperties {
     /** 缓存类型：redis（支持多实例部署）/ local（仅单实例内存） */
     private String cacheType = "redis";
 
-    /** 右下角水印文字 */
-    private String waterMark = "我的水印";
+    /**
+     * 右下角水印文字：留空不绘制。
+     * 核心包用 Java2D 直接把文字画进底图且未开抗锯齿，放大后笔画边缘锯齿明显、过于锐利，
+     * 故默认关闭；如需品牌标识可由前端用样式化的浮层文字实现。
+     */
+    private String waterMark = "";
 
     /** 右下角水印字体（核心包内置文泉驿正黑） */
     private String waterFont = "WenQuanZhengHei.ttf";
