@@ -102,10 +102,13 @@ public class ReservationRulesService {
             log.info("开始处理放号流程,projectId:{}, datetime: {}", project.getProjectId(), fullReservationDateTime);
             // 被 projectReservationConfig 配置为「不可预约」的时段：库存表保留一条 status=2 的记录
             // （便于追溯/对账），但不放号、不写入 Redis 库存缓存。
-            LocalTime slot = ProjectReservationConfigChecker.parseTime(time);
-            if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
-                markSlotClosed(project.getProjectId(), slotTime, project.getReservationCount(), stockKey);
-                continue;
+            // 如果 batch=2（补足至满）时，仍然要放号，避免「批次1放号后,被配置为不可预约」导致「把第一次放的号都给关了」。
+            if(stock == null) {
+                LocalTime slot = ProjectReservationConfigChecker.parseTime(time);
+                if (!ProjectReservationConfigChecker.isOpen(configs, slot)) {
+                    markSlotClosed(project.getProjectId(), slotTime, project.getReservationCount(), stockKey);
+                    continue;
+                }
             }
 
             if (stock == null) {
@@ -184,11 +187,6 @@ public class ReservationRulesService {
             stock.setCreateTime(new Date());
             stock.setCreateBy("system");
             reservationStockService.saveReservationStock(stock);
-        } else if (!ReservationStockStatus.MANUAL_CLOSED.getCode().equals(stock.getStatus())) {
-            stock.setStatus(ReservationStockStatus.MANUAL_CLOSED.getCode());
-            stock.setUpdateTime(new Date());
-            stock.setUpdateBy("system");
-            reservationStockService.updateById(stock);
         }
         // status=2（以及 0）不加入库存缓存；清除可能残留的旧 key，使抢号端读到「key 不存在」
         stringRedisTemplate.delete(stockKey);
