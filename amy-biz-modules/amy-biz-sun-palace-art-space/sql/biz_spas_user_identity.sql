@@ -18,8 +18,7 @@ create table biz_spas_user_identity
     del_flag                 char(1)         default '0'                comment '删除标志（0代表存在 1代表删除）',
     primary key (user_identity_id),
     key idx_reservation_user_id (reservation_user_id),
-    key idx_phone (phone),
-    unique key uk_id_num (id_num)
+    key idx_phone (phone)
 ) engine=innodb auto_increment=1 default charset=utf8mb4 comment='用户身份信息表';
 
 -- 增量脚本：表已存在时执行（与上面的建表语句二选一，不要同时执行）
