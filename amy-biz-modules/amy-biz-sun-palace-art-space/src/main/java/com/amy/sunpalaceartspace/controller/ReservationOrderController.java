@@ -123,4 +123,16 @@ public class ReservationOrderController extends BaseController {
     public void updateOrderStatus(@RequestBody ReservationOrderUpdateStatusReq req){
         reservationOrderService.updateReservationOrderStatus(req.getOrderId(), req.getStatus(), req.getStatus().getName());
     }
+
+    /**
+     * 管理后台获取核销码（二维码弹窗每次打开 / 倒计时归零时调用）。
+     * <p>返回一枚「新」核销码并重置 Redis 有效期，前端据此按
+     * verifyCodeEffectiveDuration 倒计时，倒计时与后端 TTL 严格对齐。
+     * 列表接口仍走 getReservationVerifyCode 复用旧码，两者语义不同，不可混用。</p>
+     * <p>手动添加订单返回预约单号本身（该来源核销端不校验 Redis 码）。</p>
+     */
+    @GetMapping("/verify-code/{reservationNum}")
+    public R<String> getOrderVerifyCode(@PathVariable("reservationNum") String reservationNum) {
+        return R.ok(reservationOrderService.refreshReservationVerifyCode(reservationNum));
+    }
 }

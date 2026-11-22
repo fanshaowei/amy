@@ -2,8 +2,15 @@
 import { computed } from 'vue'
 import type { ReserveRecord } from '@/types'
 import { generateQRMatrix } from '@/utils/qrcode'
+import { formatCountdown } from '@/utils/verifyCodeCountdown'
 
-const props = defineProps<{ record: ReserveRecord }>()
+const props = defineProps<{
+  record: ReserveRecord
+  /** 核销码剩余有效秒数；不传表示该订单不启用倒计时 */
+  countdown?: number
+  /** 是否正在获取新核销码 */
+  refreshing?: boolean
+}>()
 
 /**
  * 二维码失效状态：预约失败(-1)/已过期(2)/已取消(3)/预约中(4)
@@ -81,6 +88,13 @@ const gridStyle = computed(() => ({
       </view>
     </view>
     <view class="qr-card__label">{{ broken ? '当前状态无法出示入场核验码' : '入场核验码' }}</view>
+    <!-- 倒计时由页面调度（只在打开详情页期间生效）；失效态不展示 -->
+    <view v-if="!broken && countdown !== undefined" class="qr-card__countdown">
+      <text v-if="refreshing" class="qr-card__countdown-hint">正在更新核验码…</text>
+      <text v-else class="qr-card__countdown-hint">
+        核验码 <text class="qr-card__countdown-time">{{ formatCountdown(countdown) }}</text> 后自动更新
+      </text>
+    </view>
   </view>
 </template>
 
@@ -167,5 +181,20 @@ const gridStyle = computed(() => ({
   margin-top: 20rpx;
   font-size: 26rpx;
   color: $art-text-dim;
+}
+.qr-card__countdown {
+  margin-top: 12rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 24rpx;
+  background: rgba(240, 207, 148, 0.12);
+}
+.qr-card__countdown-hint {
+  font-size: 22rpx;
+  color: $art-text-dim;
+}
+.qr-card__countdown-time {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: $art-accent;
 }
 </style>

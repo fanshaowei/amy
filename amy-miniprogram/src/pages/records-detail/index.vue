@@ -1,19 +1,44 @@
 <script setup lang="ts">
 import PageHero from '@/components/PageHero.vue'
 import { ref, computed } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import type { ReserveRecord } from '@/types'
 import { RESERVE_STATUS } from '@/types'
-import { getRecordDetail, cancelReserve } from '@/api/reserve'
+import { getRecordDetail, cancelReserve, refreshVerifyCode } from '@/api/reserve'
 import QrcodeCard from '@/components/QrcodeCard.vue'
 import { hmsToHm } from '@/utils'
 import { showError } from '@/utils/request'
 import { requireLogin } from '@/utils/authGuard'
+import { createVerifyCodeCountdown } from '@/utils/verifyCodeCountdown'
 
 const record = ref<ReserveRecord | null>(null)
 const orderNum = ref('')
 /** 首屏只加载一次，避免 onShow 重复请求 */
 let initialLoaded = false
+
+/** 只有「待核销」订单才出示可轮换的核验码 */
+const canCountdown = computed(() => record.value?.reservationStatus === 0)
+
+/**
+ * 核销码倒计时：进入详情页取一枚新码 -> 按后端 verifyCodeEffectiveDuration 倒计时
+ * -> 归零自动再取。生命周期由本页控制（onHide 停表 / onShow 恢复 / onUnload 销毁），
+ * 所以只在「打开预约详情页」期间生效，离开页面不再请求、不再计时。
+ */
+const countdown = createVerifyCodeCountdown({
+  refresh: () => refreshVerifyCode(orderNum.value),
+  onUpdate: (result) => {
+    if (!record.value) return
+    // 换码后整块替换 record，触发 QrcodeCard 重算二维码矩阵
+    record.value = {
+      ...record.value,
+      verifyCode: result.verifyCode,
+      verifyCodeEffectiveDuration: result.verifyCodeEffectiveDuration,
+    }
+  },
+  // 非 200 已由全局 request 层弹过提示，showError 会自动跳过已提示的异常
+  onError: (e) => showError(e, '核验码更新失败'),
+})
+const { remaining, refreshing } = countdown
 
 /** 预约状态（后端：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中） */
 const statusInfo = computed(() => RESERVE_STATUS[record.value?.reservationStatus ?? 2])
@@ -41,13 +66,22 @@ const entryDate = computed(() => (record.value?.reservationTime || '').slice(0, 
 /** 入场时间 */
 const entryTime = computed(() => hmsToHm((record.value?.reservationTime || '').slice(11)))
 
-async function load(orderNum: string) {
-  if (!orderNum) {
+async function load(num: string) {
+  if (!num) {
     uni.showToast({ title: '缺少预约单号', icon: 'none' })
     return
   }
   try {
-    record.value = await getRecordDetail(orderNum)
+    const detail = await getRecordDetail(num)
+    record.value = detail
+    if (detail.reservationStatus === 0) {
+      // 详情接口只会复用 Redis 中未过期的旧码，这里强制换发一枚新码，
+      // 保证二维码从上屏这一刻开始拥有完整的有效期
+      await countdown.open()
+    } else {
+      // 取消 / 核销 / 过期后不再轮换核销码
+      countdown.stop()
+    }
   } catch (e) {
     showError(e, '加载失败')
   }
@@ -88,10 +122,20 @@ onLoad((query) => {
 onShow(() => {
   // 未登录 → 授权登录页；从登录页放弃授权返回 → 统一回首页
   if (!requireLogin()) return
-  if (initialLoaded) return
-  initialLoaded = true
-  load(orderNum.value)
+  if (!initialLoaded) {
+    initialLoaded = true
+    load(orderNum.value)
+    return
+  }
+  // 从其它页面 / 切后台回到本页：按真实经过时间恢复倒计时，已过期则立即换码
+  if (record.value && canCountdown.value) countdown.resume()
 })
+
+// 离开页面（含切后台、跳转其它页）立即停表：倒计时只在打开本页期间运行
+onHide(() => countdown.stop())
+
+// 页面销毁：停表并丢弃在途请求，避免回到已销毁页面继续 setState / 发起请求
+onUnload(() => countdown.dispose())
 </script>
 
 <template>
@@ -107,7 +151,11 @@ onShow(() => {
       </view>
 
       <view class="result__qr">
-        <QrcodeCard :record="record" />
+        <QrcodeCard
+          :record="record"
+          :countdown="canCountdown ? remaining : undefined"
+          :refreshing="refreshing"
+        />
       </view>
 
       <view class="result__detail">

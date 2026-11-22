@@ -137,6 +137,11 @@ public class ReservationOrderVO {
     private String verifyCode;
 
     /**
+     * 核销码有效持续时长
+     */
+    private Long verifyCodeEffectiveDuration;
+
+    /**
      * 通过状态码把 {@link #reservationStatus} 解析成枚举并写入 {@link #reservationStatusName}。
      * <p>供 Service 在装配 VO 时调用；XML 完成后由调用方负责。</p>
      */

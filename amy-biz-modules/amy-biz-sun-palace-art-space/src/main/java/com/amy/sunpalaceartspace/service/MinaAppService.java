@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
+import com.amy.sunpalaceartspace.config.SpasConfig;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
@@ -52,6 +53,7 @@ public class MinaAppService {
     private final AliIdCheckUtil aliIdCheckUtil;
     private final IReservationStockService reservationStockService;
     private final MinaNoticeMapper minaNoticeMapper;
+    private final SpasConfig spasConfig;
 
     public IPage<MinaHomePageProjectResp> extractHomePageProjectInfo(Page<Projects> page) {
         Projects criteria = new Projects();
@@ -262,11 +264,44 @@ public class MinaAppService {
         Object verifyCode = redisService.getCacheObject(key);
         if(null == verifyCode) {
             verifyCode = UUID.randomUUID().toString();
-            redisService.setCacheObject(key, verifyCode, 1L, TimeUnit.MINUTES);
+            redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
         }
         vo.setVerifyCode(verifyCode.toString());
+        vo.setVerifyCodeEffectiveDuration(spasConfig.getVerifyCodeEffectiveDuration());
 
         return vo;
+    }
+
+    /**
+     * 小程序「预约详情」重新获取核销码。
+     *
+     * <p>详情接口 extractReservationOrderInfo 只会复用 Redis 中未过期的旧码，
+     * 不能用来做倒计时刷新；这里强制换发一枚新码并重置 TTL，返回给前端按
+     * verifyCodeEffectiveDuration 倒计时，归零时再次调用本方法。</p>
+     *
+     * <p>与后台取码接口的区别：本接口带 @MinaApiAuth，会按 spasToken 查出会员并
+     * 校验「订单属于本人 + 当前待核销」，避免任意登录用户刷新他人订单的核销码。</p>
+     */
+    public MinaVerifyCodeResp refreshReservationOrderVerifyCode(String token, String orderNum) {
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        ReservationOrder order = reservationOrderService.selectReservationOrderByNum(orderNum);
+        if (order == null) {
+            throw new ServiceException("未找到该预约单");
+        }
+        if (!Objects.equals(user.getReservationUserId(), order.getReservationUserId())) {
+            throw new ServiceException("非本人订单");
+        }
+        if (!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), order.getReservationStatus())) {
+            throw new ServiceException("该订单当前不是待核销状态");
+        }
+        Long duration = spasConfig.getVerifyCodeEffectiveDuration();
+        long minutes = (duration == null || duration <= 0) ? 1L : duration;
+        // 复用后台刷新方法：强制生成新 UUID 覆盖 Redis，并按同一份配置重置有效期
+        String verifyCode = reservationOrderService.refreshReservationVerifyCode(orderNum);
+        return MinaVerifyCodeResp.builder()
+                .verifyCode(verifyCode)
+                .verifyCodeEffectiveDuration(minutes)
+                .build();
     }
 
     @Transactional

@@ -251,6 +251,17 @@ public class MinaAppController extends BaseController {
     }
 
     /**
+     * 小程序「预约详情」刷新核销码：打开详情页 / 倒计时归零时调用。
+     */
+    @MinaApiAuth
+    @GetMapping("/reservation/{orderNum}/verify-code")
+    public R<MinaVerifyCodeResp> refreshReservationVerifyCode(
+            @RequestHeader("Authorization") String token,
+            @PathVariable("orderNum") String orderNum) {
+        return R.ok(minaAppService.refreshReservationOrderVerifyCode(token, orderNum));
+    }
+
+    /**
      * 取消预约订单（仅订单本人、仅「待核销」状态可取消）
      * @param token
      * @param orderNum

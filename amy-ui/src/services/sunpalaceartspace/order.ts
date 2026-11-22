@@ -41,6 +41,12 @@ export interface ReservationOrderRecord {
      * 小程序订单为 Redis 中的一次性码（1 分钟有效），手动添加订单则为订单号本身。
      */
     verifyCode?: string | null;
+    /**
+     * 核销码有效持续时长（分钟），来自后端 spas.verifyCodeEffectiveDuration。
+     * 列表仅对「待核销」订单返回：小程序订单为配置值，手动添加订单固定 720。
+     * 二维码弹窗据此倒计时，倒计时归零时重新取码。
+     */
+    verifyCodeEffectiveDuration?: number;
     /** 随行人信息，每个元素为 UserIdentity JSON 字符串 */
     compUsers?: string[];
 }
@@ -114,6 +120,28 @@ export const listOrders = (params: Record<string, unknown>) =>
     request<SpasTableResponse<ReservationOrderRecord>>('/spas/reservation/order/list', {params});
 export const getOrder = (reservationOrderId: number) =>
     request<RuoYiResponse<ReservationOrderRecord>>(`/spas/reservation/order/${reservationOrderId}`);
+
+/**
+ * 管理后台获取（并刷新）核销码：GET /spas/reservation/order/verify-code/{reservationNum}
+ *
+ * 对应 ReservationOrderController#getOrderVerifyCode。后端每次调用都会生成一枚新码
+ * 并重置 Redis 有效期（手动添加订单返回预约单号本身），因此「打开二维码弹窗」
+ * 与「倒计时归零」都调它即可；倒计时时长取列表返回的 verifyCodeEffectiveDuration。
+ * 注意：列表装配用的 getReservationVerifyCode 会复用未过期旧码，不能拿来做刷新。
+ */
+export const refreshOrderVerifyCode = async (reservationNum: string): Promise<string> => {
+    // 带时间戳参数：GET 有写副作用（每次换发新码），避免任何一层缓存返回上一枚码
+    const res = await request<RuoYiResponse<string>>(
+        `/spas/reservation/order/verify-code/${encodeURIComponent(reservationNum)}`,
+        {params: {_: Date.now()}}
+    );
+    // request 响应拦截器已对 code !== 200 统一提示并 reject，这里只需取出字符串
+    const code = typeof res?.data === 'string' ? res.data.trim() : '';
+    if (!code) {
+        throw new Error('未获取到核销码');
+    }
+    return code;
+};
 export const deleteOrders = (orderIds: React.Key[]) =>
     request(`/spas/reservation/order/${orderIds.join(',')}`, {method: 'DELETE'});
 

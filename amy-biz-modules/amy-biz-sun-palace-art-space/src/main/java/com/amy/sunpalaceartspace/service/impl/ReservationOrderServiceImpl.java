@@ -4,6 +4,7 @@ import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
 import com.amy.common.security.utils.SecurityUtils;
+import com.amy.sunpalaceartspace.config.SpasConfig;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
@@ -58,6 +59,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     private final IProjectsService projectsService;
     private final AliIdCheckUtil aliIdCheckUtil;
     private final RedisService redisService;
+    private final SpasConfig spasConfig;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -72,15 +74,12 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             vo.fillCompUsersText();
             if(ReservationOrderStatus.WAIT_VERIFY.getStatus().equals(vo.getReservationStatus())) {
                 if(OrderSource.MINA.getCode().equals(vo.getOrderSource())) {
-                    String key = String.format(RESERVATION_ORDER_VERIFY_CODE, vo.getReservationNum());
-                    Object verifyCode = redisService.getCacheObject(key);
-                    if(null == verifyCode) {
-                        verifyCode = UUID.randomUUID().toString();
-                        redisService.setCacheObject(key, verifyCode, 1L, TimeUnit.MINUTES);
-                    }
+                    Object verifyCode = getReservationVerifyCode(vo.getReservationNum());
                     vo.setVerifyCode(verifyCode.toString());
+                    vo.setVerifyCodeEffectiveDuration(spasConfig.getVerifyCodeEffectiveDuration());
                 }else {
                     vo.setVerifyCode(vo.getReservationNum());
+                    vo.setVerifyCodeEffectiveDuration(720L);
                 }
             }
         });
@@ -350,5 +349,30 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         Date todayStart = DateUtils.parseDate(DateUtils.getDate() + " " + "00:00:00");
         baseMapper.batchUpdateUnVerifyOrderToExpire(todayStart);
         log.info("批量更新待核销订单为已过期状态完成");
+    }
+
+    public String getReservationVerifyCode(String reservationNum) {
+        String key = String.format(RESERVATION_ORDER_VERIFY_CODE, reservationNum);
+        Object verifyCode = redisService.getCacheObject(key);
+        redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
+        return verifyCode.toString();
+    }
+
+    @Override
+    public String refreshReservationVerifyCode(String reservationNum) {
+        ReservationOrder order = selectReservationOrderByNum(reservationNum);
+        if (order == null) {
+            throw new ServiceException("未找到该预约单");
+        }
+        // 手动添加订单：核销码固定为预约单号本身，核销端（MinaAppService#verifyReservationOrder）
+        // 仅对小程序订单校验 Redis 码，因此这里不写缓存，避免生成与列表 / 二维码不一致的 UUID。
+        if (!OrderSource.MINA.getCode().equals(order.getOrderSource())) {
+            return reservationNum;
+        }
+        // 与列表返回的 verifyCodeEffectiveDuration 使用同一份配置，前端倒计时才能与 TTL 对齐。
+        String key = String.format(RESERVATION_ORDER_VERIFY_CODE, reservationNum);
+        String verifyCode = UUID.randomUUID().toString();
+        redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
+        return verifyCode;
     }
 }

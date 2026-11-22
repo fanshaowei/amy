@@ -218,6 +218,11 @@ export interface ReserveRecord {
   /** 随行人员（后端为 JSON 字符串列表，已在 api 层解析） */
   compUsers: ReservePerson[],
   verifyCode: string
+  /**
+   * 核销码有效持续时长（分钟），来自后端 spas.verifyCodeEffectiveDuration。
+   * 仅「待核销」订单返回；详情页用它倒计时，归零时重新取码。
+   */
+  verifyCodeEffectiveDuration?: number
 }
 
 /**

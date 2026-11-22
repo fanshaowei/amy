@@ -6,7 +6,8 @@
  *  - GET  /spas/mina/app/user/reservation/records               我的预约记录（需登录）
  *  - GET  /spas/mina/app/reservation/next/day/order             预约动态（按生效放号日期，首页滚动展示）
  *  - GET  /spas/mina/app/reservation/{orderNum}                 预约详情（按预约单号）
- *  - POST /spas/mina/app/reservation/cancel/{orderNum}          取消预约（仅待核销状态）
+ *  - GET  /spas/mina/app/reservation/{orderNum}/verify-code      刷新核销码（仅本人、仅待核销）
+ *  - POST /spas/mina/app/reservation/cancel/{orderNum}           取消预约（仅待核销状态）
  */
 
 import type { NextDayReservation, ReservePerson, ReserveRecord } from '@/types'
@@ -154,6 +155,32 @@ export async function getRecordDetail(orderNum: string): Promise<ReserveRecord> 
     throw new Error('未找到该预约单')
   }
   return normalizeRecord(raw)
+}
+
+/** 刷新核销码响应（对应后端 MinaVerifyCodeResp） */
+export interface VerifyCodeRefreshResult {
+  /** 新核销码 */
+  verifyCode: string
+  /** 有效持续时长，单位分钟 */
+  verifyCodeEffectiveDuration: number
+}
+
+/**
+ * 刷新核销码：GET /spas/mina/app/reservation/{orderNum}/verify-code
+ *
+ * 后端每次强制换发一枚新码并重置 Redis 有效期（校验订单本人 + 待核销状态），
+ * 供预约详情页打开时 / 倒计时归零时调用。
+ * 详情接口 getRecordDetail 只会复用未过期旧码，不能拿来做倒计时刷新，两者语义不同。
+ */
+export async function refreshVerifyCode(orderNum: string): Promise<VerifyCodeRefreshResult> {
+  const data = await request<VerifyCodeRefreshResult>({
+    url: `/spas/mina/app/reservation/${encodeURIComponent(orderNum)}/verify-code`,
+    // GET 带写副作用（每次换发新码），加时间戳避免任何一层缓存返回上一枚码
+    data: { _: Date.now() },
+  })
+  const code = typeof data?.verifyCode === 'string' ? data.verifyCode.trim() : ''
+  if (!code) throw new Error('未获取到新的核验码')
+  return { ...data, verifyCode: code }
 }
 
 /**
