@@ -2,7 +2,7 @@
  * 用户接口
  *
  * 后端：
- *  - POST /spas/mina/app/auth/login          微信登录换取 token（MinaAppController#login）
+ *  - POST /spas/mina/app/auth/login          微信登录换取 token（MinaAppController#login，只负责身份）
  *  - GET  /spas/mina/app/user/info           当前登录会员信息（MinaAppController#getUserInfo）
  *  - POST /spas/mina/app/user/avatar/upload  上传微信头像换持久化地址（MinaAppController#uploadReservationUserAvatar）
  *  - POST /spas/mina/app/reservation/user/update  更新会员昵称/头像（MinaAppController#updateReservationUser）
@@ -20,18 +20,28 @@
 import type { User, UserIdentity } from '@/types'
 import { BASE_URL, networkError, request, responseError } from '@/utils/request'
 
+/**，
+ * 登录接口只传 jsCode，后端首次建会员时由本常量占位；
+ * 用户随后在「我的 → 编辑资料」主动填写真实昵称。
+ */
+export const DEFAULT_NICKNAME = '微信用户'
+
 export interface LoginPayload {
   /** 微信登录凭证 code（uni.login 获取） */
   jsCode: string
-  /** 微信头像地址（uploadAvatar 换来的持久化 URL，不能是 chooseAvatar 的临时路径） */
+  /**
+   * 兼容后端保留字段：登录页不再传头像。
+   * 微信 chooseAvatar 只能由用户主动点击，且后端只在首次建会员时写入，
+   * 因此资料统一放到编辑资料页（/reservation/user/update）维护。
+   */
   avatarImgUrl?: string
-  /** 微信昵称 */
+  /** 兼容后端保留字段：登录页不再传昵称，缺省由 DEFAULT_NICKNAME 占位 */
   nickName?: string
 }
 
 /**
  * 登录接口响应（对应后端 WechatApiAuthLoginResp）
- * fistTimeLogin=true 仅表示「本次新建了会员记录」，后端已把本次提交的头像/昵称写入；
+ * fistTimeLogin=true 仅表示「本次新建了会员记录」，后端写入的是默认昵称 + 空头像；
  * false 表示老会员，登录接口不会覆盖其资料，前端也不应再上传头像或调 update 二次保存。
  * 头像/昵称的唯一主动更新入口是编辑资料页（/reservation/user/update）。
  * 注意：后端字段名拼写即为 fistTimeLogin（少一个 r），此处保持一致。
@@ -44,6 +54,12 @@ export interface LoginResult {
 /**
  * 微信登录，返回 token 与是否首次登录
  * POST /spas/mina/app/auth/login
+ *
+ * 登录只做身份交换，不再收集头像/昵称：
+ * 微信无法静默获取真实资料（只能由用户主动 chooseAvatar / type="nickname"），
+ * 而后端又只在首次建会员时写入，导致每次重新授权都要重填且老会员填了也不入库。
+ * 页面只传 jsCode；本层保留后端字段（头像恒为空串、昵称用 DEFAULT_NICKNAME 占位），
+ * 真实资料由编辑资料页按需补全。
  */
 export async function login(payload: LoginPayload): Promise<LoginResult> {
   // 兼容后端 data 直接是 token 字符串的历史情况
@@ -54,7 +70,7 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
     data: {
       jsCode: payload.jsCode,
       avatarImgUrl: payload.avatarImgUrl || '',
-      nickName: payload.nickName || '',
+      nickName: payload.nickName || DEFAULT_NICKNAME,
     },
   })
   const token = typeof data === 'string' ? data : data?.token || ''
@@ -83,8 +99,9 @@ export function isLocalTempFile(url: string): boolean {
  * 上传微信头像，返回后端文件服务的持久化访问地址。
  *
  * chooseAvatar 返回的是 wxfile:// / http://tmp/ 临时路径，仅本次会话有效，
- * 必须先上传换成持久 URL，再随 /auth/login 一起提交给后端落库；
- * 编辑资料页重新选头像时同样用本接口换新地址，再调 /reservation/user/update。
+ * 必须先上传换成持久 URL 才能入库。
+ * 登录流程不再使用本接口；只有编辑资料页重新选头像时才上传，
+ * 随后调 /reservation/user/update 保存新地址。
  * 该接口无 @MinaApiAuth（网关白名单 /spas/mina/app/**），登录前调用无需 token。
  * POST /spas/mina/app/user/avatar/upload（multipart 表单，字段名 file）
  *

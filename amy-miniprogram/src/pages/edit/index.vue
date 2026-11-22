@@ -3,7 +3,7 @@ import PageHero from '@/components/PageHero.vue'
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
-import { isLocalTempFile, uploadAvatar } from '@/api/user'
+import { DEFAULT_NICKNAME, isLocalTempFile, uploadAvatar } from '@/api/user'
 import { showError } from '@/utils/request'
 import { requireLogin } from '@/utils/authGuard'
 
@@ -29,8 +29,13 @@ onShow(async () => {
     const user = await userStore.fetchProfile(true) // 无感刷新，失败不弹提示
     if (user) {
       // 仅在未填写时回填，避免覆盖用户正在编辑的内容；
-      // 回填的 avatarImgUrl 是文件服务的持久化地址，未换头像时保存不再上传
-      if (!nickname.value) nickname.value = user.nickname || ''
+      // 回填的 avatarImgUrl 是文件服务的持久化地址，未换头像时保存不再上传。
+      // 登录时写入的默认占位昵称不算「已填」，留空让用户主动输入真实昵称，
+      // 否则从首登引导进来会直接显示「微信用户」、点保存等于没改。
+      const cachedNickname = user.nickname || ''
+      if (!nickname.value && cachedNickname && cachedNickname !== DEFAULT_NICKNAME) {
+        nickname.value = cachedNickname
+      }
       if (!avatarUrl.value) avatarUrl.value = user.avatarImgUrl || ''
     }
   } catch (e) {
@@ -73,6 +78,7 @@ async function onSave() {
       avatar = await uploadAvatar(avatar)
       avatarUrl.value = avatar
     }
+    // updateProfile 成功后会持久忽略「完善资料」引导（见 stores/user.ts）
     await userStore.updateProfile(nick, avatar)
     uni.showToast({ title: '保存成功', icon: 'success' })
     setTimeout(() => {

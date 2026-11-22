@@ -24,6 +24,22 @@ const defaultAvatar = 'https://i.pravatar.cc/120?img=12'
 /** 是否已实名（未登录视为未实名） */
 const isVerified = computed(() => !!userStore.user?.isVerified)
 
+/**
+ * 首登资料引导：store 已综合「登录态 / 是否忽略过 / 资料是否完整」，
+ * 这里只做展示。它是非阻断的，用户可跳过，也可直接点上方会员卡去编辑资料。
+ */
+const showProfileGuide = computed(() => userStore.loggedIn && userStore.profileGuidePending)
+
+function onGuideGo() {
+  // 跳转时不清标记：用户中途返回，下次进「我的」还能看到；
+  // 只有在编辑资料页保存成功才持久忽略（stores/user.ts#updateProfile）
+  uni.navigateTo({ url: '/pages/edit/index' })
+}
+
+function onGuideSkip() {
+  userStore.dismissProfileGuide()
+}
+
 function onCardClick() {
   if (userStore.loggedIn) {
     uni.navigateTo({ url: '/pages/edit/index' })
@@ -115,6 +131,23 @@ onShow(async () => {
       <text class="mine__edit">编辑 ›</text>
     </view>
 
+    <!-- 资料引导：只在资料不完整且未主动忽略时出现，可跳过、不阻断其它操作 -->
+    <view v-if="showProfileGuide" class="profile-guide">
+      <view class="profile-guide__top">
+        <view class="profile-guide__badge">
+          <AppIcon name="info" :size="30" color="#f0cf94" />
+        </view>
+        <view class="profile-guide__text">
+          <view class="profile-guide__title">设置头像和昵称</view>
+          <view class="profile-guide__desc">让预约信息更好辨认，也可以稍后再设置</view>
+        </view>
+      </view>
+      <view class="profile-guide__actions">
+        <text class="profile-guide__skip" @tap="onGuideSkip">暂不设置</text>
+        <view class="profile-guide__go" @tap="onGuideGo">去设置</view>
+      </view>
+    </view>
+
     <view class="mine__menu">
       <view class="menu-item" @tap="goRecords">
         <view class="menu-item__icon menu-item__icon--gold">
@@ -201,6 +234,62 @@ onShow(async () => {
 .mine__edit {
   color: $art-accent;
   font-size: 26rpx;
+}
+.profile-guide {
+  @include art-card(0.6, 18px, 24rpx);
+  margin: $art-gap 24rpx 0;
+  padding: 28rpx 32rpx;
+  /* 弱金描边与下方菜单卡拉开层次，避免连续三块同色深靛卡 */
+  border: 1rpx solid rgba(240, 207, 148, 0.26);
+}
+.profile-guide__top {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+.profile-guide__badge {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 207, 148, 0.14);
+}
+.profile-guide__text {
+  flex: 1;
+  min-width: 0;
+}
+.profile-guide__title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: $art-text-strong;
+}
+.profile-guide__desc {
+  font-size: 22rpx;
+  color: $art-text-dim;
+  margin-top: 6rpx;
+  line-height: 1.5;
+}
+.profile-guide__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 32rpx;
+  margin-top: 24rpx;
+}
+.profile-guide__skip {
+  font-size: 24rpx;
+  color: $art-text-dim;
+  padding: 10rpx 8rpx;
+}
+.profile-guide__go {
+  font-size: 24rpx;
+  color: $art-on-gold;
+  background: $art-accent;
+  padding: 12rpx 36rpx;
+  border-radius: 40rpx;
 }
 .mine__menu {
   @include art-card(0.58, 18px, 32rpx);
