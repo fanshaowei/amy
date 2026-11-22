@@ -3,22 +3,18 @@ package com.amy.sunpalaceartspace.service;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
-import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.dto.AliIdCheckDto;
 import com.amy.sunpalaceartspace.domain.entity.*;
 import com.amy.sunpalaceartspace.domain.req.UserIdentityReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.*;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
 import com.amy.sunpalaceartspace.domain.vo.UserIdentityVO;
 import com.amy.sunpalaceartspace.enums.*;
 import com.amy.sunpalaceartspace.mapper.MinaNoticeMapper;
-import com.amy.sunpalaceartspace.service.impl.UserIdentityServiceImpl;
 import com.amy.sunpalaceartspace.utils.AliIdCheckUtil;
 import com.amy.sunpalaceartspace.utils.IdVerifyUtil;
 import com.amy.sunpalaceartspace.utils.PhoneVerifyUtil;
-import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -51,11 +47,9 @@ public class MinaAppService {
     private final IReservationOrderService reservationOrderService;
     private final IReservationUserService reservationUserService;
     private final RedisService redisService;
-    private final ReservationUtil reservationUtil;
     private final MinaAppLoginService minaAppLoginService;
     private final IUserIdentityService userIdentityService;
     private final AliIdCheckUtil aliIdCheckUtil;
-    private final UserIdentityServiceImpl userIdentityServiceImpl;
     private final IReservationStockService reservationStockService;
     private final MinaNoticeMapper minaNoticeMapper;
 
@@ -239,19 +233,19 @@ public class MinaAppService {
     public MinaReservationUserInfoResp extractReservationUserInfo(String token) {
         Object openId = redisService.getCacheObject(String.format(CASH_WX_API_TOKEN_OPEN_ID, token));
         ReservationUser userInfo = reservationUserService.selectUserInfoByOpenId((String) openId);
-        List<UserIdentityVO> userIdentityVOs = userIdentityServiceImpl.selectUserIdentityByReservationUserId(userInfo.getReservationUserId(), List.of(Boolean.FALSE));
-        UserIdentityVO userIdentityVO = userIdentityVOs.isEmpty() ? null: userIdentityVOs.getFirst();
-        return MinaReservationUserInfoResp.builder()
+
+        MinaReservationUserInfoResp build = MinaReservationUserInfoResp.builder()
                 .reservationUserId(userInfo.getReservationUserId())
                 .type(userInfo.getType())
                 .nickname(userInfo.getNickname())
-                .phone(null != userIdentityVO ? userIdentityVO.getPhone() : userInfo.getPhone())
-                .idNum(null != userIdentityVO ? userIdentityVO.getIdNum() : userInfo.getIdNum())
-                .name(null != userIdentityVO ? userIdentityVO.getName() : null)
-                .idType(null != userIdentityVO ? userIdentityVO.getIdType() : null)
+                .phone(userInfo.getPhone())
+                .idNum(userInfo.getIdNum())
+                .name(userInfo.getName())
+                .idType(userInfo.getType())
                 .avatarImgUrl(userInfo.getAvatarImgUrl())
                 .isVerified(userInfo.getIsVerified())
                 .build();
+        return build;
     }
 
     public ReservationOrderVO extractReservationOrderInfo(String orderNum) {
