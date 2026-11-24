@@ -426,7 +426,7 @@ const subBlockStyle = computed(() => ({
   box-sizing: content-box;
 }
 .captcha-bar-msg {
-  position: absolute;
+  
   z-index: 2;
   width: 100%;
   height: 100%;
