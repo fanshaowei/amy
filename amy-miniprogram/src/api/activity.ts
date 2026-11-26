@@ -9,6 +9,7 @@
 import type { Activity, ReservationInfo, TimeSlot } from '@/types'
 import { request, requestPage } from '@/utils/request'
 import { hmsToHm, slotIntervalMinutes } from '@/utils'
+import { resolveFileSrc, resolveRichText } from '@/utils/fileUrl'
 
 /** 后端首页项目列表项（MinaHomePageProjectResp） */
 interface MinaHomePageProjectResp {
@@ -42,7 +43,7 @@ function toActivity(raw: MinaHomePageProjectResp): Activity {
   return {
     projectId: raw.projectId,
     projectName: raw.projectName || '',
-    coverArtUrl: raw.coverArtUrl || '',
+    coverArtUrl: resolveFileSrc(raw.coverArtUrl),
     reservationStartDate: raw.reservationStartDate || '',
     reservationEndDate: raw.reservationEndDate || '',
     reservationStartTime: raw.reservationStartTime || '',
@@ -86,7 +87,7 @@ export async function getReservationInfo(projectId: number): Promise<Reservation
   })
   cachedInfoProjectId = projectId
   cachedInfo = {
-    reservationNotes: info?.reservationNotes || '',
+    reservationNotes: resolveRichText(info?.reservationNotes),
     reservationDetails: info?.reservationDetails || [],
   }
   return cachedInfo

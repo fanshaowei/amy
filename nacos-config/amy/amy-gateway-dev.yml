@@ -52,14 +52,14 @@ spring:
                 - Path=/file/**
               filters:
                 - StripPrefix=1
-            # 太阳宫艺术空间服务    
+            # 太阳宫艺术空间服务
             - id: amy-biz-sun-palace-art-space
               uri: lb://amy-biz-sun-palace-art-space
               predicates:
                 - Path=/spas/**
               filters:
-                - StripPrefix=1    
-                  
+                - StripPrefix=1
+
       # 兜底：即使再出现自循环，也只降级不会拖垮整机
       httpclient:
         connect-timeout: 5000
@@ -93,10 +93,20 @@ security:
       - /*/v3/api-docs
       - /csrf
       - /spas/mina/app/**
-      
+      # 文件静态资源：游客首页项目封面、小程序 <image> 都不带 token，必须放行。
+      # /file/** 路由带 StripPrefix=1，到 amy-file 后实际路径为 <file.prefix>/**。
+      # 这里用占位符跟随配置，改前缀时不用同步改白名单字符串。
+      - /file/upload/**
+
 
 # springdoc配置
 springdoc:
   webjars:
     # 访问前缀
     prefix:
+
+# 文件资源前缀：网关读不到 amy-file 的 dataId，这里单独声明一份供白名单占位符解析。
+# 必须与 amy-file-dev.yml 的 file.prefix 保持一致；若要真正单一真源，
+# 可把这一项移到共享 application-dev.yml，两个服务都会继承同一份配置。
+file:
+  prefix: /statics

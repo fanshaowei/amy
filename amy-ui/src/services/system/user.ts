@@ -1,4 +1,5 @@
 import {request} from '@umijs/max';
+import {resolveFileSrc} from '@/utils/fileUrl';
 import type {RuoYiResponse, RuoYiTableResponse} from '@/types/api';
 
 export interface TreeOption {
@@ -99,8 +100,26 @@ export const resetUserPassword = (userId: number, password: string) =>
     request('/system/user/resetPwd', {method: 'PUT', data: {userId, password}});
 export const getDeptTree = () => request<RuoYiResponse<TreeOption[]>>('/system/user/deptTree');
 export const getConfigValue = (key: string) => request<RuoYiResponse>(`/system/config/configKey/${key}`);
-export const getUserProfile = () => request<UserProfileResponse>('/system/user/profile');
-export const updateUserProfile = (data: Partial<UserRecord>) => request('/system/user/profile', {method: 'PUT', data});
+/**
+ * sys_user.avatar 存的是资源 key，个人中心 <Avatar> 需要可直接访问的地址。
+ * 只在这里解析：用户管理的 listUsers / getUser 会把 record 整表回显后提交给
+ * updateUser，若在那里解析展示地址，/api/file/... 前缀就会被写回数据库。
+ */
+export const getUserProfile = async () => {
+    const response = await request<UserProfileResponse>('/system/user/profile');
+    return response.data?.avatar
+        ? {...response, data: {...response.data, avatar: resolveFileSrc(response.data.avatar)}}
+        : response;
+};
+/**
+ * 头像走独立的 /profile/avatar 接口。表单 initialValues 会带上已解析的展示地址，
+ * 提交时必须剔除，避免把 /api/file/... 这类访问前缀写回 sys_user.avatar。
+ */
+export const updateUserProfile = (data: Partial<UserRecord>) => {
+    const payload = {...data};
+    delete payload.avatar;
+    return request('/system/user/profile', {method: 'PUT', data: payload});
+};
 export const updateUserPassword = (oldPassword: string, newPassword: string) => request('/system/user/profile/updatePwd', {
     method: 'PUT',
     data: {oldPassword, newPassword}
@@ -121,13 +140,16 @@ export interface AvatarUploadResult {
  * 后端签名是 @RequestParam("avatarfile") MultipartFile，字段名必须固定为 avatarfile；
  * 上传成功后会同时 sys_user.avatar 和登录缓存（LoginUser）。
  */
-export const uploadUserAvatar = (file: File) => {
+export const uploadUserAvatar = async (file: File) => {
     const formData = new FormData();
     formData.append('avatarfile', file);
-    return request<AvatarUploadResult>('/system/user/profile/avatar', {method: 'POST', data: formData});
+    const result = await request<AvatarUploadResult>('/system/user/profile/avatar', {method: 'POST', data: formData});
+    // imgUrl 是资源 key，解析后回填才能在 <Avatar> 里立即显示
+    return {...result, imgUrl: resolveFileSrc(result.imgUrl)};
 };
 
-export const getUserAuthRoles = (userId: number) => request<UserAuthRoleResponse>(`/system/user/authRole/${userId}`);
+export const getUserAuthRoles = (userId: number) =>
+    request<UserAuthRoleResponse>(`/system/user/authRole/${userId}`);
 export const updateUserAuthRoles = (userId: number, roleIds: React.Key[]) => request('/system/user/authRole', {
     method: 'PUT',
     params: {userId, roleIds: roleIds.join(',')}

@@ -19,6 +19,7 @@
 
 import type { User, UserIdentity } from '@/types'
 import { BASE_URL, networkError, request, responseError } from '@/utils/request'
+import { resolveFileSrc, toStoredKey } from '@/utils/fileUrl'
 
 /**，
  * 登录接口只传 jsCode，后端首次建会员时由本常量占位；
@@ -85,8 +86,8 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
  *
  * 临时路径（wxfile://tmp_xxx、http://tmp/xxx、file://...）仅本次会话有效，
  * 直接入库会导致下次打开小程序头像空白；只有这种路径才需要上传文件服务换持久 URL。
- * 文件服务的绝对 http(s) 地址、以及 /upload/... 这类服务端相对路径都视为持久地址，
- * 直接复用、不重复上传（也不会把相对路径当本地文件误传）。
+ * 文件服务的绝对 http(s) 地址、以及以 / 开头的服务端资源 key 都视为持久地址，
+ * 直接复用、不重复上传（也不会把资源 key 当本地文件误传）。
  */
 export function isLocalTempFile(url: string): boolean {
   if (!url) return false
@@ -119,7 +120,7 @@ export function uploadAvatar(filePath: string): Promise<string> {
           const body =
             typeof res.data === 'string' && res.data ? JSON.parse(res.data) : res.data
           if (res.statusCode === 200 && body && body.code === 200 && body.data) {
-            resolve(body.data as string)
+            resolve(resolveFileSrc(body.data as string))
           } else {
             // 上传通道不走 request()，这里复用同一套异常解析，保证后端 msg 不丢失
             reject(responseError(res.data, res.statusCode, '头像上传失败'))
@@ -183,7 +184,10 @@ export async function updateReservationUser(
     silent: silent || undefined,
     data: {
       nickName: payload.nickName,
-      avatarImgUrl: payload.avatarImgUrl,
+      // 表单里可能是已解析的展示地址，提交前还原成资源 key
+      avatarImgUrl: payload.avatarImgUrl === undefined
+        ? undefined
+        : toStoredKey(payload.avatarImgUrl),
     },
   })
 }
@@ -193,7 +197,8 @@ export async function updateReservationUser(
  * GET /spas/mina/app/user/info
  */
 export async function getProfile(silent = false): Promise<User> {
-  return request<User>({ url: '/spas/mina/app/user/info', silent: silent || undefined })
+  const user = await request<User>({ url: '/spas/mina/app/user/info', silent: silent || undefined })
+  return user ? { ...user, avatarImgUrl: resolveFileSrc(user.avatarImgUrl) } : user
 }
 
 /**

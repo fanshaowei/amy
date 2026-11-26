@@ -35,6 +35,7 @@ public class FilterConfig
         FilterRegistrationBean registration = new FilterRegistrationBean();
         registration.setDispatcherTypes(DispatcherType.REQUEST);
         registration.setFilter(new RefererFilter());
+        // 防盗链范围与 ResourcesConfig 一样，只由 file.prefix 决定
         registration.addUrlPatterns(localFilePrefix + "/*");
         registration.setName("refererFilter");
         registration.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE);

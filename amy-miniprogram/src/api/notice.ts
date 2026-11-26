@@ -11,6 +11,7 @@
 
 import type { NoticeDetail, NoticeItem } from '@/types'
 import { request } from '@/utils/request'
+import { resolveRichText } from '@/utils/fileUrl'
 
 /**
  * 通知公告列表（公开接口，无需登录；静默失败由页面决定提示）
@@ -38,4 +39,6 @@ export async function getNoticeDetail(noticeId: number): Promise<NoticeDetail> {
     skipAuthRedirect: true,
   })
   return detail
+    ? { ...detail, noticeContent: resolveRichText(detail.noticeContent) }
+    : detail
 }

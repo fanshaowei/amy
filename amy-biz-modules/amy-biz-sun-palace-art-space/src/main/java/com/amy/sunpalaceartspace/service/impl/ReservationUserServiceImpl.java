@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service.impl;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
+import com.amy.common.core.utils.StringUtils;
 import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationUserReq;
@@ -11,6 +12,7 @@ import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
 import com.amy.sunpalaceartspace.mapper.ReservationUserMapper;
 import com.amy.sunpalaceartspace.service.IReservationUserService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
+import com.amy.sunpalaceartspace.utils.FileUrlNormalizer;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -152,6 +154,14 @@ public class ReservationUserServiceImpl extends ServiceImpl<ReservationUserMappe
     private ReservationUser convertToEntity(ReservationUserReq req) {
         ReservationUser user = new ReservationUser();
         BeanUtils.copyProperties(req, user);
+        // 后台新增/编辑会员、首登建会员都走这里：统一只把资源 key 写进 avatar_img_url。
+        // 注意「编辑」场景可能根本不提交头像字段，此时必须保持 null，
+        // 让 MyBatis-Plus 的 updateById 跳过该列；强行 set 空串会把已有头像清空。
+        if (StringUtils.hasText(req.getAvatarImgUrl())) {
+            String key = FileUrlNormalizer.normalize(req.getAvatarImgUrl());
+            // 归一化结果为空说明是 wxfile:// 等临时路径：拒绝写入，保持库里的原值
+            user.setAvatarImgUrl(StringUtils.hasText(key) ? key : null);
+        }
         return user;
     }
 

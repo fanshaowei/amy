@@ -8,8 +8,11 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 通用映射配置
- * 
+ * 静态资源映射配置。
+ *
+ * <p>映射路径完全由 Nacos {@code file.prefix} 决定：改配置即可换前缀，
+ * 没有第二处硬编码路径。上传接口返回的 key 也用同一个前缀，二者天然对齐。</p>
+ *
  * @author amy
  */
 @Configuration
@@ -22,7 +25,7 @@ public class ResourcesConfig implements WebMvcConfigurer
     private String localFilePath;
 
     /**
-     * 资源映射路径 前缀
+     * 资源映射路径前缀（配置 file.prefix）
      */
     @Value("${file.prefix}")
     public String localFilePrefix;
@@ -31,8 +34,8 @@ public class ResourcesConfig implements WebMvcConfigurer
     public void addResourceHandlers(ResourceHandlerRegistry registry)
     {
         /** 本地文件上传路径 */
-        registry.addResourceHandler(localFilePrefix + "/**")
-                .addResourceLocations("file:" + localFilePath + File.separator);
+        String location = "file:" + localFilePath + File.separator;
+        registry.addResourceHandler(localFilePrefix + "/**").addResourceLocations(location);
     }
     
     /**
@@ -40,8 +43,7 @@ public class ResourcesConfig implements WebMvcConfigurer
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 设置允许跨域的路由
-        registry.addMapping(localFilePrefix  + "/**")
+        registry.addMapping(localFilePrefix + "/**")
                 // 设置允许跨域请求的域名
                 .allowedOrigins("*")
                 // 设置允许的方法

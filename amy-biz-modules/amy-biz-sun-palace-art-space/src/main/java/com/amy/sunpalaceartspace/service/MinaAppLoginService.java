@@ -17,6 +17,7 @@ import com.amy.sunpalaceartspace.domain.req.mina.UpdateReservationUserReq;
 import com.amy.sunpalaceartspace.domain.req.mina.WechatApiAuthLoginReq;
 import com.amy.sunpalaceartspace.domain.resp.mina.WechatApiAuthLoginResp;
 import com.amy.sunpalaceartspace.enums.ReservationUserStatusEnum;
+import com.amy.sunpalaceartspace.utils.FileUrlNormalizer;
 import com.amy.system.api.RemoteFileService;
 import com.amy.system.api.domain.SysFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,20 +51,27 @@ public class MinaAppLoginService {
     private final RemoteFileService remoteFileService;
 
     /**
-     * 上传小程序微信头像，返回文件服务的持久化访问地址。
+     * 上传小程序微信头像，返回可入库的资源 key。
+     * Feign 返回的就是 amy-file 按 file.prefix 产出的 key；归一化只兜底拒绝临时地址。
      */
     public String uploadReservationUserAvatar(MultipartFile file) {
         R<SysFile> upload = remoteFileService.upload(file);
         if (upload == null || upload.getData() == null || !StringUtils.hasText(upload.getData().getUrl())) {
             throw new ServiceException("头像上传失败，请稍后重试");
         }
-        return upload.getData().getUrl();
+        return FileUrlNormalizer.normalize(upload.getData().getUrl());
     }
 
     public ReservationUser updateReservationUserInfo(String token, UpdateReservationUserReq req) {
         ReservationUser reservationUser = getUserByToken(token);
         reservationUser.setNickname(req.getNickName());
-        reservationUser.setAvatarImgUrl(req.getAvatarImgUrl());
+        // 前端适配层提交前已把展示地址还原成 key；这里只兜底拒绝 wxfile:// 等临时路径，
+        // 直接拒绝而不是把已有头像清空（编辑页的头像字段是必填的）
+        String avatarKey = FileUrlNormalizer.normalize(req.getAvatarImgUrl());
+        if (!StringUtils.hasText(avatarKey)) {
+            throw new ServiceException("头像地址无效，请重新选择头像");
+        }
+        reservationUser.setAvatarImgUrl(avatarKey);
         reservationUserService.getBaseMapper().updateById(reservationUser);
         return reservationUser;
     }
@@ -112,7 +120,8 @@ public class MinaAppLoginService {
         ReservationUserReq reservationUserReq = ReservationUserReq.builder()
                 .openId(openId)
                 .nickname(req.getNickName())
-                .avatarImgUrl(req.getAvatarImgUrl())
+                // 首登资料同样只落资源 key
+                .avatarImgUrl(FileUrlNormalizer.normalize(req.getAvatarImgUrl()))
                 .status(ReservationUserStatusEnum.ACTIVE.getCode())
                 .build();
         reservationUserService.saveReservationUser(reservationUserReq);

@@ -1,8 +1,7 @@
-# 本地文件上传    
+# 本地文件上传
 file:
-    domain: http://127.0.0.1:9300
     path: /Users/fantasyfan/opt/amy/uploadPath
-    prefix: /statics
+    prefix: /upload/amy/statics
 
 # FastDFS配置
 fdfs:

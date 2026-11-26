@@ -1,5 +1,6 @@
 import {request} from '@umijs/max';
 import type {RuoYiResponse, SpasTableResponse} from '@/types/api';
+import {resolveFileSrc, resolveRichText, toStoredHtml, toStoredKey} from '@/utils/fileUrl';
 
 /** 项目管理（biz_spas_projects） */
 export interface ProjectRecord {
@@ -44,16 +45,56 @@ export interface UploadResult {
     url: string
 }
 
-export const listProjects = (params: Record<string, unknown>) => request<SpasTableResponse<ProjectRecord>>('/spas/project/list', {params});
-export const getProject = (projectId: number) => request<RuoYiResponse<ProjectRecord>>(`/spas/project/${projectId}`);
-export const addProject = (data: ProjectRecord) => request('/spas/project', {method: 'POST', data});
-export const updateProject = (data: ProjectRecord) => request('/spas/project', {method: 'PUT', data});
+/**
+ * 读接口：services 适配层统一把后端返回的<b>资源 key</b>转成同源可访问地址。
+ * 页面/组件拿到的始终是可直接用于展示的地址，无需各自拼前缀。
+ * 只处理确实存在的字段，避免把 undefined 变成空串影响表单。
+ */
+function withFileUrls(record: ProjectRecord): ProjectRecord {
+    if (!record) return record;
+    return {
+        ...record,
+        coverArtUrl: resolveFileSrc(record.coverArtUrl),
+        ...(record.reservationNotes
+            ? {reservationNotes: resolveRichText(record.reservationNotes)}
+            : {}),
+    };
+}
+
+/**
+ * 写接口：表单回显的是展示地址，提交前统一还原成资源 key，
+ * 保证库里只存 amy-file 按 file.prefix 生成的 key，不含域名与网关前缀。
+ */
+function toSubmitData(data: ProjectRecord): ProjectRecord {
+    return {
+        ...data,
+        coverArtUrl: toStoredKey(data.coverArtUrl),
+        ...(data.reservationNotes
+            ? {reservationNotes: toStoredHtml(data.reservationNotes)}
+            : {}),
+    };
+}
+
+export const listProjects = async (params: Record<string, unknown>) => {
+    const res = await request<SpasTableResponse<ProjectRecord>>('/spas/project/list', {params});
+    if (!res?.data) return res;
+    return {...res, data: {...res.data, rows: (res.data.rows || []).map(withFileUrls)}};
+};
+
+export const getProject = async (projectId: number) => {
+    const res = await request<RuoYiResponse<ProjectRecord>>(`/spas/project/${projectId}`);
+    return res?.data ? {...res, data: withFileUrls(res.data)} : res;
+};
+
+export const addProject = (data: ProjectRecord) => request('/spas/project', {method: 'POST', data: toSubmitData(data)});
+export const updateProject = (data: ProjectRecord) => request('/spas/project', {method: 'PUT', data: toSubmitData(data)});
 export const deleteProjects = (projectIds: React.Key[]) => request(`/spas/project/${projectIds.join(',')}`, {method: 'DELETE'});
 export const refreshProject = (projectIds: React.Key[]) => request('/spas/inner/reservationStock/releaseBatch1', {method: 'POST'});
 
-/** 上传图片，走网关文件服务 /file/upload */
-export const uploadImage = (file: File) => {
+/** 上传图片，走网关文件服务 /file/upload；返回的 url 是 key，在此统一解析成可预览地址 */
+export const uploadImage = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return request<RuoYiResponse<UploadResult>>('/file/upload', {method: 'POST', data: formData});
+    const res = await request<RuoYiResponse<UploadResult>>('/file/upload', {method: 'POST', data: formData});
+    return res?.data ? {...res, data: {...res.data, url: resolveFileSrc(res.data.url)}} : res;
 };

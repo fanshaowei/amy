@@ -20,4 +20,5 @@ public class SpasConfig {
      * 单位分钟
      */
     private Long verifyCodeEffectiveDuration = 1L;
+    private String fileServerDomain;
 }

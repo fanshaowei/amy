@@ -5,12 +5,12 @@ import com.amy.common.security.utils.SecurityUtils;
 import com.amy.sunpalaceartspace.domain.entity.ProjectReservationConfig;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.vo.ManualOrderProjectOptionsVO;
+import com.amy.sunpalaceartspace.enums.ProjectStatus;
 import com.amy.sunpalaceartspace.mapper.ProjectReservationConfigMapper;
 import com.amy.sunpalaceartspace.mapper.ProjectsMapper;
-import com.amy.sunpalaceartspace.enums.ProjectStatus;
-import com.amy.sunpalaceartspace.service.IProjectReservationConfigService;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.utils.DateRangeParamUtils;
+import com.amy.sunpalaceartspace.utils.FileUrlNormalizer;
 import com.amy.sunpalaceartspace.utils.ReservationUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -18,7 +18,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -58,9 +57,27 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
         return baseMapper.selectProjectsExportList(projects);
     }
 
+    /**
+     * 项目写入前的文件地址归一化：封面只存资源 key，富文本里的 &lt;img src&gt; 逐个归一化。
+     *
+     * <p>编辑表单可能不提交封面字段，此时必须保持 null，让 MyBatis-Plus 的 updateById
+     * 跳过该列；强行 set 空串会把已有封面清空。富文本为 null 时同理原样返回。</p>
+     */
+    private void normalizeFileFields(Projects projects) {
+        if (projects == null) {
+            return;
+        }
+        if (StringUtils.hasText(projects.getCoverArtUrl())) {
+            String key = FileUrlNormalizer.normalize(projects.getCoverArtUrl());
+            projects.setCoverArtUrl(StringUtils.hasText(key) ? key : null);
+        }
+        projects.setReservationNotes(FileUrlNormalizer.normalizeHtml(projects.getReservationNotes()));
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveProjects(Projects projects) {
+        normalizeFileFields(projects);
         if (projects.getStatus() == null)
         {
             projects.setStatus(ProjectStatus.NORMAL.getCode());
@@ -143,6 +160,7 @@ public class ProjectsServiceImpl extends ServiceImpl<ProjectsMapper, Projects> i
     @Transactional
     @Override
     public boolean updateProjects(Projects projects) {
+        normalizeFileFields(projects);
         Projects record = this.selectProjectById(projects.getProjectId());
         String oldReservationStartTime = record.getReservationStartTime();
         String oldReservationEndTime = record.getReservationEndTime();

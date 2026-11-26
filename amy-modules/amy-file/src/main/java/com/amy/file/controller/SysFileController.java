@@ -28,12 +28,15 @@ public class SysFileController
 
     /**
      * 文件上传请求
+     *
+     * <p>Service 返回的是<b>资源 key</b>（形如 {@code <file.prefix>/2026/11/26/xxx.jpg}），
+     * 前缀只来自 Nacos {@code file.prefix}；入库只存 key，访问地址由前端适配层拼装。</p>
      */
     @PostMapping("upload")
     public R<SysFile> upload(MultipartFile file)
     {
         try {
-            // 上传并返回访问地址
+            // 上传并返回资源 key
             String url = sysFileService.uploadFile(file);
             SysFile sysFile = new SysFile();
             sysFile.setName(FileUtils.getName(url));

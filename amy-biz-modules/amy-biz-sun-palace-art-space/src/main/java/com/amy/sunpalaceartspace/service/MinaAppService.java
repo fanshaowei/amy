@@ -67,7 +67,7 @@ public class MinaAppService {
                 .filter(project -> Objects.equals(project.getStatus(), ProjectStatus.NORMAL.getCode()))
                 .map(project -> {
                     List<ReservationStock> stocks = reservationStockService.selectValidStockByIdAndTimeGe(project.getProjectId(), todayStart);
-                    TreeMap<String, List<ReservationStock>> stringListTreeMap = this.groupStocksByDate(stocks);
+                    TreeMap<String, List<ReservationStock>> stocksGroupByDate = this.groupStocksByDate(stocks);
 
                     Integer totalReservationCount = stocks.stream()
                             .mapToInt(ReservationStock::getReleaseCount)
@@ -78,16 +78,18 @@ public class MinaAppService {
                     Integer remainingReservationCount = stocks.stream()
                             .mapToInt(stock -> stock.getReleaseCount() - stock.getReservedCount())
                             .sum();
+                    String reservationStartDate = null;
+                    String reservationEndDate = null;
+                    String reservationStartTime = null;
+                    String reservationEndTime = null;
 
-                    List<String> reservationDates = List.of(
-                            stringListTreeMap.firstKey(),
-                            stringListTreeMap.lastKey()
-                    );
-
-                    List<String> reservationTimes = List.of(
-                            DateUtils.parseDateToStr(DateUtils.HH_MM_SS, stringListTreeMap.firstEntry().getValue().getFirst().getReservationTime()),
-                            DateUtils.parseDateToStr(DateUtils.HH_MM_SS, stringListTreeMap.firstEntry().getValue().getLast().getReservationTime())
-                    );
+                    if(!stocksGroupByDate.isEmpty()) {
+                        Map.Entry<String, List<ReservationStock>> firstStockEntry = stocksGroupByDate.firstEntry();
+                        reservationStartDate = stocksGroupByDate.firstKey();
+                        reservationEndDate = stocksGroupByDate.lastKey();
+                        reservationStartTime = DateUtils.parseDateToStr(DateUtils.HH_MM_SS, firstStockEntry.getValue().getFirst().getReservationTime());
+                        reservationEndTime = DateUtils.parseDateToStr(DateUtils.HH_MM_SS, firstStockEntry.getValue().getLast().getReservationTime());
+                    }
 
                     Integer reservationStatus = calculateReservationStatus(totalReservationCount, reservationCount);
 
@@ -95,10 +97,10 @@ public class MinaAppService {
                             .projectId(project.getProjectId())
                             .projectName(project.getProjectName())
                             .coverArtUrl(project.getCoverArtUrl())
-                            .reservationStartDate(reservationDates.getFirst())
-                            .reservationEndDate(reservationDates.getLast())
-                            .reservationStartTime(reservationTimes.getFirst())
-                            .reservationEndTime(reservationTimes.getLast())
+                            .reservationStartDate(reservationStartDate)
+                            .reservationEndDate(reservationEndDate)
+                            .reservationStartTime(reservationStartTime)
+                            .reservationEndTime(reservationEndTime)
                             .totalReservationCount(totalReservationCount)
                             .remainingReservationCount(remainingReservationCount)
                             .reservationStatus(reservationStatus)
