@@ -64,4 +64,8 @@ public class AmyBizSunPlaceArtSpaceTask {
             throw new IllegalStateException(taskName + "执行失败：" + reason);
         }
     }
+
+    public void makeUpReservationOrderFromMq(){
+        requireSuccess(remoteReservationStockService.makeUpReservationOrderFromMq(SecurityConstants.INNER), "补偿处理预约订单");
+    }
 }

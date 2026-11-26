@@ -1,5 +1,6 @@
 package com.amy.sunpalaceartspace.service;
 
+import java.util.Date;
 import java.util.List;
 
 import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
@@ -40,10 +41,12 @@ public interface IReservationMessageService extends IService<ReservationMessage>
     /**
      * 按状态查询预约消息列表（用于发送/重试任务捞取 WAITING 或 FAIL 的消息）
      *
-     * @param status 状态枚举
+     * @param dateStart   开始时间
+     * @param dateEnd     结束时间
+     * @param status      状态枚举
      * @return 消息列表（按创建时间升序）
      */
-    List<ReservationMessage> selectByStatus(ReservationMessageStatus status);
+    List<ReservationMessage> selectByStatus(Date dateStart, Date dateEnd, ReservationMessageStatus status);
 
     /**
      * 更新预约消息状态

@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.timetask;
 import com.amy.sunpalaceartspace.common.SpasLock;
 import com.amy.sunpalaceartspace.service.IReservationStockService;
 import com.amy.sunpalaceartspace.service.ReservationRulesService;
+import com.amy.sunpalaceartspace.service.SubmitReservationOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,7 @@ public class ReservationStockTask {
     private final ReservationRulesService reservationRulesService;
     private final SpasLock spasLock;
     private final IReservationStockService reservationStockService;
+    private final SubmitReservationOrderService submitReservationOrderService;
 
     /**
      * 每天 12:00 释放“第二天”第一批名额（每时段 +10，共 60）。
@@ -46,10 +48,20 @@ public class ReservationStockTask {
                 SAPS_RELEASE_LOCK, "releaseBatch2");
     }
 
+    /**
+     * 每天更新当天库存状态
+     */
     public void updateExpireStock() {
         log.info("Start to updateExpireStock");
         spasLock.run(reservationStockService::setReservationStockExpireByProjectCutOffTime,
                 "updateExpireStock", "updateExpireStock");
         log.info("Finish updating expire stock");
+    }
+
+    /**
+     * 从mq弥补失败订单，如果库存不足，更新预订失败
+     */
+    public void makeUpUserOrderFromMq() {
+        submitReservationOrderService.makeUpUserOrderFromMq();
     }
 }

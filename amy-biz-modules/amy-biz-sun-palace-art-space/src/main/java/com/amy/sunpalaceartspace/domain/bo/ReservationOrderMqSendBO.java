@@ -21,6 +21,8 @@ import java.util.List;
 @Builder
 @Data
 public class ReservationOrderMqSendBO extends AmyMqProducerBO {
+    private Long reservationMessageId;
+
     private Long projectId;
     private String name;
     private String phone;

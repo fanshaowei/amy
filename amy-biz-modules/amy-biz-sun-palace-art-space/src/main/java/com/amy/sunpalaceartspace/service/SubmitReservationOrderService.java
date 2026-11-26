@@ -26,6 +26,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
@@ -205,6 +206,7 @@ public class SubmitReservationOrderService {
             log.error("userId:{} sendReservationOrderMq: {} saveReservationMessage fail.", user.getReservationUserId(), reservationMessage);
             throw new ServiceException("预约失败，请稍后重试");
         }
+        bo.setReservationMessageId(reservationMessage.getReservationMessageId());
 
         // 发送消息并更新发送状态
         amyMqProducer.asyncSend(MQ_DESTINATE, bo,
@@ -231,6 +233,7 @@ public class SubmitReservationOrderService {
         String reservationNum = bo.getReservationNum();
         Long projectId = bo.getProjectId();
         Long userId = bo.getReservationUserId();
+        Long reservationMessageId = bo.getReservationMessageId();
 
         log.info("start reservateOrder ... ");
         String reservationTimeStr = DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, bo.getReservationTime());
@@ -261,6 +264,7 @@ public class SubmitReservationOrderService {
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
         reservationStockService.incrementReservedCount(projectId, bo.getReservationTime());
+        reservationMessageService.markSuccess(reservationMessageId);
     }
 
     private void checkStockAndReservation(Long projectId, Long userId, String stockKey, String userKey,
@@ -309,5 +313,28 @@ public class SubmitReservationOrderService {
         } catch (Exception e) {
             log.error("rollbackReservation failed, stockKey:{}, userKey:{}", stockKey, userKey, e);
         }
+    }
+
+    public void makeUpUserOrderFromMq(){
+        Date today = DateUtils.toDate(LocalDate.now());
+        Date tomorrow = DateUtils.toDate(LocalDate.now().plusDays(1));
+
+        reservationMessageService.selectByStatus(today, tomorrow, ReservationMessageStatus.FAIL)
+                .stream()
+                .forEach(reservationMessage -> {
+                    String msgContent = reservationMessage.getMsgContent();
+                    ReservationOrderMqSendBO reservationOrderMqSendBO = null;
+                    try {
+                        reservationOrderMqSendBO = objectMapper.readValue(msgContent, ReservationOrderMqSendBO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                    ReservationOrder reservationOrder = reservationOrderService.getById(reservationOrderMqSendBO.getReservationOrderId());
+                    Integer reservationStatus = reservationOrder.getReservationStatus();
+                    if(ReservationOrderStatus.ORDERING.getStatus().equals(reservationStatus)) {
+                        reservateOrder(reservationOrderMqSendBO);
+                    }
+                });
+
     }
 }

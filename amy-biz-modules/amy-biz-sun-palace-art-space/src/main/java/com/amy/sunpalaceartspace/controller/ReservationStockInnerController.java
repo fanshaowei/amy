@@ -60,4 +60,11 @@ public class ReservationStockInnerController
         reservationOrderService.batchUpdateUnVerifyOrderToExpire();
         return R.ok(true);
     }
+
+    @InnerAuth
+    @PostMapping("/reservationOrder/makeUpFromMq")
+    public R<Boolean> makeUpReservationOrderFromMq() {
+        reservationStockTask.makeUpUserOrderFromMq();
+        return R.ok(true);
+    }
 }

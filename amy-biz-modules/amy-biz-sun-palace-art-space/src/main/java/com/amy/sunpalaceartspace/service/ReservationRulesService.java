@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_RELEASE_BATCH_STEP;
 import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_STOCK_KEY_PREFIX;
@@ -154,6 +155,7 @@ public class ReservationRulesService {
 
             // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
             stringRedisTemplate.opsForValue().increment(stockKey, delta);
+            stringRedisTemplate.expire(stockKey, project.getAdvanceReservationDays(), TimeUnit.DAYS);
             log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
         }
     }

@@ -1,6 +1,7 @@
 package com.amy.sunpalaceartspace.service.impl;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import com.amy.common.core.utils.DateUtils;
@@ -49,9 +50,11 @@ public class ReservationMessageServiceImpl extends ServiceImpl<ReservationMessag
     }
 
     @Override
-    public List<ReservationMessage> selectByStatus(ReservationMessageStatus status) {
+    public List<ReservationMessage> selectByStatus(Date dateStart, Date dateEnd, ReservationMessageStatus status) {
         LambdaQueryWrapper<ReservationMessage> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ReservationMessage::getStatus, status.getCode())
+                .ge(ReservationMessage::getCreateTime, dateStart)
+                .le(ReservationMessage::getCreateTime, dateEnd)
                 .orderByAsc(ReservationMessage::getCreateTime);
         return list(wrapper);
     }

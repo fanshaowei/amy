@@ -45,4 +45,7 @@ public interface RemoteReservationStockService
      */
     @PostMapping("/inner/reservationOrder/batch/update/unverify/expire")
     R<Boolean> batchUpdateUnVerifyOrderToExpire(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
+
+    @PostMapping("/inner/reservationOrder/makeUpFromMq")
+    R<Boolean> makeUpReservationOrderFromMq(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 }
