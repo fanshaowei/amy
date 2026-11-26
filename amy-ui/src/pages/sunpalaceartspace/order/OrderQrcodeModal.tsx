@@ -2,7 +2,7 @@ import {DownloadOutlined, InfoCircleOutlined, QrcodeOutlined} from '@ant-design/
 import {App, Button, Col, Divider, Modal, QRCode, Row, Space, Spin, Typography, theme} from 'antd';
 import {useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
-import {getOrderSourceName, getOrderVerifyCode, refreshOrderVerifyCode} from '@/services/sunpalaceartspace/order';
+import {getOrderSourceName, getOrderStatusName, getOrderVerifyCode, refreshOrderVerifyCode} from '@/services/sunpalaceartspace/order';
 import type {ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import styles from '../spas.less';
 
@@ -44,13 +44,6 @@ export const formatCountdown = (seconds: number): string => {
 export const resolveDurationMinutes = (value?: number): number => {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_DURATION_MINUTES;
-};
-
-const STATUS_TEXT: Record<number, string> = {
-    0: '待核销',
-    1: '已核销',
-    2: '已过期',
-    3: '已取消'
 };
 
 interface Props {
@@ -258,7 +251,7 @@ export function OrderQrcodeModal({open, order, onClose}: Props) {
                 <InfoRow label="预约人">{order?.name}</InfoRow>
                 <InfoRow label="预约时间">{order?.reservationTime}</InfoRow>
                 <InfoRow label="当前状态">
-                    {order?.reservationStatusName || STATUS_TEXT[order?.reservationStatus ?? -1] || '未知状态'}
+                    {getOrderStatusName(order?.reservationStatus, order?.reservationStatusName)}
                 </InfoRow>
                 <InfoRow label="订单来源">{getOrderSourceName(order?.orderSource, order?.orderSourceName)}</InfoRow>
             </Col>

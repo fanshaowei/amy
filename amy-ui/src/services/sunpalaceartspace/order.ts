@@ -24,7 +24,7 @@ export interface ReservationOrderRecord {
     guestsNum?: number;
     /** 预约时间（yyyy-MM-dd HH:mm:ss） */
     reservationTime?: string;
-    /** 状态码：0待核销 1已核销 2已过期 3已取消 */
+    /** 状态码：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中（与后端 ReservationOrderStatus 一致） */
     reservationStatus?: number;
     /** 状态中文名 */
     reservationStatusName?: string;
@@ -37,7 +37,7 @@ export interface ReservationOrderRecord {
     createTime?: string;
     /**
      * 核销码：后端 selectReservationOrderList 仅在「待核销」状态查询时生成并返回，
-     * 已核销 / 已过期 / 已取消订单为 null。前端据此决定是否展示订单二维码。
+     * 已完成 / 已过期 / 已取消等订单为 null。前端据此决定是否展示订单二维码。
      * 小程序订单为 Redis 中的一次性码（1 分钟有效），手动添加订单则为订单号本身。
      */
     verifyCode?: string | null;
@@ -69,6 +69,24 @@ export const ORDER_SOURCE_TEXT: Record<number, string> = {
  */
 export const getOrderSourceName = (code?: number, name?: string): string =>
     (code != null ? ORDER_SOURCE_TEXT[code] : undefined) || name || '未知来源';
+
+/** 订单状态码 -> 中文名（与后端 ReservationOrderStatus 枚举逐项对应） */
+export const ORDER_STATUS_TEXT: Record<number, string> = {
+    [-1]: '预约失败',
+    0: '待核销',
+    1: '已完成',
+    2: '已过期',
+    3: '已取消',
+    4: '预约中'
+};
+
+/**
+ * 取订单状态展示文案：优先用后端装配的中文名（VO#fillReservationStatusName），
+ * 没装配时回退本地映射，最后兜底「未知状态」。新增状态只要后端枚举更新，
+ * 即使前端未同步也能显示正确文案，不会再出现「非成功状态一律未知」。
+ */
+export const getOrderStatusName = (code?: number, name?: string): string =>
+    name || (code != null ? ORDER_STATUS_TEXT[code] : undefined) || '未知状态';
 
 /** 随行人身份信息（UserIdentity JSON 反序列化） */
 export interface CompUser {

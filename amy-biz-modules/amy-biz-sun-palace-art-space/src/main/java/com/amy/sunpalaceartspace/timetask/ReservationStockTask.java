@@ -62,6 +62,8 @@ public class ReservationStockTask {
      * 从mq弥补失败订单，如果库存不足，更新预订失败
      */
     public void makeUpUserOrderFromMq() {
+        log.info("Start to makeUpUserOrderFromMq");
         submitReservationOrderService.makeUpUserOrderFromMq();
+        log.info("Finish making up user orders from MQ");
     }
 }

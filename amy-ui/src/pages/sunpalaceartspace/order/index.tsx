@@ -8,6 +8,7 @@ import {
     ExportOutlined,
     HistoryOutlined,
     IdcardOutlined,
+    LoadingOutlined,
     MobileOutlined,
     PhoneOutlined,
     PlusOutlined,
@@ -15,7 +16,8 @@ import {
     QuestionOutlined,
     StopOutlined,
     TeamOutlined,
-    UserOutlined
+    UserOutlined,
+    WarningOutlined
 } from '@ant-design/icons';
 import {PageContainer, ProTable} from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
@@ -26,7 +28,7 @@ import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
 import {downloadFile} from '@/utils/download';
 import {pruneQueryParams} from '@/utils/exportParams';
-import {cancelOrder, deleteOrders, getOrderSourceName, getOrderVerifyCode, listOrders} from '@/services/sunpalaceartspace/order';
+import {cancelOrder, deleteOrders, getOrderSourceName, getOrderStatusName, getOrderVerifyCode, listOrders} from '@/services/sunpalaceartspace/order';
 import type {CompUser, ReservationOrderRecord} from '@/services/sunpalaceartspace/order';
 import {ManualOrderModal} from './ManualOrderModal';
 import {OrderQrcodeModal} from './OrderQrcodeModal';
@@ -53,15 +55,25 @@ interface StatusStyle {
     icon: ReactNode;
 }
 
-/** 状态码 -> 展示样式（表格状态列与顶部统计卡共用） */
+/**
+ * 状态码 -> 展示样式（表格状态列使用）。
+ * 与后端 ReservationOrderStatus 六个枚举值一一对应；此前只覆盖 0~3，
+ * 导致「预约中(4)」「预约失败(-1)」落到 StatusPill 的「未知状态」兜底。
+ */
 const STATUS_STYLE: Record<number, StatusStyle> = {
+    [-1]: {text: '预约失败', color: '#d4380d', background: '#fff2e8', icon: <WarningOutlined/>},
     0: {text: '待核销', color: '#f59e0b', background: '#fef4e2', icon: <ClockCircleOutlined/>},
-    1: {text: '已核销', color: '#10b981', background: '#e7f8f1', icon: <CheckCircleOutlined/>},
+    1: {text: '已完成', color: '#10b981', background: '#e7f8f1', icon: <CheckCircleOutlined/>},
     2: {text: '已过期', color: '#6b7385', background: '#f2f4f8', icon: <HistoryOutlined/>},
-    3: {text: '已取消', color: '#f0525f', background: '#fdecee', icon: <CloseCircleOutlined/>}
+    3: {text: '已取消', color: '#f0525f', background: '#fdecee', icon: <CloseCircleOutlined/>},
+    4: {text: '预约中', color: '#4f6ef7', background: '#eef1fe', icon: <LoadingOutlined/>}
 };
 
-/** 顶部统计 / 筛选卡项 */
+/**
+ * 顶部统计 / 筛选卡项：只统计四种常规状态。
+ * 「预约中(4)」是流程中间态、「预约失败(-1)」是异常态，订单列表中仍正常展示，
+ * 但不作为顶部统计卡单独筛选（避免卡片频繁变动、干扰常规状态核对）。
+ */
 const STATUS_ITEMS: Array<{ key: string; label: string; color: string; background: string; icon: ReactNode }> = [
     {key: '', label: '全部订单', color: '#4f6ef7', background: '#eef1fe', icon: <AppstoreOutlined/>},
     ...([0, 1, 2, 3] as const).map(status => {
@@ -103,15 +115,17 @@ const splitDateTime = (value?: string) => {
     return {date: date || '-', time: time || ''};
 };
 
-/** 卡片-/单元格内的状态胶囊 */
-function StatusPill({style}: { style?: StatusStyle }) {
-    if (!style) {
-        return <Tag bordered={false} color="default" style={{margin: 0, borderRadius: 20}}>未知状态</Tag>;
-    }
+/**
+ * 单元格内的状态胶囊。文案优先取后端装配的 reservationStatusName，
+ * 未知码也有样式兜底（灰色 + 问号），不会让整行退回 antd 默认 Tag。
+ */
+function StatusPill({code, name}: { code?: number; name?: string }) {
+    const style = code != null ? STATUS_STYLE[code] : undefined;
     return (
-        <span className={styles.pill} style={{color: style.color, background: style.background}}>
-            {style.icon}
-            {style.text}
+        <span className={styles.pill}
+              style={{color: style?.color ?? '#6b7385', background: style?.background ?? '#f2f4f8'}}>
+            {style?.icon ?? <QuestionOutlined/>}
+            {getOrderStatusName(code, name)}
         </span>
     );
 }
@@ -319,7 +333,7 @@ export default function OrderPage() {
         dataIndex: 'reservationStatus',
         search: false,
         width: 110,
-        render: (_, row) => <StatusPill style={STATUS_STYLE[row.reservationStatus ?? -1]}/>
+        render: (_, row) => <StatusPill code={row.reservationStatus} name={row.reservationStatusName}/>
     }, {
         title: '订单来源',
         dataIndex: 'orderSource',

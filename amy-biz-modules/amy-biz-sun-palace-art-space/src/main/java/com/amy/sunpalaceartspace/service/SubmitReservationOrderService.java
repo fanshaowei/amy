@@ -332,9 +332,12 @@ public class SubmitReservationOrderService {
                     ReservationOrder reservationOrder = reservationOrderService.getById(reservationOrderMqSendBO.getReservationOrderId());
                     Integer reservationStatus = reservationOrder.getReservationStatus();
                     if(ReservationOrderStatus.ORDERING.getStatus().equals(reservationStatus)) {
-                        reservateOrder(reservationOrderMqSendBO);
+                        try{
+                            reservateOrder(reservationOrderMqSendBO);
+                        }catch (Exception e){
+                            log.error("makeUpUserOrderFromMq failed, reservationOrderMqSendBO:{}", reservationOrderMqSendBO, e);
+                        }
                     }
                 });
-
     }
 }
