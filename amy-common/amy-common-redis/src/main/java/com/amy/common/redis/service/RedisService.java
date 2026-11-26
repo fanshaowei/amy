@@ -43,7 +43,9 @@ public class RedisService
     }
 
     public Long increment(String key) {
-        return redisTemplate.opsForValue().increment(key);
+        Long increment = redisTemplate.opsForValue().increment(key);
+        redisTemplate.expire(key, 24, TimeUnit.HOURS);
+        return increment;
     }
 
     /**
