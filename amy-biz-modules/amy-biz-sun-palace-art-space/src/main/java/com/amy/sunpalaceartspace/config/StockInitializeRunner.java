@@ -23,6 +23,7 @@ public class StockInitializeRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
+            log.info("启动初始化预约库存");
             reservationRulesService.initStockOnStartup();
             log.info("预约库存启动初始化完成");
         } catch (Exception e) {

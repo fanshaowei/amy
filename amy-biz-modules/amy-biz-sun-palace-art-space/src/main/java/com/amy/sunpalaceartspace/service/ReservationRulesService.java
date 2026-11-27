@@ -100,9 +100,9 @@ public class ReservationRulesService {
                 }
             }
 
-            log.info("开始处理放号流程,projectId:{}, datetime: {}", project.getProjectId(), fullReservationDateTime);
+            log.info("start to release stock,projectId:{}, datetime: {}", project.getProjectId(), fullReservationDateTime);
             // 被 projectReservationConfig 配置为「不可预约」的时段：库存表保留一条 status=2 的记录
-            // （便于追溯/对账），但不放号、不写入 Redis 库存缓存。
+            // 但不放号、不写入 Redis 库存缓存。
             // 如果 batch=2（补足至满）时，仍然要放号，避免「批次1放号后,被配置为不可预约」导致「把第一次放的号都给关了」。
             if(stock == null) {
                 LocalTime slot = ProjectReservationConfigChecker.parseTime(time);
@@ -156,7 +156,7 @@ public class ReservationRulesService {
             // 4. 同步 Redis 可用库存（可用 = 已放号 - 已预约；INCRBY 与并发 DECR 可交换，不会错乱）
             stringRedisTemplate.opsForValue().increment(stockKey, delta);
             stringRedisTemplate.expire(stockKey, project.getAdvanceReservationDays(), TimeUnit.DAYS);
-            log.info("放号成功 projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
+            log.info("end to release stock, projectId:{} time:{} batch:{} delta:{}", project.getProjectId(), fullReservationDateTime, batch, delta);
         }
     }
 
@@ -189,10 +189,12 @@ public class ReservationRulesService {
             stock.setCreateTime(new Date());
             stock.setCreateBy("system");
             reservationStockService.saveReservationStock(stock);
+            log.info("add [close] stock record, projectId:{} reservationTime:{}",
+                    projectId, DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, slotTime));
         }
         // status=2（以及 0）不加入库存缓存；清除可能残留的旧 key，使抢号端读到「key 不存在」
         stringRedisTemplate.delete(stockKey);
-        log.info("放号跳过（不可预约，库存标记 status=2 且不入缓存）: projectId:{} reservationTime:{}",
+        log.info("as project close time slot to reservate,projectId:{} reservationTime:{}",
                 projectId, DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, slotTime));
     }
 
@@ -209,11 +211,12 @@ public class ReservationRulesService {
             int released = stock.getReleaseCount() == null ? 0 : stock.getReleaseCount();
             int reserved = stock.getReservedCount() == null ? 0 : stock.getReservedCount();
             int available = released - reserved;
-            // Redis key 的时段段仍用紧凑串 yyyyMMddHHmm（与 release 放号时一致），保证命中同一 key
             String stockKey = String.format(RESERVATION_STOCK_KEY_PREFIX, stock.getProjectId(),
                     DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, stock.getReservationTime()));
             stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(available));
-            log.info("项目启动初始化库存到redis: projectId:{} reservationTime:{} available:{}",
+            // todo 最好是根据项目的‘提前几天预约’来设置过期
+            stringRedisTemplate.expire(stockKey, 24L, TimeUnit.HOURS);
+            log.info("application start and init stock to redis: projectId:{} reservationTime:{} available:{}",
                     stock.getProjectId(), DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, stock.getReservationTime()), available);
         }
         // 非「正常可预约」的时段清掉残留缓存，避免抢号端读到过期余量

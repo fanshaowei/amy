@@ -53,6 +53,7 @@ public final class ProjectReservationConfigChecker {
                 continue;
             }
             if (!Boolean.TRUE.equals(config.getReservationEnabled())) {
+                log.info("project:{} close reservation time:{}", config.getProjectId(), config.getStartTime() + "-" + config.getEndTime());
                 // 黑名单优先：命中「不可预约」立即否决
                 return false;
             }

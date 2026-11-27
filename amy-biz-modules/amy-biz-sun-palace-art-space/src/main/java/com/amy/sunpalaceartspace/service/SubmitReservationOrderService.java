@@ -145,7 +145,7 @@ public class SubmitReservationOrderService {
         Date now = new Date();
         // 当月（自然月）起始：由 now 推导本月 1 号 00:00:00（只读取一次当前时间，避免重复取时钟/时区不一致）
         Date monthStart = DateUtils.toDate(now.toInstant()
-                .atZone(ZoneId.of("Asia/Shanghai"))
+                .atZone(ZoneId.systemDefault())
                 .toLocalDate()
                 .withDayOfMonth(1)
         );
@@ -264,6 +264,7 @@ public class SubmitReservationOrderService {
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
         reservationStockService.incrementReservedCount(projectId, bo.getReservationTime());
+        log.info("update reservation stock data table, projectId:{}, reservationTime:{}", projectId, bo.getReservationTime());
         reservationMessageService.markSuccess(reservationMessageId);
     }
 
@@ -271,6 +272,8 @@ public class SubmitReservationOrderService {
                                           String reservationTimeStr, String reservationNum, Long reservationOrderId) {
         Object rawResult;
         try {
+            log.info("start to run redis script for reservateOrder, userKey:{}, stockKey:{},reservationOrderId:{},reservationNum:{}",
+                    userKey, stockKey, reservationOrderId, reservationNum);
             rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, "600");
         } catch (Exception e) {
             log.error("执行redis预约脚本失败, {}", e.getMessage());
@@ -304,10 +307,12 @@ public class SubmitReservationOrderService {
             reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "您已预约，不可重复预约");
             throw new ServiceException("您已预约，不可重复预约");
         }
+        log.info("end to run redis script for reservateOrder,stockKey:{} remainStock:{}", stockKey, stringRedisTemplate.opsForValue().get(stockKey));
     }
 
     private void rollbackReservation(String stockKey, String userKey) {
         try {
+            log.info("Rolling back reservation, stockKey: {}, userKey: {}", stockKey, userKey);
             stringRedisTemplate.opsForValue().increment(stockKey, 1);
             stringRedisTemplate.delete(userKey);
         } catch (Exception e) {
@@ -333,6 +338,7 @@ public class SubmitReservationOrderService {
                     Integer reservationStatus = reservationOrder.getReservationStatus();
                     if(ReservationOrderStatus.ORDERING.getStatus().equals(reservationStatus)) {
                         try{
+                            log.info("makeUpUserOrderFromMq, reservationOrderMqSendBO:{}", reservationOrderMqSendBO);
                             reservateOrder(reservationOrderMqSendBO);
                         }catch (Exception e){
                             log.error("makeUpUserOrderFromMq failed, reservationOrderMqSendBO:{}", reservationOrderMqSendBO, e);

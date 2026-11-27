@@ -86,7 +86,7 @@ public class MinaAppLoginService {
         try {
             wxMaJscode2SessionResult = wxMaService.jsCode2SessionInfo(req.getJsCode());
         } catch (WxErrorException e) {
-            throw new ServiceException("fail to get session info by jsCode");
+            throw new ServiceException("微信登录失败，请稍后重试");
         }
         String openId = wxMaJscode2SessionResult.getOpenid();
         String sessionKey = wxMaJscode2SessionResult.getSessionKey();
@@ -96,7 +96,9 @@ public class MinaAppLoginService {
         boolean userExists = reservationUserService.checkReservationUserByOpenId(openId);
         boolean firstTimeLogin = !userExists;
         if (firstTimeLogin) {
+            log.info("user first login, openId:{}", openId);
             createReservationUserByWechatInfo(req, openId);
+            log.info("create member record for first login, openId:{}", openId);
         }
         // 生成 spasToken
         String spasToken = generalJwt();
