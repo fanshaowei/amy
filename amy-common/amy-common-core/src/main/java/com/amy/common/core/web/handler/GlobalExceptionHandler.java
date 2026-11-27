@@ -149,7 +149,7 @@ public class GlobalExceptionHandler
      */
     @ExceptionHandler(ServiceException.class)
     public R handleServiceException(ServiceException e, HttpServletRequest request) {
-        log.error("请求地址'{}',业务异常: {}", request.getRequestURI(), e.getMessage());
+        log.error("请求地址'{}',业务异常", request.getRequestURI(), e);
         ServletUtils.getResponse().setStatus(HttpStatus.BUSINESS_ERROR);
         Integer code = e.getCode();
         return StringUtils.isNotNull(code) ? R.fail(code, e.getMessage()) : R.fail(e.getMessage());
@@ -162,7 +162,7 @@ public class GlobalExceptionHandler
     public R handleRuntimeException(RuntimeException e, HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
-        log.error("请求地址'{}',运行时异常:{}", requestURI, e);
+        log.error("请求地址'{}',运行时异常", requestURI, e);
         ServletUtils.getResponse().setStatus(HttpStatus.BUSINESS_ERROR);
         return R.fail(e.getMessage());
     }
@@ -174,7 +174,7 @@ public class GlobalExceptionHandler
     public R handleException(Exception e, HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
-        log.error("请求地址'{}',发生系统异常:{}", requestURI, e);
+        log.error("请求地址'{}',发生系统异常", requestURI, e);
         ServletUtils.getResponse().setStatus(HttpStatus.ERROR);
         return R.fail(e.getMessage());
     }

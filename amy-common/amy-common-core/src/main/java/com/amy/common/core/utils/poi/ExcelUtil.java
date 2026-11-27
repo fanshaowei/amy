@@ -56,6 +56,7 @@ import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
 import com.amy.common.core.annotation.Excel.Type;
 import com.amy.common.core.annotation.Excels;
+import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.exception.UtilException;
 import com.amy.common.core.text.Convert;
 import com.amy.common.core.utils.DateUtils;
@@ -72,6 +73,14 @@ import com.amy.common.core.utils.reflect.ReflectUtils;
 public class ExcelUtil<T>
 {
     private static final Logger log = LoggerFactory.getLogger(ExcelUtil.class);
+
+    static
+    {
+        // 全局把 POI 临时目录从 ${java.io.tmpdir}/poifiles 切到应用自有可写目录，
+        // 避免生产上该目录属主/权限不对导致所有导出抛 Permission denied。
+        // 幂等，且支持 -Damy.poi.temp.dir 覆盖。
+        PoiTempDir.install();
+    }
 
     public static final String SEPARATOR = ",";
 
@@ -498,7 +507,19 @@ public class ExcelUtil<T>
     {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
-        this.init(list, sheetName, title, Type.EXPORT);
+        try
+        {
+            // init 内部会 new SXSSFWorkbook(500)，POI 临时目录不可写时在此抛异常。
+            // 之前 init 在 try 之外，原始英文异常（java.io.IOException: Permission denied）
+            // 直接冒泡到全局异常处理器返回给前端；这里兜住并转成中文提示。
+            this.init(list, sheetName, title, Type.EXPORT);
+        }
+        catch (Exception e)
+        {
+            log.error("初始化导出Excel失败, sheetName={}", sheetName, e);
+            throw new ServiceException("导出失败：初始化Excel工作簿异常，请检查服务临时目录权限（可通过 -D"
+                    + PoiTempDir.TEMP_DIR_PROPERTY + " 指定可写目录）或联系管理员");
+        }
         exportExcel(response);
     }
 
@@ -618,7 +639,7 @@ public class ExcelUtil<T>
         }
         catch (Exception e)
         {
-            log.error("导出Excel异常{}", e.getMessage());
+            log.error("导出Excel异常", e);
         }
         finally
         {
