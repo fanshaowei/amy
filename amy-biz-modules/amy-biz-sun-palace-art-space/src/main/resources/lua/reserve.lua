@@ -4,7 +4,7 @@ local stockKey = KEYS[1]
 local userKey = KEYS[2]
 
 local reservationNum = ARGV[1]
-local reservationUserCount = ARGV[2]
+local reservationUserCount = tonumber(ARGV[2])
 local expireSeconds = ARGV[3]
 
 

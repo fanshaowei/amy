@@ -202,6 +202,11 @@ public class SubmitReservationOrderService {
         BeanUtils.copyProperties(savedReservationOrder, bo);
         bo.setReservationNum(reservationNum);
         bo.setReservationUserId(user.getReservationUserId());
+        try {
+            bo.setCompUsers(objectMapper.readValue(savedReservationOrder.getCompUsers(), List.class));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         // 保存mq发送记录
         ReservationMessage reservationMessage = new ReservationMessage();
@@ -291,9 +296,10 @@ public class SubmitReservationOrderService {
         try {
             log.info("start to run redis script for reservateOrder, userKey:{}, stockKey:{},reservationOrderId:{},reservationNum:{}",
                     userKey, stockKey, reservationOrderId, reservationNum);
-            rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, reservationUserCount, "600");
+            rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey),
+                    reservationNum, String.valueOf(reservationUserCount), "600");
         } catch (Exception e) {
-            log.error("执行redis预约脚本失败, {}", e.getMessage());
+            log.error("执行redis预约脚本失败, stockKey:{}, reservationNum:{}", stockKey, reservationNum, e);
             reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "预约失败");
             throw new ServiceException("系统维护中,请联系管理员.");
         }
