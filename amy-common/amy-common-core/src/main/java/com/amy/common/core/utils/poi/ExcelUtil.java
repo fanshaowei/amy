@@ -544,10 +544,13 @@ public class ExcelUtil<T>
         }
         catch (Exception e)
         {
-            log.error("多Sheet导出Excel异常{}", e.getMessage());
+            log.error("多Sheet导出Excel异常", e);
         }
         finally
         {
+            // SXSSFWorkbook 的 close() 只关流，不删临时文件；必须 dispose() 才会清理。
+            // 否则导出一次就留一个临时文件，直到 JVM 退出才靠 deleteOnExit 回收。
+            wb.dispose();
             IOUtils.closeQuietly(wb);
         }
     }
@@ -643,6 +646,12 @@ public class ExcelUtil<T>
         }
         finally
         {
+            // 同 exportMultiSheet：dispose() 删除 SXSSF 临时文件，close() 释放流。
+            // wb 字段声明为 Workbook，实际由 createWorkbook() 创建为 SXSSFWorkbook。
+            if (wb instanceof SXSSFWorkbook)
+            {
+                ((SXSSFWorkbook) wb).dispose();
+            }
             IOUtils.closeQuietly(wb);
         }
     }
