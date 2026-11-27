@@ -4,7 +4,8 @@ local stockKey = KEYS[1]
 local userKey = KEYS[2]
 
 local reservationNum = ARGV[1]
-local expireSeconds = ARGV[2]
+local reservationUserCount = ARGV[2]
+local expireSeconds = ARGV[3]
 
 
 -- 用户是否已经预约
@@ -23,6 +24,10 @@ stock = tonumber(stock)
 
 -- 没有预约资格
 if stock <= 0 then
+    return 0
+end
+
+if stock < reservationUserCount then
     return 0
 end
 

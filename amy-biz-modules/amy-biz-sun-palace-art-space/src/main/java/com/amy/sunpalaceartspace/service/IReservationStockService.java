@@ -48,9 +48,10 @@ public interface IReservationStockService extends IService<ReservationStock> {
      *
      * @param projectId       项目ID
      * @param reservationTime 预约时段（Date，列存 DATETIME）
+     * @param reservationUserCount 预约用户数（预约人+随行人数）扣库存
      * @return 是否成功
      */
-    boolean incrementReservedCount(Long projectId, Date reservationTime);
+    boolean incrementReservedCount(Long projectId, Date reservationTime, int reservationUserCount);
 
     /**
      * 查询指定状态的全部库存：既用于把「正常可预约」的时段重建到 Redis 缓存，

@@ -9,6 +9,7 @@ import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationMessage;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
 import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
+import com.amy.sunpalaceartspace.domain.req.FollowerReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.req.mina.SubmitReservationReq;
 import com.amy.sunpalaceartspace.enums.ReservationMessageStatus;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -127,8 +129,18 @@ public class SubmitReservationOrderService {
 
         // 校验随行人数
         Integer travelerCount = project.getTravelerCount();
-        if(null != req.getCompUsers() && req.getCompUsers().size() > travelerCount) {
-            throw new ServiceException("随行人数超过限制，无法进行预约");
+        if(null != req.getCompUsers()) {
+            int size = req.getCompUsers().size();
+            if(size > travelerCount) {
+                throw new ServiceException("随行人数超过限制，无法进行预约");
+            }
+
+            // 随行人也要扣库存
+            String stockStr = stringRedisTemplate.opsForValue().get(stockKey);
+            int remainStock = Integer.parseInt(Strings.isBlank(stockStr) ? "0" : stockStr);
+            if((size + 1) > remainStock) {
+                throw new ServiceException("预约人数超过剩余名额，无法进行预约");
+            }
         }
 
         // 预约频次校验（微信号维度）：默认1月最多2次、取消满2次当月禁约、3天内不可重复预约
@@ -234,6 +246,8 @@ public class SubmitReservationOrderService {
         Long projectId = bo.getProjectId();
         Long userId = bo.getReservationUserId();
         Long reservationMessageId = bo.getReservationMessageId();
+        List<FollowerReq> compUsers = bo.getCompUsers();
+        int reservationUserCount = compUsers != null ? compUsers.size() + 1 : 1; // 包括主预约人
 
         log.info("start reservateOrder ... ");
         String reservationTimeStr = DateUtils.parseDateToStr(DateUtils.YYYYMMDDHHMM, bo.getReservationTime());
@@ -241,7 +255,8 @@ public class SubmitReservationOrderService {
         String userKey = String.format(RESERVATION_USER_DONE_KEY, userId);
 
         // 原子校验 + 扣减库存（Lua），失败会直接抛异常
-        checkStockAndReservation(projectId, userId, stockKey, userKey, reservationTimeStr, reservationNum, reservationOrderId);
+        checkStockAndReservation(projectId, userId, stockKey, userKey, reservationTimeStr,
+                reservationNum, reservationOrderId, reservationUserCount);
 
         // 落单（与 Redis 扣减解耦：若落单失败则回滚 Redis，避免永久占名额/永久锁用户）
         boolean update;
@@ -251,30 +266,32 @@ public class SubmitReservationOrderService {
             update = reservationOrderService.updateReservationOrderStatus(reservationOrderId,
                     ReservationOrderStatus.WAIT_VERIFY, ReservationOrderStatus.WAIT_VERIFY.getName());
         } catch (Exception e) {
-            rollbackReservation(stockKey, userKey);
+            rollbackReservation(stockKey, userKey, reservationUserCount);
             throw new ServiceException("预约失败，请稍后重试");
         }
         if (!update) {
-            rollbackReservation(stockKey, userKey);
+            rollbackReservation(stockKey, userKey, reservationUserCount);
             throw new ServiceException("预约失败，请稍后重试");
         }
         String afterReserveStock = stringRedisTemplate.opsForValue().get(stockKey);
         log.info("reservateOrder success, projectId:{}, reservationTime:{}, userId:{}, reservationNum:{}, after reserve stock:{}",
                 bo.getProjectId(), reservationTimeStr, userId, reservationNum, afterReserveStock);
+
         // 成功后：累加已预约数（用于库存统计）。
         // 说明：不再永久标记 userKey（旧"一人一次"语义已废弃）；userKey 仅作 Lua 内短期防并发重复，600s 后自动失效。
-        reservationStockService.incrementReservedCount(projectId, bo.getReservationTime());
+        reservationStockService.incrementReservedCount(projectId, bo.getReservationTime(), reservationUserCount);
         log.info("update reservation stock data table, projectId:{}, reservationTime:{}", projectId, bo.getReservationTime());
         reservationMessageService.markSuccess(reservationMessageId);
     }
 
     private void checkStockAndReservation(Long projectId, Long userId, String stockKey, String userKey,
-                                          String reservationTimeStr, String reservationNum, Long reservationOrderId) {
+                                          String reservationTimeStr, String reservationNum, Long reservationOrderId,
+                                          Integer reservationUserCount) {
         Object rawResult;
         try {
             log.info("start to run redis script for reservateOrder, userKey:{}, stockKey:{},reservationOrderId:{},reservationNum:{}",
                     userKey, stockKey, reservationOrderId, reservationNum);
-            rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, "600");
+            rawResult = stringRedisTemplate.execute(reserveScript, List.of(stockKey, userKey), reservationNum, reservationUserCount, "600");
         } catch (Exception e) {
             log.error("执行redis预约脚本失败, {}", e.getMessage());
             reservationOrderService.updateReservationOrderStatus(reservationOrderId, ReservationOrderStatus.FAILED, "预约失败");
@@ -310,16 +327,19 @@ public class SubmitReservationOrderService {
         log.info("end to run redis script for reservateOrder,stockKey:{} remainStock:{}", stockKey, stringRedisTemplate.opsForValue().get(stockKey));
     }
 
-    private void rollbackReservation(String stockKey, String userKey) {
+    private void rollbackReservation(String stockKey, String userKey, int reservationUserCount) {
         try {
             log.info("Rolling back reservation, stockKey: {}, userKey: {}", stockKey, userKey);
-            stringRedisTemplate.opsForValue().increment(stockKey, 1);
+            stringRedisTemplate.opsForValue().increment(stockKey, reservationUserCount);
             stringRedisTemplate.delete(userKey);
         } catch (Exception e) {
             log.error("rollbackReservation failed, stockKey:{}, userKey:{}", stockKey, userKey, e);
         }
     }
 
+    /**
+     * 扫描mq消息记录，补全用户失败订单
+     */
     public void makeUpUserOrderFromMq(){
         Date today = DateUtils.toDate(LocalDate.now());
         Date tomorrow = DateUtils.toDate(LocalDate.now().plusDays(1));

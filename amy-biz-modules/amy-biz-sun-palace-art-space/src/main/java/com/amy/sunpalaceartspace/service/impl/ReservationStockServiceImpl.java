@@ -61,8 +61,8 @@ public class ReservationStockServiceImpl extends ServiceImpl<ReservationStockMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean incrementReservedCount(Long projectId, Date reservationTime) {
-        return baseMapper.incrementReservedCount(projectId, reservationTime, DateUtils.getNowDate()) > 0;
+    public boolean incrementReservedCount(Long projectId, Date reservationTime, int reservationUserCount) {
+        return baseMapper.incrementReservedCount(projectId, reservationTime, DateUtils.getNowDate(), reservationUserCount) > 0;
     }
 
     @Override
