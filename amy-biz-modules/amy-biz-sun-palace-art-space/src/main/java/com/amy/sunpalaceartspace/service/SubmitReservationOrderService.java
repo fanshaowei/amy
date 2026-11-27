@@ -203,7 +203,9 @@ public class SubmitReservationOrderService {
         bo.setReservationNum(reservationNum);
         bo.setReservationUserId(user.getReservationUserId());
         try {
-            bo.setCompUsers(objectMapper.readValue(savedReservationOrder.getCompUsers(), List.class));
+            if(!Strings.isBlank(savedReservationOrder.getCompUsers())) {
+                bo.setCompUsers(objectMapper.readValue(savedReservationOrder.getCompUsers(), List.class));
+            }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
