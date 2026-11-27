@@ -79,6 +79,12 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-tracing-bridge-brave</artifactId>
+                <version>1.7.1</version>
+            </dependency>
+
             <!-- 验证码 -->
             <dependency>
                 <groupId>pro.fessional</groupId>

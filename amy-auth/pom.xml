@@ -52,6 +52,11 @@
             <artifactId>amy-common-security</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.amy</groupId>
+            <artifactId>amy-common-log</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

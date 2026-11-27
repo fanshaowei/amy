@@ -23,5 +23,16 @@
             <artifactId>amy-common-security</artifactId>
         </dependency>
 
+        <!-- 链路追踪：桥接 + Boot 4 自动配置集中在此，依赖本模块的服务自动获得。
+             Boot 4 已把 tracing 自动配置从 actuator 移出，只加 bridge 不会创建 Tracer / 写 MDC。 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

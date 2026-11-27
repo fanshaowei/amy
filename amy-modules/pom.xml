@@ -10,7 +10,6 @@
 
     <modules>
         <module>amy-system</module>
-        <module>amy-gen</module>
         <module>amy-job</module>
         <module>amy-file</module>
     </modules>
