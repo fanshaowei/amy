@@ -314,7 +314,7 @@ public class MinaAppService {
         if(OrderSource.MINA == OrderSource.fromCode(orderSource)) {
             Object verifyCodeCash = redisService.getCacheObject(String.format(RESERVATION_ORDER_VERIFY_CODE, orderNum));
             if(null == verifyCodeCash || !verifyCodeCash.toString().equals(verifyCode)) {
-                throw new ServiceException("无效核销码");
+                throw new ServiceException("核销码已过期");
             }
         }
         Date reservationTime = reservationOrder.getReservationTime();
