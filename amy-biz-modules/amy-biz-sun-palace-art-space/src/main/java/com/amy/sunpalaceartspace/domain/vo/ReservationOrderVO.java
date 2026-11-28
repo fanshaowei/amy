@@ -1,8 +1,11 @@
 package com.amy.sunpalaceartspace.domain.vo;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.amy.common.core.annotation.Excel;
 import com.amy.common.core.annotation.Excel.ColumnType;
 import com.amy.sunpalaceartspace.enums.OrderSource;
@@ -125,10 +128,10 @@ public class ReservationOrderVO {
     private List<String> compUsers;
 
     /**
-     * 随行人信息导出文本（扁平化）。由装配 VO 时把 {@link #compUsers} 用分隔符拼接而成。
-     * 仅用于 Excel 导出，不参与列表 JSON 返回。
+     * 随行人信息导出文本（扁平化、可读化）。由装配 VO 时把 {@link #compUsers} 的每条 JSON
+     * 解析为「姓名（电话：xxx，证件号：xxx）」后逐行拼接；仅用于 Excel 导出，不参与列表 JSON 返回。
      */
-    @Excel(name = "随行人信息", width = 40)
+    @Excel(name = "随行人信息", width = 50, wrapText = true)
     private String compUsersText;
 
     /**
@@ -160,15 +163,52 @@ public class ReservationOrderVO {
     }
 
     /**
-     * 把 {@link #compUsers}（JSON 字符串列表）扁平化为 {@link #compUsersText}，供导出使用。
-     * <p>每个元素为一条随行人信息的 JSON 对象字符串，这里直接用分隔符拼接，避免触发 ExcelUtil 的
-     * sub-list 机制（见 {@link #compUsers} 上的说明）。若需更友好的展示，可在 service 层自行解析后写入。</p>
+     * 把 {@link #compUsers}（JSON 字符串列表）转成可读文本写入 {@link #compUsersText}，供导出使用。
+     * <p>每个元素解析为「姓名（电话：xxx，证件号：xxx）」，多条之间换行；解析失败的脏数据原样保留，
+     * 不因个别历史数据导致整次导出失败。仍保持字符串字段，避免触发 ExcelUtil 的 sub-list 机制。</p>
      */
     public void fillCompUsersText() {
         if (this.compUsers == null || this.compUsers.isEmpty()) {
             this.compUsersText = "";
-        } else {
-            this.compUsersText = String.join("；", this.compUsers);
+            return;
         }
+        List<String> lines = new ArrayList<>(this.compUsers.size());
+        for (String json : this.compUsers) {
+            String line = formatCompUser(json);
+            if (line != null && !line.isBlank()) {
+                lines.add(line);
+            }
+        }
+        this.compUsersText = String.join("\n", lines);
+    }
+
+    /** 单条随行人 JSON -> 可读文本；非 JSON 或解析异常时原样返回，避免导出丢信息 */
+    private static String formatCompUser(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            JSONObject item = JSON.parseObject(json);
+            if (item == null) {
+                return json;
+            }
+            String name = nonBlankOr(item.getString("name"), "未填写姓名");
+            String phone = item.getString("phone");
+            String idNum = item.getString("idNum");
+            List<String> details = new ArrayList<>(2);
+            if (phone != null && !phone.isBlank()) {
+                details.add("电话：" + phone);
+            }
+            if (idNum != null && !idNum.isBlank()) {
+                details.add("证件号：" + idNum);
+            }
+            return details.isEmpty() ? name : name + "（" + String.join("，", details) + "）";
+        } catch (Exception e) {
+            return json;
+        }
+    }
+
+    private static String nonBlankOr(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

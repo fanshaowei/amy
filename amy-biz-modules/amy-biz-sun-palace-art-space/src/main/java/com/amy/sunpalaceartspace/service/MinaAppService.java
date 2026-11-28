@@ -307,7 +307,7 @@ public class MinaAppService {
     }
 
     @Transactional
-    public boolean verifyReservationOrder(String orderNum, String verifyCode) {
+    public boolean verifyReservationOrder(String orderNum, String verifyCode, ReservationUser user) {
         ReservationOrder reservationOrder = reservationOrderService.selectReservationOrderByNum(orderNum);
         Integer orderSource = reservationOrder.getOrderSource();
         // 小程序订单的核销码有效期验证
@@ -333,10 +333,7 @@ public class MinaAppService {
             throw new ServiceException("该订单当前不是待核销状态: " + statusEnum.getName());
         }
 
-        boolean verifyFlag = reservationOrderService.updateReservationOrderStatus(
-                reservationOrder.getReservationOrderId(),
-                ReservationOrderStatus.COMPLETED,
-                ReservationOrderStatus.COMPLETED.getName());
+        boolean verifyFlag = reservationOrderService.verifyReservationOrder(reservationOrder.getReservationOrderId(), user);;
         log.info("verifyReservationOrder: {} result: {}", orderNum, verifyFlag);
         return verifyFlag;
     }

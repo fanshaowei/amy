@@ -214,7 +214,7 @@
     -->
     <select id="selectReservationOrdersByStockScopes" resultMap="ReservationOrderResult">
         <include refid="selectReservationOrderVo"/>
-        where r.del_flag = '0'
+        where r.del_flag = '0' and r.reservation_status in ('0', '1','3')
           and (
             <foreach collection="scopes" item="scope" separator=" OR ">
                 (r.project_id = #{scope.projectId}

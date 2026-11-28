@@ -3,6 +3,7 @@ package com.amy.sunpalaceartspace.service;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriteria;
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
 import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
@@ -144,9 +145,11 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      *
      * @return 规范化后的证件类型（非 null）
      */
-    IdType verifyManualGenerate(ReservationOrderManualReq req);
+    IdType verifyManualGenerateOrderReq(ReservationOrderManualReq req);
 
-    boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status,String statusMsg);
+    boolean updateReservationOrderStatus(Long orderId, ReservationOrderStatus status, String statusMsg);
+
+    boolean verifyReservationOrder(Long reservationOrderId, ReservationUser user);
 
     /**
      * 后台取消预约订单（仅「待核销」状态可取消）。
@@ -176,14 +179,14 @@ public interface IReservationOrderService extends IService<ReservationOrder> {
      * 列表装配用：取当前有效的核销码，Redis 中已有未过期码则直接复用，没有才生成。
      * 由 selectReservationOrderList 调用，保证同一订单在短时间内多次查列表拿到的码一致。
      */
-    String getReservationVerifyCode(String reservationNum);
+    String generateReservationVerifyCode(String reservationNum);
 
     /**
      * 管理后台「获取核销码」用：强制生成一枚新核销码并重置 Redis 有效期，
      * 供二维码弹窗每次打开 / 倒计时归零时调用，使前端倒计时与后端 TTL 严格对齐。
      * <p>小程序订单返回新的 UUID；手动添加订单的核销码固定为预约单号本身，
      * 核销端也不校验 Redis，故直接返回单号、不写缓存。</p>
-     * <p>注意与 {@link #getReservationVerifyCode(String)} 区分：后者会复用旧码，
+     * <p>注意与 {@link #generateReservationVerifyCode(String)} 区分：后者会复用旧码，
      * 不能用来做「刷新」，否则倒计时归零时可能拿回同一个码。</p>
      */
     String refreshReservationVerifyCode(String reservationNum);

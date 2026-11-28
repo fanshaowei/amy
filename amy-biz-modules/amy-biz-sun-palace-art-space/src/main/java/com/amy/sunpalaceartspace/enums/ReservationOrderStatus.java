@@ -16,7 +16,7 @@ import lombok.Getter;
 public enum ReservationOrderStatus {
 
     WAIT_VERIFY(0, "待核销"),
-    COMPLETED(1, "已完成"),
+    COMPLETED(1, "已核销"),
     EXPIRED(2, "已过期"),
     CANCELED(3, "已取消"),
     ORDERING(4, "预约中"),

@@ -180,7 +180,8 @@ public class MinaAppController extends BaseController {
      */
     @MinaApiAuth
     @PostMapping("/user/verify")
-    public R<Boolean> realNameverifyUser(@RequestHeader("Authorization") String token, @RequestBody @Validated UserIdentityReq userIdentityReq) {
+    public R<Boolean> realNameverifyUser(@RequestHeader("Authorization") String token,
+                                         @RequestBody @Validated UserIdentityReq userIdentityReq) {
         ReservationUser user = minaAppLoginService.getUserByToken(token);
         userIdentityReq.setReservationUserId(user.getReservationUserId());
         userIdentityReq.setIsFollower(false);
@@ -281,9 +282,11 @@ public class MinaAppController extends BaseController {
      */
     @MinaApiAuth
     @PostMapping("/reservation/verify/{orderNum}/{verifyCode}")
-    public R<Boolean> verifyReservationOrder(@PathVariable("orderNum") String orderNum,
+    public R<Boolean> verifyReservationOrder(@RequestHeader("Authorization") String token,
+                                             @PathVariable("orderNum") String orderNum,
                                              @PathVariable("verifyCode") String verifyCode) {
-        return R.ok(minaAppService.verifyReservationOrder(orderNum, verifyCode));
+        ReservationUser user = minaAppLoginService.getUserByToken(token);
+        return R.ok(minaAppService.verifyReservationOrder(orderNum, verifyCode, user));
     }
 
     /**

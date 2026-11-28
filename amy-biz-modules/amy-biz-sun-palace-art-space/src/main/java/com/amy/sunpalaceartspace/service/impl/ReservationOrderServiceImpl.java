@@ -9,13 +9,11 @@ import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStatisticCriter
 import com.amy.sunpalaceartspace.domain.criteria.ReservationOrderStockScope;
 import com.amy.sunpalaceartspace.domain.entity.Projects;
 import com.amy.sunpalaceartspace.domain.entity.ReservationOrder;
+import com.amy.sunpalaceartspace.domain.entity.ReservationUser;
 import com.amy.sunpalaceartspace.domain.req.FollowerReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderManualReq;
 import com.amy.sunpalaceartspace.domain.req.ReservationOrderReq;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByProjectVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticByTimeVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderStatisticVO;
-import com.amy.sunpalaceartspace.domain.vo.ReservationOrderVO;
+import com.amy.sunpalaceartspace.domain.vo.*;
 import com.amy.sunpalaceartspace.enums.IdType;
 import com.amy.sunpalaceartspace.enums.OrderSource;
 import com.amy.sunpalaceartspace.enums.ProjectStatus;
@@ -23,6 +21,7 @@ import com.amy.sunpalaceartspace.enums.ReservationOrderStatus;
 import com.amy.sunpalaceartspace.mapper.ReservationOrderMapper;
 import com.amy.sunpalaceartspace.service.IProjectsService;
 import com.amy.sunpalaceartspace.service.IReservationOrderService;
+import com.amy.sunpalaceartspace.service.IUserIdentityService;
 import com.amy.sunpalaceartspace.utils.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -60,6 +59,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     private final AliIdCheckUtil aliIdCheckUtil;
     private final RedisService redisService;
     private final SpasConfig spasConfig;
+    private final IUserIdentityService userIdentityService;
 
     @Override
     public IPage<ReservationOrderVO> selectReservationOrderList(Page<ReservationOrderVO> page, ReservationOrderReq req)
@@ -74,7 +74,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             vo.fillCompUsersText();
             if(ReservationOrderStatus.WAIT_VERIFY.getStatus().equals(vo.getReservationStatus())) {
                 if(OrderSource.MINA.getCode().equals(vo.getOrderSource())) {
-                    Object verifyCode = getReservationVerifyCode(vo.getReservationNum());
+                    Object verifyCode = generateReservationVerifyCode(vo.getReservationNum());
                     vo.setVerifyCode(verifyCode.toString());
                     vo.setVerifyCodeEffectiveDuration(spasConfig.getVerifyCodeEffectiveDuration());
                 }else {
@@ -247,7 +247,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
-    public IdType verifyManualGenerate(ReservationOrderManualReq req) {
+    public IdType verifyManualGenerateOrderReq(ReservationOrderManualReq req) {
         if (req.getProjectId() == null) {
             throw new ServiceException("项目ID不能为空");
         }
@@ -291,6 +291,34 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
     }
 
     @Override
+    public boolean verifyReservationOrder(Long reservationOrderId, ReservationUser user){
+        ReservationOrder order = getById(reservationOrderId);
+        if(order == null) {
+            throw new ServiceException("订单不存在");
+        }
+
+        String verifyBy = user.getName();
+        if(Strings.isBlank(verifyBy)) {
+            List<UserIdentityVO> userIdentityVOS = userIdentityService.selectUserIdentityByReservationUserId(
+                    user.getReservationUserId(), List.of(false));
+            if(!userIdentityVOS.isEmpty()) {
+                UserIdentityVO identityVO = userIdentityVOS.get(0);
+                order.setVerifyBy(identityVO.getName());
+                order.setUpdateBy(identityVO.getName());
+            }
+        }else {
+            order.setVerifyBy(user.getName());
+            order.setUpdateBy(user.getName());
+        }
+
+        order.setReservationStatus(ReservationOrderStatus.COMPLETED.getStatus());
+        order.setStatusMsg(ReservationOrderStatus.COMPLETED.getName());
+        order.setVerifyTime(DateUtils.getNowDate());
+        order.setUpdateTime(DateUtils.getNowDate());
+        return updateById(order);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelReservationOrder(Long reservationOrderId) {
         ReservationOrder order = getById(reservationOrderId);
@@ -329,7 +357,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         // 直接待核销：小程序端的「预约中」(4) 依赖 MQ 消费者流转，后台接口不发 MQ 会永远卡在 4
         req.setReservationStatus(ReservationOrderStatus.WAIT_VERIFY.getStatus());
 
-        IdType idType = this.verifyManualGenerate(req);
+        IdType idType = this.verifyManualGenerateOrderReq(req);
         if(idType.equals(IdType.ID_CARD)) {
             aliIdCheckUtil.checkUserIdentify(req.getName(), req.getIdNum());
         }
@@ -351,7 +379,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         log.info("批量更新待核销订单为已过期状态完成");
     }
 
-    public String getReservationVerifyCode(String reservationNum) {
+    public String generateReservationVerifyCode(String reservationNum) {
         String key = String.format(RESERVATION_ORDER_VERIFY_CODE, reservationNum);
         String verifyCode = UUID.randomUUID().toString();
         redisService.setCacheObject(key, verifyCode, spasConfig.getVerifyCodeEffectiveDuration(), TimeUnit.MINUTES);
@@ -370,6 +398,6 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             return reservationNum;
         }
         // 与列表返回的 verifyCodeEffectiveDuration 使用同一份配置，前端倒计时才能与 TTL 对齐。
-        return getReservationVerifyCode(reservationNum);
+        return generateReservationVerifyCode(reservationNum);
     }
 }
