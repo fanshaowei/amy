@@ -1,5 +1,7 @@
 package com.amy.sunpalaceartspace.service;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.amy.common.core.exception.ServiceException;
 import com.amy.common.core.utils.DateUtils;
 import com.amy.common.redis.service.RedisService;
@@ -30,6 +32,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static com.amy.sunpalaceartspace.constant.SpasConstant.CASH_WX_API_TOKEN_OPEN_ID;
 import static com.amy.sunpalaceartspace.constant.SpasConstant.RESERVATION_ORDER_VERIFY_CODE;
@@ -578,8 +581,11 @@ public class MinaAppService {
      *   <li>用这些区间去 {@code biz_spas_reservation_order} 匹配<b>同项目、同日期</b>的订单。</li>
      * </ol>
      *
+     * <p>随行人也作为一条独立记录返回（与预约人同一预约时间），手机号同样脱敏；
+     * 顺序为「预约人 → 该订单随行人」，再进入下一笔订单。</p>
+     *
      * @param projectId 预留的项目过滤条件，前端当前不传；null 表示取所有有生效库存的项目
-     * @return 订单列表（姓名、脱敏手机号、预约时间），按预约时间、项目ID升序
+     * @return 预约记录列表（姓名、脱敏手机号、预约时间），按预约时间、项目ID升序
      */
     public List<NextDayReservationOrderResp> getNextDayReservationOrder(Long projectId) {
         List<ReservationStock> stocks = reservationStockService
@@ -612,13 +618,49 @@ public class MinaAppService {
 
         List<ReservationOrderVO> orders = reservationOrderService
                 .selectReservationOrdersByStockScopes(new ArrayList<>(scopes));
-        return orders.stream().map(vo -> {
-            NextDayReservationOrderResp resp = new NextDayReservationOrderResp();
-            BeanUtils.copyProperties(vo, resp);
+        return orders.stream().flatMap(vo -> {
+            NextDayReservationOrderResp main = new NextDayReservationOrderResp();
+            BeanUtils.copyProperties(vo, main);
             // 手机号脱敏：这个接口面向小程序端公开展示，不应暴露完整号码
-            resp.setPhone(PhoneVerifyUtil.maskPhone(vo.getPhone()));
-            return resp;
+            main.setPhone(PhoneVerifyUtil.maskPhone(vo.getPhone()));
+
+            if (vo.getCompUsers() == null || vo.getCompUsers().isEmpty()) {
+                return Stream.of(main);
+            }
+            // 一条订单展开为多条预约记录：预约人 + 各随行人（共用预约时间）
+            List<NextDayReservationOrderResp> records = new ArrayList<>(vo.getCompUsers().size() + 1);
+            records.add(main);
+            for (String compUserJson : vo.getCompUsers()) {
+                JSONObject compUser = parseCompUser(compUserJson);
+                if (compUser == null) {
+                    continue;
+                }
+                String name = compUser.getString("name");
+                // 姓名为空的历史脏数据不展示：公开动态里无人名记录没有意义
+                if (name == null || name.isBlank()) {
+                    continue;
+                }
+                records.add(NextDayReservationOrderResp.builder()
+                        .name(name)
+                        .phone(PhoneVerifyUtil.maskPhone(compUser.getString("phone")))
+                        .reservationTime(vo.getReservationTime())
+                        .build());
+            }
+            return records.stream();
         }).toList();
+    }
+
+    /** 解析单条随行人 JSON；历史脏数据返回 null 跳过，不影响其它记录展示。日志不打印原始 JSON 避免泄露证件号 */
+    private JSONObject parseCompUser(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return JSON.parseObject(json);
+        } catch (Exception e) {
+            log.warn("预约动态随行人数据解析失败，已跳过该条", e);
+            return null;
+        }
     }
 
     /** 公告状态（sys_notice.status）：0=正常，1=关闭 */
