@@ -72,7 +72,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
             vo.fillReservationStatusName();
             vo.fillOrderSourceName();
             vo.fillCompUsersText();
-            if(ReservationOrderStatus.WAIT_VERIFY.getStatus().equals(vo.getReservationStatus())) {
+            /*if(ReservationOrderStatus.WAIT_VERIFY.getStatus().equals(vo.getReservationStatus())) {
                 if(OrderSource.MINA.getCode().equals(vo.getOrderSource())) {
                     Object verifyCode = generateReservationVerifyCode(vo.getReservationNum());
                     vo.setVerifyCode(verifyCode.toString());
@@ -81,7 +81,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
                     vo.setVerifyCode(vo.getReservationNum());
                     vo.setVerifyCodeEffectiveDuration(720L);
                 }
-            }
+            }*/
         });
         return result;
     }
