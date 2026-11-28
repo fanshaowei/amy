@@ -29,6 +29,17 @@ const entryDate = computed(() => (record.value?.reservationTime || '').slice(0, 
 /** 入场时间 */
 const entryTime = computed(() => hmsToHm((record.value?.reservationTime || '').slice(11)))
 
+/** 预约人信息（本人 + 随行人员），与预约详情页同为逐人简表结构 */
+const people = computed(() => {
+  const r = record.value
+  if (!r) return [] as { name: string; idNum: string; phone?: string }[]
+  return [
+    { name: r.name, idNum: r.idNum, phone: r.phone },
+    // 后端 compUsers 可能缺省，兜底避免展开 undefined 报错
+    ...(r.compUsers || []).map((p) => ({ name: p.name, idNum: p.idNum, phone: p.phone })),
+  ]
+})
+
 /**
  * 调起扫码。
  *
@@ -185,21 +196,22 @@ onShow(() => {
             <text class="k">入场时间</text>
             <text class="v">{{ entryTime }}</text>
           </view>
-          <view class="row">
-            <text class="k">预约人姓名</text>
-            <text class="v">{{ record.name }}</text>
-          </view>
-          <view class="row">
-            <text class="k">预约人证件</text>
-            <text class="v">{{ record.idType }}</text>
-          </view>
-          <view class="row">
-            <text class="k">预约人手机号</text>
-            <text class="v">{{ record.phone }}</text>
-          </view>
-          <view v-if="record.compUsers.length" class="row">
-            <text class="k">随行人员</text>
-            <text class="v">{{ record.compUsers.map((p) => p.name).join('、') }}</text>
+          <!-- 每人独立成块：姓名+角色一行，证件号/手机号各一行，与预约详情页一致 -->
+          <view v-for="(p, i) in people" :key="i" class="person">
+            <view class="person__hd">
+              <text class="person__name">{{ p.name || '-' }}</text>
+              <text class="person__tag" :class="{ 'person__tag--main': i === 0 }">
+                {{ i === 0 ? '预约人' : '随行人 ' + i }}
+              </text>
+            </view>
+            <view class="person__line">
+              <text class="person__k">证件号码</text>
+              <text class="person__v">{{ p.idNum || '-' }}</text>
+            </view>
+            <view class="person__line">
+              <text class="person__k">手机号码</text>
+              <text class="person__v">{{ p.phone || '-' }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -341,6 +353,58 @@ onShow(() => {
 .row .v {
   color: $art-text-strong;
   font-weight: 500;
+}
+/* 预约人 / 随行人：长证件号与手机号各占一行，不再挤在同一行被折断（与预约详情页一致） */
+.person {
+  padding: 20rpx 0 16rpx;
+  border-bottom: 1px solid $art-divider;
+}
+.person:last-child {
+  border-bottom: 0;
+}
+.person__hd {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 8rpx;
+}
+.person__name {
+  color: $art-text-strong;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.person__tag {
+  @include art-chip();
+  padding: 4rpx 16rpx;
+  border-radius: 24rpx;
+  font-size: 22rpx;
+  color: $art-text;
+}
+.person__tag--main {
+  background-color: $art-accent;
+  color: $art-on-gold;
+  box-shadow: none;
+  font-weight: 600;
+}
+.person__line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6rpx 0;
+  font-size: 26rpx;
+}
+.person__k {
+  color: $art-text-dim;
+  flex-shrink: 0;
+  margin-right: 32rpx;
+}
+.person__v {
+  flex: 1;
+  min-width: 0;
+  color: $art-text-strong;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
 }
 .confirm-actions {
   margin-top: $art-gap-lg;
