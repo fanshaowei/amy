@@ -91,12 +91,6 @@ async function load(num: string) {
 const canCancel = computed(() => record.value?.reservationStatus === 0)
 const cancelling = ref(false)
 
-/** 手动刷新二维码：换发一枚新核销码并从满额重置倒计时 */
-function onRefreshQr() {
-  if (!canCountdown.value || refreshing.value) return
-  countdown.open()
-}
-
 /** 取消预约：二次确认后调用后端取消接口，成功后刷新详情 */
 function onCancel() {
   if (!record.value || cancelling.value) return
@@ -153,7 +147,7 @@ onUnload(() => countdown.dispose())
           {{ statusInfo.text }}
         </view>
         <view class="result__status-meta">单号：{{ record.reservationNum }}</view>
-        <view class="result__status-msg" v-if="showStatusMsg&&record.statusMsg!='已完成' && record.statusMsg!='已取消' && record.statusMsg!='已过期'">{{ record.statusMsg }}</view>
+        <view class="result__status-msg" v-if="showStatusMsg&&record.statusMsg!='已核销' && record.statusMsg!='已取消' && record.statusMsg!='已过期'">{{ record.statusMsg }}</view>
       </view>
 
       <view class="result__qr">
@@ -162,16 +156,6 @@ onUnload(() => countdown.dispose())
           :countdown="canCountdown ? remaining : undefined"
           :refreshing="refreshing"
         />
-        <!-- 手动刷新：仅在倒计时生效（待核销）状态展示，点击换新码并重置倒计时 -->
-        <view
-          v-if="canCountdown"
-          class="result__qr-refresh"
-          :class="{ disabled: refreshing }"
-          @tap="onRefreshQr"
-        >
-          <text class="result__qr-refresh-icon" :class="{ spinning: refreshing }">↻</text>
-          <text>{{ refreshing ? '正在刷新...' : '刷新二维码' }}</text>
-        </view>
       </view>
 
       <view class="result__detail">
@@ -227,7 +211,7 @@ onUnload(() => countdown.dispose())
 }
 .result__card {
   @include art-card(0.66, 22px, 40rpx);
-  
+
   margin-top: $art-gap;overflow: hidden;
   position: relative;
 }
@@ -295,34 +279,6 @@ onUnload(() => countdown.dispose())
   left: 32rpx;
   right: 32rpx;
   border-top: 2rpx dashed $art-divider;
-}
-.result__qr-refresh {
-  margin: 0 auto 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10rpx;
-  padding: 14rpx 40rpx;
-  border-radius: 40rpx;
-  border: 1rpx solid rgba(240, 207, 148, 0.5);
-  background: rgba(240, 207, 148, 0.12);
-  font-size: 26rpx;
-  color: $art-accent;
-  width: fit-content;
-}
-.result__qr-refresh.disabled {
-  opacity: 0.6;
-}
-.result__qr-refresh-icon {
-  font-size: 28rpx;
-  line-height: 1;
-}
-.result__qr-refresh-icon.spinning {
-  animation: qr-refresh-spin 0.8s linear infinite;
-}
-@keyframes qr-refresh-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 .result__detail {
   padding: 16rpx 32rpx 40rpx;

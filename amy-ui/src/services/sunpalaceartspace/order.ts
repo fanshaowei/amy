@@ -24,7 +24,7 @@ export interface ReservationOrderRecord {
     guestsNum?: number;
     /** 预约时间（yyyy-MM-dd HH:mm:ss） */
     reservationTime?: string;
-    /** 状态码：-1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中（与后端 ReservationOrderStatus 一致） */
+    /** 状态码：-1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中（与后端 ReservationOrderStatus 一致） */
     reservationStatus?: number;
     /** 状态中文名 */
     reservationStatusName?: string;
@@ -39,7 +39,7 @@ export interface ReservationOrderRecord {
     createTime?: string;
     /**
      * 核销码：后端 selectReservationOrderList 仅在「待核销」状态查询时生成并返回，
-     * 已完成 / 已过期 / 已取消等订单为 null。前端据此决定是否展示订单二维码。
+     * 已核销 / 已过期 / 已取消等订单为 null。前端据此决定是否展示订单二维码。
      * 小程序订单为 Redis 中的一次性码（1 分钟有效），手动添加订单则为订单号本身。
      */
     verifyCode?: string | null;
@@ -76,7 +76,7 @@ export const getOrderSourceName = (code?: number, name?: string): string =>
 export const ORDER_STATUS_TEXT: Record<number, string> = {
     [-1]: '预约失败',
     0: '待核销',
-    1: '已完成',
+    1: '已核销',
     2: '已过期',
     3: '已取消',
     4: '预约中'

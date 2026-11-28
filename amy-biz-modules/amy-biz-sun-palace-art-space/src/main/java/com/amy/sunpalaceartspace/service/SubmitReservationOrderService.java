@@ -161,7 +161,7 @@ public class SubmitReservationOrderService {
                 .toLocalDate()
                 .withDayOfMonth(1)
         );
-        // 计数状态：待核销(0)/已完成(1)/已过期(2)/已取消(3) —— 均算一次预约
+        // 计数状态：待核销(0)/已核销(1)/已过期(2)/已取消(3) —— 均算一次预约
         List<Integer> countingStatuses = Arrays.asList(
                 ReservationOrderStatus.WAIT_VERIFY.getStatus(),
                 ReservationOrderStatus.COMPLETED.getStatus(),

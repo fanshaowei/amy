@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ReserveRecord } from '@/types'
+import { RESERVE_STATUS } from '@/types'
 import { generateQRMatrix } from '@/utils/qrcode'
 import { formatCountdown } from '@/utils/verifyCodeCountdown'
 
@@ -13,11 +14,30 @@ const props = defineProps<{
 }>()
 
 /**
- * 二维码失效状态：预约失败(-1)/已过期(2)/已取消(3)/预约中(4)
+ * 二维码失效状态：预约失败(-1)/已核销(1)/已过期(2)/已取消(3)/预约中(4)
  * 这些状态下后端不允许核销，真实核销码不下发展示，渲染坏码占位。
+ * 已核销与已取消一样在二维码上打标，避免展示一张已经被消费过的码。
  */
-const BROKEN_STATUS = [-1, 2, 3, 4]
+const BROKEN_STATUS = [-1, 1, 2, 3, 4]
 const broken = computed(() => BROKEN_STATUS.includes(props.record.reservationStatus))
+
+/** 已核销是正常完成态：标签用绿色对勾，其它失效状态用红色叉 */
+const isDone = computed(() => props.record.reservationStatus === 1)
+
+/**
+ * 卡片底部说明：已核销是正常完成态，用中性完成提示；
+ * 其它失效态才提示「无法出示」，避免把已核销误读为异常。
+ */
+const cardLabel = computed(() => {
+  if (isDone.value) return '入场核验码已核销'
+  return broken.value ? '当前状态无法出示入场核验码' : '入场核验码'
+})
+
+/** 失效标签文案：与状态文案同源，仅「预约中」用更贴合二维码的提示语 */
+const brokenText = computed(() => {
+  const status = props.record.reservationStatus
+  return status === 4 ? '预约中，请稍候' : (RESERVE_STATUS[status]?.text || '二维码已失效')
+})
 
 /**
  * 二维码内容：JSON 携带预约单号 + 核销码，
@@ -78,16 +98,17 @@ const gridStyle = computed(() => ({
       />
       <!-- 失效遮罩：盖住伪随机块，明确告知不可用 -->
       <view v-if="broken" class="qr-broken">
-        <view class="qr-broken__badge">
-          <view class="qr-broken__x">
+        <view class="qr-broken__badge" :class="{ 'qr-broken__badge--done': isDone }">
+          <view v-if="isDone" class="qr-broken__check">✓</view>
+          <view v-else class="qr-broken__x">
             <view class="qr-broken__x-line qr-broken__x-line--a" />
             <view class="qr-broken__x-line qr-broken__x-line--b" />
           </view>
         </view>
-        <view class="qr-broken__text">{{props.record.reservationStatus == 4 ? '预约中，请稍候':'二维码已失效'}}</view>
+        <view class="qr-broken__text" :class="{ 'qr-broken__text--done': isDone }">{{ brokenText }}</view>
       </view>
     </view>
-    <view class="qr-card__label">{{ broken ? '当前状态无法出示入场核验码' : '入场核验码' }}</view>
+    <view class="qr-card__label" :class="{ 'qr-card__label--done': isDone }">{{ cardLabel }}</view>
     <!-- 倒计时由页面调度（只在打开详情页期间生效）；失效态不展示 -->
     <view v-if="!broken && countdown !== undefined" class="qr-card__countdown">
       <text v-if="refreshing" class="qr-card__countdown-hint">正在更新核验码…</text>
@@ -149,6 +170,17 @@ const gridStyle = computed(() => ({
   align-items: center;
   justify-content: center;
 }
+/* 已核销：完成态用绿色对勾，区别于取消/过期的红色叉 */
+.qr-broken__badge--done {
+  background: #e7f8f1;
+  border-color: rgba(16, 185, 129, 0.6);
+}
+.qr-broken__check {
+  font-size: 52rpx;
+  line-height: 1;
+  font-weight: 700;
+  color: #10b981;
+}
 .qr-broken__x {
   position: relative;
   width: 40rpx;
@@ -177,10 +209,16 @@ const gridStyle = computed(() => ({
   padding: 4rpx 16rpx;
   border-radius: 8rpx;
 }
+.qr-broken__text--done {
+  color: #10b981;
+}
 .qr-card__label {
   margin-top: 20rpx;
   font-size: 26rpx;
   color: $art-text-dim;
+}
+.qr-card__label--done {
+  color: #10b981;
 }
 .qr-card__countdown {
   margin-top: 12rpx;

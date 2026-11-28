@@ -80,7 +80,7 @@ create table biz_spas_reservation_order
     id_num               varchar(50)              not null comment '证件号码',
     guests_num           int                      null comment '预约人数（含预约人本人）',
     reservation_time     datetime                 null comment '预约时间',
-    reservation_status   char         default '0' null comment '状态（0待核销 1已完成 2已过期 3已取消）',
+    reservation_status   char         default '0' null comment '状态（0待核销 1已核销 2已过期 3已取消）',
     verify_by            varchar(64)  default ''  null comment '核销人员',
     verify_time          datetime                 null comment '核销时间',
     comp_users           varchar(2000)            null comment '预约随行人身份信息（JSON 数组字符串，每个元素为 UserIdentity 字段序列化结果）',

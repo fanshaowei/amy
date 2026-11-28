@@ -40,7 +40,7 @@ onLoad((query) => {
 
 <template>
   <view class="notice-detail">
-    <PageHero title="公告详情" eyebrow="NOTICE · SUN PALACE" compact />
+    <PageHero title="公告详情" eyebrow="NOTICE · SUN PALACE" compact flush />
 
     <view v-if="loading" class="notice-detail__loading">
       <view class="skeleton-line skeleton-line--title"></view>
@@ -75,8 +75,9 @@ onLoad((query) => {
 }
 .notice-detail__loading {
   @include art-card(0.62, 16px, 32rpx);
-  /* 左右 22rpx 与列表页 .notice-item 一致，叠加父容器 24rpx 后与页头左右对齐 */
-  margin: $art-gap 22rpx 0;
+  /* 父容器已有 24rpx 内边距，此处不再叠加左右外边距：
+     与首页卡片、列表页卡片及 flush 后的 PageHero 同宽 */
+  margin: $art-gap 0 0;
   /* 左右 28rpx 与 PageHero 的 28rpx 内边距一致，卡片内文字与页头标题左对齐 */
   padding: 40rpx 28rpx;
 }
@@ -98,8 +99,9 @@ onLoad((query) => {
 }
 .notice-detail__card {
   @include art-card(0.62, 16px, 32rpx);
-  /* 左右 22rpx 与列表页 .notice-item 一致，叠加父容器 24rpx 后与页头左右对齐 */
-  margin: $art-gap 22rpx 0;
+  /* 父容器已有 24rpx 内边距，此处不再叠加左右外边距：
+     与首页卡片、列表页卡片及 flush 后的 PageHero 同宽 */
+  margin: $art-gap 0 0;
   /* 左右 28rpx 与 PageHero 的 28rpx 内边距一致，卡片内文字与页头标题左对齐 */
   padding: 40rpx 28rpx;
   color: $art-text;

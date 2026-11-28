@@ -41,7 +41,7 @@ onPullDownRefresh(() => {
 
 <template>
   <view class="notice-page">
-    <PageHero title="通知公告" eyebrow="NOTICES · SUN PALACE" subtitle="公告与通知" compact />
+    <PageHero title="通知公告" eyebrow="NOTICES · SUN PALACE" subtitle="公告与通知" compact flush />
 
     <view v-if="loading" class="notice-page__skeletons">
       <view v-for="i in 3" :key="i" class="skeleton-item">
@@ -107,9 +107,9 @@ onPullDownRefresh(() => {
 .notice-item {
   @include art-card(0.62, 16px, 32rpx);
   padding: 30rpx 32rpx;
+  /* 父容器已有 24rpx 内边距，此处不再叠加左右外边距：
+     与首页 Hero / 活动卡片、以及 flush 后的 PageHero 保持同一宽度 */
   margin-top: 24rpx;
-  margin-left: 22rpx;
-  margin-right: 22rpx;
 }
 .notice-item__main {
   display: flex;

@@ -325,7 +325,7 @@ public class ReservationOrderServiceImpl extends ServiceImpl<ReservationOrderMap
         if (order == null) {
             throw new ServiceException("订单不存在");
         }
-        // 仅「待核销」可取消：已完成 / 已过期 / 已取消 / 预约中 / 预约失败都不允许，避免状态被随意回退
+        // 仅「待核销」可取消：已核销 / 已过期 / 已取消 / 预约中 / 预约失败都不允许，避免状态被随意回退
         if (!Objects.equals(ReservationOrderStatus.WAIT_VERIFY.getStatus(), order.getReservationStatus())) {
             ReservationOrderStatus current = Arrays.stream(ReservationOrderStatus.values())
                     .filter(s -> Objects.equals(s.getStatus(), order.getReservationStatus()))

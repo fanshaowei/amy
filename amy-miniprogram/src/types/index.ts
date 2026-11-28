@@ -205,7 +205,7 @@ export interface ReserveRecord {
   guestsNum: number
   /** 预约时间 yyyy-MM-dd HH:mm:ss */
   reservationTime: string
-  /** 状态 -1预约失败 0待核销 1已完成 2已过期 3已取消 4预约中 */
+  /** 状态 -1预约失败 0待核销 1已核销 2已过期 3已取消 4预约中 */
   reservationStatus: number
   reservationStatusName: string
   /** 预约状态说明（状态流转时写入的原因/补充说明，可为空） */
