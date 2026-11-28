@@ -34,6 +34,8 @@ export interface ReservationOrderRecord {
     orderSourceName?: string;
     verifyBy?: string;
     verifyTime?: string;
+    /** 取消时间 */
+    cancelTime?: string;
     createTime?: string;
     /**
      * 核销码：后端 selectReservationOrderList 仅在「待核销」状态查询时生成并返回，

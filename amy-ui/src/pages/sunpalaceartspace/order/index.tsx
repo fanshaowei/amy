@@ -22,7 +22,7 @@ import {
 import {PageContainer, ProTable} from '@ant-design/pro-components';
 import type {ActionType, ProColumns} from '@ant-design/pro-components';
 import {App, Button, Modal, Space, Tag, Tooltip, Typography, theme} from 'antd';
-import type {ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import PageHero from '@/components/PageHero';
 import {PermissionButton} from '@/components/PermissionButton';
@@ -123,7 +123,7 @@ function StatusPill({code, name}: { code?: number; name?: string }) {
     const style = code != null ? STATUS_STYLE[code] : undefined;
     return (
         <span className={styles.pill}
-              style={{color: style?.color ?? '#6b7385', background: style?.background ?? '#f2f4f8'}}>
+              style={{alignSelf: 'flex-start', color: style?.color ?? '#6b7385', background: style?.background ?? '#f2f4f8'}}>
             {style?.icon ?? <QuestionOutlined/>}
             {getOrderStatusName(code, name)}
         </span>
@@ -286,13 +286,13 @@ export default function OrderPage() {
     }, {
         title: '预约项目',
         dataIndex: 'projectName',
-        width: 150,
+        width: 130,
         ellipsis: true,
         render: (_, row) => <span className={styles.cellMain}>{row.projectName || '-'}</span>
     }, {
         title: '预约人',
         dataIndex: 'name',
-        width: 120,
+        width: 100,
         render: (_, row) => <div className={styles.cellStack}>
             <span className={styles.cellMain}>{row.name || '-'}</span>
             <span className={styles.cellSub}><TeamOutlined/>{row.guestsNum ?? 1} 人</span>
@@ -310,7 +310,7 @@ export default function OrderPage() {
     }, {
         title: '证件信息',
         search: false,
-        width: 190,
+        width: 160,
         render: (_, row) => <div className={styles.cellStack}>
             <span>{row.idType || '证件类型未知'}</span>
             <span className={styles.cellSub}>{row.idNum || '未填写证件号'}</span>
@@ -319,7 +319,7 @@ export default function OrderPage() {
         title: '预约时间',
         dataIndex: 'reservationTime',
         valueType: 'date',
-        width: 150,
+        width: 140,
         fieldProps: {style: {width: '100%'}},
         render: (_, row) => {
             const {date, time} = splitDateTime(row.reservationTime);
@@ -332,20 +332,35 @@ export default function OrderPage() {
         title: '状态',
         dataIndex: 'reservationStatus',
         search: false,
-        width: 110,
-        render: (_, row) => <StatusPill code={row.reservationStatus} name={row.reservationStatusName}/>
+        width: 220,
+        render: (_, row) => {
+            // 核销/取消详情用后端返回的时间或操作人判空，而非状态码：
+            // 避免状态异常但已有核销/取消记录的历史订单丢失详情。
+            const hasVerify = !!(row.verifyTime || row.verifyBy);
+            const hasCancel = !!row.cancelTime;
+            // 日期时间较长，列宽已适配；禁止换行，避免「2026-11-28」与「15:34:46」被拆成两行
+            const detailStyle: CSSProperties = {whiteSpace: 'nowrap'};
+            return <div className={styles.cellStack}>
+                <StatusPill code={row.reservationStatus} name={row.reservationStatusName}/>
+                {hasVerify ? <>
+                    <span className={styles.cellSub} style={detailStyle}>核销时间：{row.verifyTime || '-'}</span>
+                    <span className={styles.cellSub} style={detailStyle}>核销人：{row.verifyBy || '-'}</span>
+                </> : null}
+                {hasCancel ? <span className={styles.cellSub} style={detailStyle}>取消时间：{row.cancelTime}</span> : null}
+            </div>;
+        }
     }, {
         title: '订单来源',
         dataIndex: 'orderSource',
         // 后端列表 where 目前没有 orderSource 条件，先关闭搜索，避免出现「能选但不生效」的筛选项
         search: false,
-        width: 130,
+        width: 120,
         render: (_, row) => <SourcePill code={row.orderSource} name={row.orderSourceName}/>
     }, {
         title: '下单时间',
         dataIndex: 'createTime',
         search: false,
-        width: 150,
+        width: 140,
         render: (_, row) => {
             const {date, time} = splitDateTime(row.createTime);
             return <div className={styles.cellStack}>
@@ -357,7 +372,7 @@ export default function OrderPage() {
         title: '操作',
         valueType: 'option',
         fixed: 'right',
-        width: 220,
+        width: 210,
         render: (_, row) => [
             <PermissionButton key="persons" type="link" size="small" icon={<TeamOutlined/>}
                               permission="sunpalaceartspace:reservationOrder:query"
